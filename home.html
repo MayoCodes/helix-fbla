@@ -1,0 +1,2827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helix - Your Pet Dashboard</title>
+    <link rel="stylesheet" href="style_new.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Babylon.js -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; }
+        .dashboard { min-height: 100vh; height: 100vh; background: #2C3E50; padding-top: 70px; }
+        .dashboard-split { display: grid; grid-template-columns: 70% 30%; height: calc(100vh - 70px); }
+        .scene-container { position: relative; background: linear-gradient(135deg, #1a252f 0%, #2C3E50 100%); overflow: hidden; }
+        #renderCanvas { width: 100%; height: 100%; display: block; outline: none; }
+        
+        /* Stats Overlay - Wide Horizontal Design */
+        .scene-info { 
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0.8rem 1rem; 
+            border-radius: 12px; 
+            color: #2C3E50; 
+            backdrop-filter: blur(30px) saturate(180%);
+            z-index: 10; 
+            min-width: 320px;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+        }
+        
+        .stats-main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            align-items: flex-start;
+        }
+        
+        .pet-name-money {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        
+        .scene-info h3 { 
+            margin: 0;
+            font-size: 0.95rem; 
+            color: #2C3E50; 
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        
+        .coins-display {
+            background: linear-gradient(135deg, #FFB347 0%, #FFA500 100%);
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 2px 6px rgba(255, 165, 0, 0.2);
+        }
+        
+        .coins-icon-svg {
+            width: 16px;
+            height: 16px;
+            color: rgba(255,255,255,0.95);
+            stroke-width: 2.5;
+        }
+        
+        .coins-display .coins-amount {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.3px;
+        }
+        
+        .mood-display {
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.05);
+            border: 2px solid rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .mood-display.happy {
+            background: rgba(255, 179, 71, 0.15);
+            border-color: rgba(255, 179, 71, 0.3);
+        }
+        
+        .mood-display.sad {
+            background: rgba(107, 107, 255, 0.15);
+            border-color: rgba(107, 107, 255, 0.3);
+        }
+        
+        .mood-display.sick {
+            background: rgba(255, 107, 107, 0.15);
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+        
+        .mood-display.energetic {
+            background: rgba(96, 165, 250, 0.15);
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+        
+        .mood-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: currentColor;
+        }
+        
+        .mood-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .stats-overlay { 
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex: 1;
+            width: 100%;
+        }
+        
+        .level-bar-container {
+            margin-bottom: 0.4rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+        
+        .level-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #4A9B9B;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .level-xp {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #5a6c7d;
+        }
+        
+        .level-bar-wrapper {
+            width: 100%;
+            position: relative;
+            height: 12px;
+            background: rgba(74, 155, 155, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid rgba(74, 155, 155, 0.2);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .level-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4A9B9B 0%, #5FB8B8 50%, #4A9B9B 100%);
+            border-radius: 6px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-shadow: 0 0 10px rgba(74, 155, 155, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        
+        .stat-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .stat-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #5a6c7d;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .stat-value {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #2C3E50;
+        }
+        
+        .stat-icon-wrapper {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-icon-wrapper.health {
+            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+        }
+        
+        .stat-icon-wrapper.happiness {
+            background: linear-gradient(135deg, #FFB347, #FFA500);
+        }
+        
+        .stat-icon-wrapper.hunger {
+            background: linear-gradient(135deg, #A78BFA, #8B5CF6);
+        }
+        
+        .stat-icon-wrapper.energy {
+            background: linear-gradient(135deg, #60A5FA, #3B82F6);
+        }
+        
+        .stat-icon-svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+            stroke-width: 2.5;
+        }
+        
+        .stat-bar-wrapper {
+            width: 100%;
+            position: relative;
+            height: 8px;
+            background: rgba(0,0,0,0.08);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .total-spent-container {
+            padding-top: 0.4rem;
+            margin-top: 0.3rem;
+            border-top: 1px solid rgba(0,0,0,0.08);
+        }
+        
+        .total-spent {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.6rem;
+            color: #7a8a9a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .total-spent .amount {
+            color: #4A9B9B;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .scene-info {
+                min-width: auto;
+                width: 95%;
+                padding: 1.2rem 1.5rem;
+            }
+            .stats-main-container {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .stats-overlay {
+                grid-template-columns: repeat(2, 1fr);
+                width: 100%;
+            }
+        }
+        
+        /* Bright, vibrant colors for stats */
+        .stat-bar-fill.health { 
+            background: linear-gradient(90deg, #FF6B6B 0%, #EE5A6F 100%); 
+        }
+        .stat-bar-fill.happiness { 
+            background: linear-gradient(90deg, #FFB347 0%, #FFA500 100%); 
+        }
+        .stat-bar-fill.hunger { 
+            background: linear-gradient(90deg, #A78BFA 0%, #8B5CF6 100%); 
+        }
+        .stat-bar-fill.energy { 
+            background: linear-gradient(90deg, #60A5FA 0%, #3B82F6 100%); 
+        }
+        
+        /* Control Panel */
+        .control-panel { background: #FFFFFF; display: flex; flex-direction: column; overflow-y: auto; }
+        .control-header { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; background: #F8F9FA; }
+        .control-header h2 { margin: 0 0 0.5rem 0; color: #2C3E50; font-size: 1.6rem; }
+        .control-header p { margin: 0; color: #666; font-size: 0.9rem; }
+        
+        /* Model Selector */
+        .model-selector { margin-top: 1rem; }
+        .model-selector label { display: block; margin-bottom: 0.5rem; color: #2C3E50; font-weight: 600; font-size: 0.9rem; }
+        
+        .mini-pet-bubbles {
+            display: flex;
+            gap: 0.8rem;
+            padding: 0.5rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .mini-bubble {
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mini-bubble-canvas {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #e0e0e0;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            display: block;
+        }
+        
+        .mini-bubble:hover .mini-bubble-canvas {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .mini-bubble.selected .mini-bubble-canvas {
+            border-color: #4A9B9B;
+            box-shadow: 0 4px 16px rgba(74, 155, 155, 0.4);
+            background: rgba(74, 155, 155, 0.1);
+        }
+        
+        .mini-bubble-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #2C3E50;
+            text-align: center;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .mini-bubble.selected .mini-bubble-label {
+            color: #4A9B9B;
+        }
+        
+        /* Care Actions Section */
+        .care-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; }
+        .care-section h3 { margin: 0 0 1rem 0; color: #2C3E50; font-size: 1.2rem; }
+        
+        /* Traits Section */
+        .traits-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; }
+        .traits-section h3 { margin: 0 0 1rem 0; color: #2C3E50; font-size: 1.2rem; }
+        
+        .age-display {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .age-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+        
+        .age-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        
+        .trait-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .trait-tag {
+            background: linear-gradient(135deg, #4A9B9B, #5FB8B8);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .bond-display {
+            margin-top: 1rem;
+        }
+        
+        .bond-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .bond-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #5a6c7d;
+            text-transform: uppercase;
+        }
+        
+        .bond-value {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #2C3E50;
+        }
+        
+        .bond-bar-wrapper {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 107, 153, 0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 107, 153, 0.2);
+        }
+        
+        .bond-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B99, #FF9DBB);
+            border-radius: 8px;
+            transition: width 0.6s ease;
+        }
+        
+        .bond-milestone {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+        }
+        
+        /* Tasks Section */
+        .tasks-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; background: linear-gradient(to bottom, #ffffff, #f8f9fa); }
+        .tasks-section h3 { margin: 0 0 0.5rem 0; color: #2C3E50; font-size: 1.2rem; }
+        
+        .ai-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .ai-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .ai-button svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* Chat Section */
+        .chat-section {
+            padding: 1.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+        
+        .chat-section h3 {
+            margin: 0 0 1rem 0;
+            color: #2C3E50;
+            font-size: 1.2rem;
+        }
+        
+        .chat-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        
+        .chat-message {
+            padding: 0.8rem;
+            border-radius: 12px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+        
+        .chat-message.user {
+            background: #4A9B9B;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-message.pet {
+            background: white;
+            color: #2C3E50;
+            border: 2px solid #e0e0e0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        .chat-input:focus {
+            border-color: #4A9B9B;
+        }
+        
+        .chat-send-btn {
+            background: #4A9B9B;
+            color: white;
+            border: none;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-send-btn:hover {
+            background: #3d8585;
+            transform: translateY(-2px);
+        }
+        
+        .chat-send-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Events Section */
+        .events-section {
+            padding: 1.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+        }
+        
+        .events-section h3 {
+            margin: 0 0 1rem 0;
+            color: #2C3E50;
+            font-size: 1.2rem;
+        }
+        
+        .event-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 2px solid #fdcb6e;
+        }
+        
+        .event-title {
+            font-weight: 700;
+            color: #2C3E50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .event-dialogue {
+            font-style: italic;
+            color: #5a6c7d;
+        }
+        
+        .tasks-subtitle {
+            margin: 0 0 1rem 0;
+            font-size: 0.8rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        
+        .task-item {
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .task-item:hover {
+            background: linear-gradient(135deg, #4A9B9B, #5FB8B8);
+            border-color: #4A9B9B;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(74, 155, 155, 0.4);
+        }
+        
+        .task-item:hover .task-name,
+        .task-item:hover .task-duration {
+            color: #2C3E50;
+        }
+        
+        .task-item:hover .task-icon {
+            color: white;
+        }
+        
+        .task-item.completed {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-color: #4CAF50;
+        }
+        
+        .task-item.completed:hover {
+            transform: none;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .task-icon {
+            width: 32px;
+            height: 32px;
+            color: #4A9B9B;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .task-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .task-item:hover .task-icon {
+            color: white;
+        }
+        
+        .inline-icon {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.2rem;
+        }
+        
+        .task-name {
+            font-weight: 700;
+            color: #2C3E50;
+            font-size: 1rem;
+            flex: 1;
+        }
+        
+        .task-duration {
+            font-size: 0.75rem;
+            color: #666;
+            margin-left: 2.6rem;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .task-reward {
+            display: flex;
+            gap: 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 2.6rem;
+        }
+        
+        .task-coins {
+            color: #FFB347;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .task-bond {
+            color: #FF6B99;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .task-checkmark {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            color: #4CAF50;
+        }
+        
+        .task-checkmark svg {
+            width: 100%;
+            height: 100%;
+        }
+        .care-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+        
+        .care-btn {
+            background: #F8F9FA; border: 2px solid #e0e0e0; border-radius: 10px;
+            padding: 1rem; cursor: pointer; transition: all 0.3s ease;
+            display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+            position: relative;
+        }
+        .care-btn:hover { background: #4A9B9B; border-color: #4A9B9B; transform: translateY(-2px); }
+        .care-btn:hover .btn-icon { transform: scale(1.1); }
+        .care-btn:hover .btn-label { color: #FFFFFF; }
+        .care-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .care-btn:disabled:hover { background: #F8F9FA; border-color: #e0e0e0; transform: none; }
+        
+        .btn-icon { 
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease; 
+        }
+        .btn-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+        .btn-label { font-weight: 600; color: #2C3E50; font-size: 0.85rem; transition: color 0.3s ease; text-align: center; }
+        .btn-cost { font-size: 0.75rem; color: #666; margin-top: 0.2rem; }
+        .care-btn:hover .btn-cost { color: rgba(255,255,255,0.9); }
+        
+        /* Animation Buttons */
+        .animation-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; }
+        .animation-section h3 { margin: 0 0 1rem 0; color: #2C3E50; font-size: 1.2rem; }
+        .animation-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+        
+        .anim-btn {
+            background: #F8F9FA; border: 2px solid #e0e0e0; border-radius: 10px;
+            padding: 0.8rem; cursor: pointer; transition: all 0.3s ease;
+            display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+        }
+        .anim-btn:hover { background: #4A9B9B; border-color: #4A9B9B; }
+        .anim-btn.active { background: #4A9B9B; border-color: #4A9B9B; }
+        .anim-btn.active .btn-label { color: #FFFFFF; }
+        .anim-btn:hover .btn-label { color: #FFFFFF; }
+        
+        /* Footer */
+        .control-footer { padding: 1.5rem; margin-top: auto; }
+        .btn-secondary { 
+            width: 100%; padding: 1rem; background: transparent; 
+            border: 2px solid #2C3E50; border-radius: 8px; color: #2C3E50; 
+            font-weight: 600; cursor: pointer; transition: all 0.3s ease; 
+        }
+        .btn-secondary:hover { background: #2C3E50; color: #FFFFFF; }
+        
+        /* Modal for Pet Setup */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: white;
+            z-index: 1000; 
+            overflow-y: auto;
+        }
+        .modal.active { display: block; }
+        
+        .setup-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: white;
+        }
+        
+        .setup-title {
+            font-size: 3rem;
+            color: #4A9B9B;
+            margin: 0 0 3rem 0;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .pet-carousel {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .carousel-arrow {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: none;
+            font-size: 2.5rem;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .carousel-arrow:hover {
+            background: #4A9B9B;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .pet-bubbles-container {
+            display: flex;
+            gap: 2rem;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 1rem;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .pet-bubbles-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .pet-bubbles-container::-webkit-scrollbar-thumb {
+            background: #4A9B9B;
+            border-radius: 4px;
+        }
+        
+        .pet-bubble {
+            min-width: 300px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .pet-bubble:hover {
+            transform: translateY(-10px);
+        }
+        
+        .bubble-canvas-wrapper {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: white;
+            border: 5px solid #e0e0e0;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .pet-bubble.selected .bubble-canvas-wrapper {
+            background: #4A9B9B;
+            border-color: #4A9B9B;
+            box-shadow: 0 20px 50px rgba(74, 155, 155, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .bubble-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .bubble-label {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2C3E50;
+            margin: 0;
+            transition: color 0.3s ease;
+        }
+        
+        .pet-bubble.selected .bubble-label {
+            color: #4A9B9B;
+        }
+        
+        .name-input-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .name-input-section input {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            font-size: 1.3rem;
+            border: 3px solid #e0e0e0;
+            border-radius: 50px;
+            text-align: center;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .name-input-section input:focus {
+            border-color: #4A9B9B;
+            box-shadow: 0 0 0 4px rgba(74, 155, 155, 0.1);
+        }
+        
+        .start-btn {
+            width: 100%;
+            padding: 1.2rem 2rem;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: #4A9B9B;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(74, 155, 155, 0.3);
+        }
+        
+        .start-btn:hover {
+            background: #3d8585;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(74, 155, 155, 0.4);
+        }
+        
+        .start-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <nav id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><span class="logo-text">HELIX</span></a>
+            <div class="nav-auth-buttons">
+                <button class="btn-nav btn-logout" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <section class="dashboard">
+        <div class="dashboard-split">
+            <!-- 3D Viewer -->
+            <div class="scene-container">
+                <canvas id="renderCanvas"></canvas>
+                <div class="scene-info">
+                    <div class="stats-main-container">
+                        <div class="pet-name-money">
+                            <h3 id="petNameDisplay">Loading...</h3>
+                            <div class="coins-display">
+                                <svg class="coins-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="8" r="7"></circle>
+                                    <circle cx="12" cy="16" r="7" opacity="0.5"></circle>
+                                </svg>
+                                <div class="coins-amount"><span id="coinsStat">100</span> coins</div>
+                            </div>
+                            <div class="mood-display" id="moodDisplay" title="Current mood">
+                                <span class="mood-icon">😊</span>
+                            </div>
+                        </div>
+                        
+                        <div class="level-bar-container">
+                            <div class="level-info">
+                                <span class="level-label">Level <span id="levelNum">1</span></span>
+                                <span class="level-xp"><span id="currentXP">0</span>/<span id="maxXP">100</span> XP</span>
+                            </div>
+                            <div class="level-bar-wrapper">
+                                <div class="level-bar-fill" id="levelBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-overlay">
+                            <div class="stat-row">
+                                <div class="stat-icon-wrapper health">
+                                    <svg class="stat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                    </svg>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-header-row">
+                                        <span class="stat-label" title="Higher is better">Health</span>
+                                        <span class="stat-value"><span id="healthStat">100</span>%</span>
+                                    </div>
+                                    <div class="stat-bar-wrapper">
+                                        <div class="stat-bar-fill health" id="healthBar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-row">
+                                <div class="stat-icon-wrapper happiness">
+                                    <svg class="stat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                        <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                        <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                                    </svg>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-header-row">
+                                        <span class="stat-label" title="Higher is better">Happiness</span>
+                                        <span class="stat-value"><span id="happinessStat">100</span>%</span>
+                                    </div>
+                                    <div class="stat-bar-wrapper">
+                                        <div class="stat-bar-fill happiness" id="happinessBar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-row">
+                                <div class="stat-icon-wrapper hunger">
+                                    <svg class="stat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                                        <line x1="6" y1="1" x2="6" y2="4"></line>
+                                        <line x1="10" y1="1" x2="10" y2="4"></line>
+                                        <line x1="14" y1="1" x2="14" y2="4"></line>
+                                    </svg>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-header-row">
+                                        <span class="stat-label" title="Higher is better">Fullness</span>
+                                        <span class="stat-value"><span id="fullnessStat">100</span>%</span>
+                                    </div>
+                                    <div class="stat-bar-wrapper">
+                                        <div class="stat-bar-fill hunger" id="fullnessBar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-row">
+                                <div class="stat-icon-wrapper energy">
+                                    <svg class="stat-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                    </svg>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-header-row">
+                                        <span class="stat-label" title="Higher is better - Rest to restore">Energy</span>
+                                        <span class="stat-value"><span id="energyStat">100</span>%</span>
+                                    </div>
+                                    <div class="stat-bar-wrapper">
+                                        <div class="stat-bar-fill energy" id="energyBar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="total-spent-container">
+                        <div class="total-spent">
+                            <span>TOTAL EXPENSES</span>
+                            <span class="amount">$<span id="totalSpent">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="control-header">
+                    <h2>Pet Care</h2>
+                    <p id="userGreeting">Loading...</p>
+                    
+                    <div class="model-selector">
+                        <label>Your Pets:</label>
+                        <div class="mini-pet-bubbles" id="miniPetBubblesContainer">
+                            <!-- Dynamically populated from userPets -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pet Traits & Info -->
+                <div class="traits-section">
+                    <h3>Pet Info</h3>
+                    <div class="age-display">
+                        <span class="age-label">Age:</span>
+                        <span class="age-value" id="ageValue">Baby</span>
+                    </div>
+                    <div class="trait-tags" id="traitTags">
+                        <!-- Dynamically populated -->
+                    </div>
+                    <div class="bond-display">
+                        <div class="bond-header">
+                            <span class="bond-label">Bond Level</span>
+                            <span class="bond-value"><span id="bondValue">0</span>/100</span>
+                        </div>
+                        <div class="bond-bar-wrapper">
+                            <div class="bond-bar-fill" id="bondBar" style="width: 0%"></div>
+                        </div>
+                        <div class="bond-milestone" id="bondMilestone"></div>
+                    </div>
+                </div>
+                
+                <!-- Daily Tasks -->
+                <div class="tasks-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3 style="margin: 0;">Daily Tasks</h3>
+                        <button class="ai-button" onclick="refreshAITasks()" title="Generate AI tasks">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+                            </svg>
+                            AI Tasks
+                        </button>
+                    </div>
+                    <p class="tasks-subtitle">Complete tasks to earn coins and increase bond!</p>
+                    <div class="task-list" id="taskList">
+                        <!-- Dynamically populated based on pet type -->
+                    </div>
+                </div>
+                
+                <!-- AI Pet Chat -->
+                <div class="chat-section">
+                    <h3>Talk to Your Pet</h3>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" class="chat-input" placeholder="Say something to your pet...">
+                        <button class="chat-send-btn" onclick="sendChatMessage()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Random Events -->
+                <div class="events-section" id="eventsSection" style="display: none;">
+                    <h3>Something Happened!</h3>
+                    <div class="event-card" id="eventCard"></div>
+                </div>
+                
+                <!-- Care Actions -->
+                <div class="care-section">
+                    <h3>Care Actions</h3>
+                    <div class="care-buttons">
+                        <button class="care-btn" onclick="feedPet()">
+                            <span class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                                    <line x1="6" y1="1" x2="6" y2="4"></line>
+                                    <line x1="10" y1="1" x2="10" y2="4"></line>
+                                    <line x1="14" y1="1" x2="14" y2="4"></line>
+                                </svg>
+                            </span>
+                            <span class="btn-label">Feed</span>
+                            <span class="btn-cost">5 coins</span>
+                        </button>
+                        <button class="care-btn" onclick="playWithPet()">
+                            <span class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M8 15h8M9 9h.01M15 9h.01"></path>
+                                </svg>
+                            </span>
+                            <span class="btn-label">Play</span>
+                            <span class="btn-cost">3 coins</span>
+                        </button>
+                        <button class="care-btn" onclick="restPet()">
+                            <span class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M2 12h20M2 12l8-8m-8 8l8 8"></path>
+                                </svg>
+                            </span>
+                            <span class="btn-label">Rest</span>
+                            <span class="btn-cost">Free</span>
+                        </button>
+                        <button class="care-btn" onclick="healthCheck()">
+                            <span class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                            </span>
+                            <span class="btn-label">Vet Check</span>
+                            <span class="btn-cost">15 coins</span>
+                        </button>
+                        <button class="care-btn" onclick="giveTreat()">
+                            <span class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="6" y="4" width="4" height="16" rx="2"></rect>
+                                    <rect x="14" y="4" width="4" height="16" rx="2"></rect>
+                                    <rect x="8" y="10" width="8" height="4" rx="1"></rect>
+                                </svg>
+                            </span>
+                            <span class="btn-label">Treat</span>
+                            <span class="btn-cost">2 coins</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Animations -->
+                <div class="animation-section">
+                    <h3>Animations</h3>
+                    <div class="animation-buttons" id="animButtons">
+                        <p style="text-align: center; color: #666;">Loading animations...</p>
+                    </div>
+                </div>
+                
+                <div class="control-footer">
+                    <button class="btn-secondary" onclick="window.location.href='index.html'">Back to Home</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pet Setup Modal -->
+    <div class="modal" id="setupModal">
+        <div class="setup-screen">
+            <h1 class="setup-title">Choose Your New Pet!</h1>
+            
+            <div class="pet-carousel">
+                <button class="carousel-arrow left" onclick="scrollPets(-1)">‹</button>
+                
+                <div class="pet-bubbles-container" id="petBubblesContainer">
+                    <div class="pet-bubble" data-type="a" onclick="selectPetBubble('a')">
+                        <div class="bubble-canvas-wrapper">
+                            <canvas class="bubble-canvas" id="bubbleCanvas_a"></canvas>
+                        </div>
+                        <p class="bubble-label">Cat</p>
+                    </div>
+                    
+                    <div class="pet-bubble" data-type="b" onclick="selectPetBubble('b')">
+                        <div class="bubble-canvas-wrapper">
+                            <canvas class="bubble-canvas" id="bubbleCanvas_b"></canvas>
+                        </div>
+                        <p class="bubble-label">Dog</p>
+                    </div>
+                    
+                    <div class="pet-bubble" data-type="c" onclick="selectPetBubble('c')">
+                        <div class="bubble-canvas-wrapper">
+                            <canvas class="bubble-canvas" id="bubbleCanvas_c"></canvas>
+                        </div>
+                        <p class="bubble-label">Bird</p>
+                    </div>
+                </div>
+                
+                <button class="carousel-arrow right" onclick="scrollPets(1)">›</button>
+            </div>
+            
+            <div class="name-input-section">
+                <input type="text" id="petNameInput" placeholder="Enter your pet's name..." maxlength="20">
+                <button class="start-btn" onclick="savePetSetup()">Start Your Journey</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config - REPLACE WITH YOUR ACTUAL CONFIG
+        // Get this from Firebase Console -> Project Settings -> Your apps -> Web app
+        const firebaseConfig = {
+            apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+            authDomain: "helix-fbla.firebaseapp.com",
+            projectId: "helix-fbla",
+            storageBucket: "helix-fbla.firebasestorage.app",
+            messagingSenderId: "154951525413",
+            appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+        };
+        
+        // Check if Firebase is configured
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
+        let db, auth, currentUser;
+        
+        if (isFirebaseConfigured) {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("✅ Firebase initialized successfully");
+        } else {
+            console.log("⚠️ DEVELOPMENT MODE - Using localStorage");
+            console.log("To enable Firebase:");
+            console.log("1. Go to Firebase Console");
+            console.log("2. Create/select your project");
+            console.log("3. Enable Firestore Database");
+            console.log("4. Get your config and paste it above");
+        }
+
+        // Pet Data Structure - now supports multiple pets
+        let currentPetId = null; // ID of currently active pet
+        let petData = {
+            name: "Your Pet",
+            type: "a", // a, b, c
+            age: "baby", // baby, young, adult, senior
+            level: 1,
+            experience: 0,
+            experienceToNextLevel: 100,
+            health: 100,
+            happiness: 100,
+            fullness: 100, // Fullness (0 = starving, 100 = full) - renamed from hunger
+            energy: 100,
+            coins: 100, // Main currency - earned from tasks and used for purchases
+            bond: 0, // Bond level with pet (0-100)
+            totalSpent: 0,
+            treats: {}, // Pet-specific treats inventory
+            tasksCompleted: {}, // Track completed tasks
+            lastTaskReset: Date.now(),
+            lastUpdated: Date.now()
+        };
+        
+        let userPets = {}; // Object storing all user's pets by ID
+        
+        // ============================================
+        // GEMINI AI CONFIGURATION
+        // ============================================
+        
+
+        const GEMINI_API_KEY = "AIzaSyAuJD8p0upTimf6bERw9CASFPLhqfGU8FA";
+        const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+        // Check if AI is enabled
+        function isAIEnabled() {
+            return GEMINI_API_KEY !== "YOUR_GEMINI_API_KEY_HERE" && GEMINI_API_KEY.startsWith("AIza");
+        }
+        
+        // AI Personality system
+        async function callGeminiAPI(prompt) {
+            if (!isAIEnabled()) {
+                console.log("AI features disabled - no API key configured");
+                return null;
+            }
+            
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': GEMINI_API_KEY
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error("Gemini API error:", response.status, await response.text());
+                    return null;
+                }
+                
+                const data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+                return null;
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                return null;
+            }
+        }
+        
+        function getPetPersonalityContext() {
+            const traits = PET_TRAITS[petData.type];
+            const age = AGE_STAGES[petData.age || 'baby'];
+            const daysSinceAdoption = Math.floor((Date.now() - (petData.adoptionDate || Date.now())) / (1000 * 60 * 60 * 24));
+            
+            return `You are ${petData.name}, a ${age.label.toLowerCase()} ${traits.name.toLowerCase()}.
+Your personality traits: ${traits.traits.join(', ')}.
+Your current stats: Health ${petData.health}%, Happiness ${petData.happiness}%, Fullness ${petData.fullness}%, Energy ${petData.energy}%.
+Bond level with owner: ${petData.bond}/100.
+Days since adoption: ${daysSinceAdoption}.
+Total money spent on you: ${petData.totalSpent} coins.
+
+You should respond in first person as the pet. Be emotional and reference your stats. If stats are low, express sadness or concern. If stats are high, be happy and affectionate. Keep responses under 50 words and conversational.`;
+        }
+        
+        async function generateAIDailyTasks() {
+            const traits = PET_TRAITS[petData.type];
+            const context = getPetPersonalityContext();
+            
+            const prompt = `${context}
+
+Based on your personality and the existing activities you enjoy (${traits.tasks.map(t => t.name).join(', ')}), generate 3 unique daily tasks that fit your personality today.
+
+Return ONLY a JSON array in this exact format (no markdown, no extra text):
+[
+  {"name": "task name", "duration": "X min", "coins": number, "bond": number},
+  {"name": "task name", "duration": "X min", "coins": number, "bond": number},
+  {"name": "task name", "duration": "X min", "coins": number, "bond": number}
+]
+
+Make tasks creative but realistic for a ${traits.name}. Coins should be 5-15, bond should be 10-30.`;
+
+            const response = await callGeminiAPI(prompt);
+            
+            if (response) {
+                try {
+                    // Clean up response - remove markdown code blocks if present
+                    let cleanResponse = response.trim();
+                    if (cleanResponse.startsWith('```')) {
+                        cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+                    }
+                    
+                    const tasks = JSON.parse(cleanResponse);
+                    
+                    // Add unique IDs
+                    return tasks.map((task, index) => ({
+                        id: `ai_task_${index}`,
+                        ...task
+                    }));
+                } catch (e) {
+                    console.error("Failed to parse AI tasks:", e);
+                    return null;
+                }
+            }
+            return null;
+        }
+        
+        async function generateRandomEvent() {
+            const context = getPetPersonalityContext();
+            
+            const prompt = `${context}
+
+Generate a unique random event that happened to you today as a pet. This could be:
+- Meeting another animal
+- Finding something interesting
+- Having a funny moment
+- Missing something
+- Wanting something new
+
+Return ONLY a JSON object in this exact format (no markdown, no extra text):
+{"event": "brief description of what happened", "dialogue": "what you say to your owner about it (under 40 words, emotional and personal)"}`;
+
+            const response = await callGeminiAPI(prompt);
+            
+            if (response) {
+                try {
+                    let cleanResponse = response.trim();
+                    if (cleanResponse.startsWith('```')) {
+                        cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+                    }
+                    return JSON.parse(cleanResponse);
+                } catch (e) {
+                    console.error("Failed to parse event:", e);
+                    return null;
+                }
+            }
+            return null;
+        }
+        
+        async function chatWithPet(userMessage) {
+            const context = getPetPersonalityContext();
+            
+            const prompt = `${context}
+
+Your owner just said to you: "${userMessage}"
+
+Respond as the pet in first person. Be emotional and reference your current state. If you're unhappy, explain why. If you're happy, show affection. Keep it under 50 words.`;
+
+            return await callGeminiAPI(prompt);
+        }
+        
+        // Age stages based on bond level
+        const AGE_STAGES = {
+            baby: { minBond: 0, maxBond: 24, label: "Baby", scale: 0.8 },
+            young: { minBond: 25, maxBond: 49, label: "Young", scale: 1.0 },
+            adult: { minBond: 50, maxBond: 74, label: "Adult", scale: 1.2 },
+            senior: { minBond: 75, maxBond: 100, label: "Senior", scale: 1.1 }
+        };
+        
+        // Pet Traits and Tasks System
+        const PET_TRAITS = {
+            a: { // Cat
+                name: "Cat",
+                traits: ["Independent", "Playful", "Curious"],
+                tasks: [
+                    { id: "playtime", name: "Play with toys", coins: 5, bond: 10, duration: "5 min" },
+                    { id: "socialize", name: "Pet and cuddle", coins: 8, bond: 15, duration: "10 min" },
+                    { id: "explore", name: "Let explore around house", coins: 10, bond: 20, duration: "15 min" }
+                ],
+                treatName: "Cat Treats",
+                treatCost: 10
+            },
+            b: { // Dog
+                name: "Dog",
+                traits: ["Loyal", "Energetic", "Social"],
+                tasks: [
+                    { id: "run", name: "Go for a run", coins: 10, bond: 20, duration: "20 min" },
+                    { id: "fetch", name: "Play fetch", coins: 8, bond: 15, duration: "15 min" },
+                    { id: "train", name: "Practice commands", coins: 12, bond: 25, duration: "10 min" }
+                ],
+                treatName: "Dog Biscuits",
+                treatCost: 12
+            },
+            c: { // Bird (Parrot)
+                name: "Bird",
+                traits: ["Social", "Intelligent", "Vocal"],
+                tasks: [
+                    { id: "socialize", name: "Talk and interact", coins: 10, bond: 20, duration: "15 min" },
+                    { id: "work", name: "Teach new words", coins: 15, bond: 30, duration: "20 min" },
+                    { id: "play", name: "Play with toys", coins: 8, bond: 15, duration: "10 min" }
+                ],
+                treatName: "Spray Millet",
+                treatCost: 15
+            }
+        };
+
+        // 3D Scene Variables
+        const canvas = document.getElementById('renderCanvas');
+        const engine = new BABYLON.Engine(canvas, true);
+        let scene, camera, model, animations = {}, currentAnimGroup = null;
+
+        // Bubble preview variables
+        let bubbleEngines = {};
+        let bubbleScenes = {};
+        let bubbleModels = {};
+        let selectedPetType = null;
+        
+        // Mini bubble variables for control panel
+        let miniBubbleEngines = {};
+        let miniBubbleScenes = {};
+        let miniBubbleModels = {};
+        const MODELS = {
+            a: { file: "Leopard_Hybrid_A2.glb", name: "Cat" },
+            b: { file: "idle02.glb", name: "Dog" },
+            c: { file: "Parrot_A4.glb", name: "Bird" }
+        };
+
+        // ============================================
+        // FIREBASE FUNCTIONS
+        // ============================================
+        
+        async function loadPetData() {
+            if (!isFirebaseConfigured || !currentUser) {
+                // Development mode - use local storage
+                const saved = localStorage.getItem('userPets');
+                const savedCurrentId = localStorage.getItem('currentPetId');
+                
+                // Migration: Check for old single-pet data structure
+                const oldPetData = localStorage.getItem('petData');
+                if (oldPetData && !saved) {
+                    console.log("🔄 Migrating old pet data to new structure...");
+                    const oldPet = JSON.parse(oldPetData);
+                    
+                    // Convert hunger to fullness
+                    if (oldPet.hunger !== undefined && oldPet.fullness === undefined) {
+                        oldPet.fullness = 100 - oldPet.hunger; // Invert the value
+                        delete oldPet.hunger;
+                    }
+                    
+                    const petId = Date.now().toString();
+                    userPets = {
+                        [petId]: oldPet
+                    };
+                    currentPetId = petId;
+                    
+                    // Save new structure
+                    localStorage.setItem('userPets', JSON.stringify(userPets));
+                    localStorage.setItem('currentPetId', currentPetId);
+                    localStorage.removeItem('petData'); // Remove old data
+                    
+                    petData = oldPet;
+                    updateUI();
+                    loadModel(MODELS[petData.type].file);
+                    loadMiniBubbles();
+                    return;
+                }
+                
+                if (saved) {
+                    userPets = JSON.parse(saved);
+                    currentPetId = savedCurrentId;
+                    
+                    // Migrate any pets with hunger to fullness
+                    Object.keys(userPets).forEach(petId => {
+                        const pet = userPets[petId];
+                        if (pet.hunger !== undefined && pet.fullness === undefined) {
+                            pet.fullness = 100 - pet.hunger;
+                            delete pet.hunger;
+                        }
+                    });
+                    
+                    if (currentPetId && userPets[currentPetId]) {
+                        petData = userPets[currentPetId];
+                        updateUI();
+                        loadModel(MODELS[petData.type].file);
+                        loadMiniBubbles();
+                    } else {
+                        // Load first pet if no current pet selected
+                        const firstPetId = Object.keys(userPets)[0];
+                        if (firstPetId) {
+                            currentPetId = firstPetId;
+                            petData = userPets[firstPetId];
+                            localStorage.setItem('currentPetId', currentPetId);
+                            updateUI();
+                            loadModel(MODELS[petData.type].file);
+                            loadMiniBubbles();
+                        } else {
+                            showSetupModal();
+                        }
+                    }
+                } else {
+                    showSetupModal();
+                }
+                return;
+            }
+
+            try {
+                // Load all pets for this user
+                const petsSnapshot = await db.collection('users').doc(currentUser.uid).collection('pets').get();
+                
+                if (!petsSnapshot.empty) {
+                    userPets = {};
+                    petsSnapshot.forEach(doc => {
+                        const pet = doc.data();
+                        // Migrate hunger to fullness
+                        if (pet.hunger !== undefined && pet.fullness === undefined) {
+                            pet.fullness = 100 - pet.hunger;
+                            delete pet.hunger;
+                        }
+                        userPets[doc.id] = pet;
+                    });
+                    
+                    // Load current pet ID
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    currentPetId = userDoc.data()?.currentPetId || Object.keys(userPets)[0];
+                    
+                    petData = userPets[currentPetId];
+                    updateUI();
+                    loadModel(MODELS[petData.type].file);
+                    loadMiniBubbles();
+                    
+                    // Update stats based on time passed
+                    updateStatsOverTime();
+                } else {
+                    showSetupModal();
+                }
+            } catch (error) {
+                console.error("Error loading pet data:", error);
+                showSetupModal();
+            }
+        }
+
+        async function savePetData() {
+            petData.lastUpdated = Date.now();
+            
+            // Safety check: prevent negative coins
+            if (petData.coins < 0) {
+                petData.coins = 0;
+            }
+            
+            // Update in memory
+            if (currentPetId) {
+                userPets[currentPetId] = petData;
+            }
+            
+            if (!isFirebaseConfigured || !currentUser) {
+                // Development mode - use local storage
+                localStorage.setItem('userPets', JSON.stringify(userPets));
+                localStorage.setItem('currentPetId', currentPetId);
+                return;
+            }
+
+            try {
+                // Save current pet
+                await db.collection('users').doc(currentUser.uid).collection('pets').doc(currentPetId).set(petData);
+                
+                // Save current pet ID
+                await db.collection('users').doc(currentUser.uid).set({
+                    currentPetId: currentPetId
+                }, { merge: true });
+                
+                console.log("Pet data saved to Firebase");
+            } catch (error) {
+                console.error("Error saving pet data:", error);
+            }
+        }
+
+        function showSetupModal() {
+            document.getElementById('setupModal').classList.add('active');
+            
+            // Load 3D previews for each pet type after a short delay
+            setTimeout(() => {
+                loadBubblePreview('a');
+                loadBubblePreview('b');
+                loadBubblePreview('c');
+            }, 100);
+        }
+
+        function loadBubblePreview(petType) {
+            const canvasId = `bubbleCanvas_${petType}`;
+            const canvas = document.getElementById(canvasId);
+            
+            if (!canvas) return;
+            
+            // Create engine and scene for this bubble
+            const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+            bubbleEngines[petType] = engine;
+            
+            const scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(1, 1, 1, 1); // White background
+            bubbleScenes[petType] = scene;
+            
+            // Camera - positioned to show front of pet (facing viewer)
+            const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 4, BABYLON.Vector3.Zero(), scene);
+            camera.lowerRadiusLimit = 3;
+            camera.upperRadiusLimit = 6;
+            camera.attachControl(canvas, true);
+            
+            // Lighting
+            const light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light1.intensity = 0.7;
+            
+            const light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -2, -1), scene);
+            light2.position = new BABYLON.Vector3(5, 10, 5);
+            light2.intensity = 0.5;
+            
+            // Load model
+            BABYLON.SceneLoader.ImportMesh("", "", MODELS[petType].file, scene, 
+                (meshes) => {
+                    const model = meshes[0];
+                    bubbleModels[petType] = model;
+                    
+                    // Fix materials
+                    model.getChildMeshes().forEach(mesh => {
+                        if (mesh.material) {
+                            const mat = mesh.material;
+                            if (mat.getClassName() === "PBRMaterial") {
+                                if (mat.albedoTexture && mat.albedoTexture.hasAlpha) {
+                                    mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;
+                                    mat.alphaCutOff = 0.5;
+                                    mat.useAlphaFromAlbedoTexture = true;
+                                } else {
+                                    mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
+                                }
+                                if (!mat.metallicTexture) {
+                                    mat.metallic = 0;
+                                    mat.roughness = 1.0;
+                                }
+                                mat.backFaceCulling = true;
+                            }
+                        }
+                    });
+                    
+                    // Position model
+                    const bounds = model.getHierarchyBoundingVectors();
+                    const size = bounds.max.subtract(bounds.min);
+                    const scale = 2.0 / Math.max(size.x, size.y, size.z); // Reduced to 2.0 for smaller models
+                    model.scaling.setAll(scale);
+                    model.computeWorldMatrix(true);
+                    
+                    const newBounds = model.getHierarchyBoundingVectors();
+                    const center = BABYLON.Vector3.Center(newBounds.min, newBounds.max);
+                    
+                    // Position lower - adjust Y to bring model down
+                    model.position = new BABYLON.Vector3(-center.x, -newBounds.min.y - 0.5, -center.z);
+                    
+                    // Auto-rotate
+                    scene.registerBeforeRender(() => {
+                        model.rotation.y += 0.005;
+                    });
+                }
+            );
+            
+            // Render loop
+            engine.runRenderLoop(() => scene.render());
+        }
+
+        function selectPetBubble(petType) {
+            selectedPetType = petType;
+            
+            // Update UI
+            document.querySelectorAll('.pet-bubble').forEach(bubble => {
+                bubble.classList.remove('selected');
+            });
+            document.querySelector(`[data-type="${petType}"]`).classList.add('selected');
+            
+            // Update background color of selected bubble's scene
+            Object.keys(bubbleScenes).forEach(type => {
+                if (type === petType) {
+                    bubbleScenes[type].clearColor = new BABYLON.Color4(0.29, 0.61, 0.61, 1); // Teal
+                } else {
+                    bubbleScenes[type].clearColor = new BABYLON.Color4(1, 1, 1, 1); // White
+                }
+            });
+        }
+
+        function scrollPets(direction) {
+            const container = document.getElementById('petBubblesContainer');
+            const scrollAmount = 320; // bubble width + gap
+            container.scrollLeft += direction * scrollAmount;
+        }
+
+        async function savePetSetup() {
+            const name = document.getElementById('petNameInput').value.trim();
+            
+            if (!name) {
+                alert("Please enter a pet name!");
+                return;
+            }
+            
+            if (!selectedPetType) {
+                alert("Please select a pet type!");
+                return;
+            }
+
+            // Create new pet with unique ID
+            const newPetId = Date.now().toString(); // Simple unique ID
+            const newPet = {
+                name: name,
+                type: selectedPetType,
+                age: "baby",
+                level: 1,
+                experience: 0,
+                experienceToNextLevel: 100,
+                health: 100,
+                happiness: 100,
+                fullness: 100,
+                energy: 100,
+                coins: 100,
+                bond: 0,
+                totalSpent: 0,
+                treats: {},
+                tasksCompleted: {},
+                lastTaskReset: Date.now(),
+                adoptionDate: Date.now(),
+                usingAITasks: false,
+                lastUpdated: Date.now()
+            };
+            
+            // Add to userPets
+            userPets[newPetId] = newPet;
+            currentPetId = newPetId;
+            petData = newPet;
+            
+            console.log("✅ Created new pet:", newPetId, newPet);
+            console.log("📦 Total pets:", Object.keys(userPets).length);
+            
+            // Cleanup bubble engines
+            Object.values(bubbleEngines).forEach(engine => {
+                engine.stopRenderLoop();
+                engine.dispose();
+            });
+            bubbleEngines = {};
+            bubbleScenes = {};
+            bubbleModels = {};
+            
+            document.getElementById('setupModal').classList.remove('active');
+            
+            updateUI();
+            await savePetData();
+            loadModel(MODELS[selectedPetType].file);
+            loadMiniBubbles();
+        }
+
+        // ============================================
+        // XP AND LEVELING SYSTEM
+        // ============================================
+        
+        function gainExperience(amount) {
+            if (!petData.experience) petData.experience = 0;
+            if (!petData.level) petData.level = 1;
+            if (!petData.experienceToNextLevel) petData.experienceToNextLevel = 100;
+            
+            petData.experience += amount;
+            
+            // Check for level up
+            if (petData.experience >= petData.experienceToNextLevel) {
+                levelUp();
+            }
+            
+            updateUI();
+            savePetData();
+        }
+        
+        function levelUp() {
+            petData.level += 1;
+            petData.experience -= petData.experienceToNextLevel;
+            petData.experienceToNextLevel = Math.floor(petData.experienceToNextLevel * 1.5); // 50% more XP needed each level
+            
+            // Bonus rewards for leveling up
+            petData.coins += 50;
+            petData.health = Math.min(100, petData.health + 20);
+            petData.happiness = Math.min(100, petData.happiness + 20);
+            
+            // Show level up notification
+            showFeedback(`Level Up! Now Level ${petData.level}! +50 coins bonus!`);
+        }
+        
+        // ============================================
+        // AI CHAT & EVENTS
+        // ============================================
+        
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            if (!isAIEnabled()) {
+                addChatMessage(message, 'user');
+                addChatMessage("*wags tail* (AI chat disabled - add your Gemini API key to enable! See GEMINI_AI_SETUP.md)", 'pet');
+                input.value = '';
+                return;
+            }
+            
+            // Add user message to chat
+            addChatMessage(message, 'user');
+            input.value = '';
+            
+            // Show loading
+            const loadingMsg = addChatMessage('...', 'pet');
+            
+            // Get AI response
+            const response = await chatWithPet(message);
+            
+            // Remove loading and add real response
+            loadingMsg.remove();
+            if (response) {
+                addChatMessage(response, 'pet');
+            } else {
+                addChatMessage("*looks confused* (AI error - check console for details)", 'pet');
+            }
+        }
+        
+        function addChatMessage(text, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.textContent = text;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return messageDiv;
+        }
+        
+        async function refreshAITasks() {
+            if (!isAIEnabled()) {
+                alert("AI Tasks require Gemini API key.\n\nGet your FREE key at:\nhttps://makersuite.google.com/app/apikey\n\nSee GEMINI_AI_SETUP.md for instructions!");
+                return;
+            }
+            
+            const button = event.target.closest('.ai-button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg> Loading...';
+            button.disabled = true;
+            
+            const aiTasks = await generateAIDailyTasks();
+            
+            if (aiTasks) {
+                // Replace current tasks with AI tasks
+                const traits = PET_TRAITS[petData.type];
+                traits.aiTasks = aiTasks;
+                
+                // Mark as AI-generated
+                petData.usingAITasks = true;
+                
+                loadPetTasks();
+                savePetData();
+            } else {
+                alert("Failed to generate AI tasks. Check your API key and try again.");
+            }
+            
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+        
+        async function checkForRandomEvent() {
+            // Only check if AI is enabled
+            if (!isAIEnabled()) return;
+            
+            // Random chance of event (10% per hour)
+            if (Math.random() < 0.1) {
+                const event = await generateRandomEvent();
+                
+                if (event) {
+                    showRandomEvent(event);
+                }
+            }
+        }
+        
+        function showRandomEvent(event) {
+            const eventSection = document.getElementById('eventsSection');
+            const eventCard = document.getElementById('eventCard');
+            
+            eventCard.innerHTML = `
+                <div class="event-title">${event.event}</div>
+                <div class="event-dialogue">"${event.dialogue}"</div>
+            `;
+            
+            eventSection.style.display = 'block';
+            
+            // Hide after 10 seconds
+            setTimeout(() => {
+                eventSection.style.display = 'none';
+            }, 10000);
+        }
+        
+        // Check for events periodically (only if AI enabled)
+        setInterval(() => {
+            checkForRandomEvent();
+        }, 60000); // Check every minute
+        
+        // Allow Enter key to send chat
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendChatMessage();
+                    }
+                });
+            }
+        });
+        
+        // ============================================
+        // PET CARE FUNCTIONS
+        // ============================================
+
+        function feedPet() {
+            if (petData.coins < 5) {
+                alert("Not enough coins! You need 5 coins to feed your pet.");
+                return;
+            }
+            
+            if (petData.fullness > 80) {
+                alert("Your pet is already full!");
+                return;
+            }
+
+            petData.coins -= 5;
+            petData.totalSpent += 5;
+            petData.fullness = Math.min(100, petData.fullness + 40); // INCREASE fullness (higher is better)
+            petData.health = Math.min(100, petData.health + 5);
+            petData.happiness = Math.min(100, petData.happiness + 10);
+            
+            gainExperience(10); // +10 XP for feeding
+            updateUI();
+            savePetData();
+            showFeedback("Fed your pet! Fullness increased. +10 XP");
+        }
+
+        function playWithPet() {
+            if (petData.coins < 3) {
+                alert("Not enough coins! You need 3 coins for toys.");
+                return;
+            }
+            
+            if (petData.energy < 20) {
+                alert("Your pet is too tired to play!");
+                return;
+            }
+
+            petData.coins -= 3;
+            petData.totalSpent += 3;
+            petData.happiness = Math.min(100, petData.happiness + 20);
+            petData.energy = Math.max(0, petData.energy - 15); // DECREASE energy (gets tired from playing)
+            petData.fullness = Math.max(0, petData.fullness - 10); // DECREASE fullness (playing makes hungry)
+            
+            gainExperience(15); // +15 XP for playing
+            updateUI();
+            savePetData();
+            showFeedback("Played with your pet! Energy used, got hungry. +15 XP");
+        }
+
+        function restPet() {
+            if (petData.energy > 80) {
+                alert("Your pet isn't tired right now!");
+                return;
+            }
+
+            petData.energy = Math.min(100, petData.energy + 40); // INCREASE energy (resting restores)
+            petData.health = Math.min(100, petData.health + 5);
+            
+            gainExperience(5); // +5 XP for resting
+            updateUI();
+            savePetData();
+            showFeedback("Your pet rested! Energy restored. +5 XP");
+        }
+
+        function healthCheck() {
+            if (petData.coins < 15) {
+                alert("Not enough coins! Vet visit costs 15 coins.");
+                return;
+            }
+
+            petData.coins -= 15;
+            petData.totalSpent += 15;
+            petData.health = 100;
+            
+            gainExperience(20); // +20 XP for vet visit
+            updateUI();
+            savePetData();
+            
+            let diagnosis = "Your pet is healthy!";
+            if (petData.fullness < 30) diagnosis += "\nBut very hungry - please feed soon!";
+            if (petData.energy < 30) diagnosis += "\nLow energy - let them rest!";
+            
+            alert("Vet Check-up Complete! +20 XP\n\n" + diagnosis);
+        }
+
+        function giveTreat() {
+            if (petData.coins < 2) {
+                alert("Not enough coins! Treats cost 2 coins.");
+                return;
+            }
+
+            petData.coins -= 2;
+            petData.totalSpent += 2;
+            petData.happiness = Math.min(100, petData.happiness + 15);
+            petData.fullness = Math.min(100, petData.fullness + 5);
+            
+            gainExperience(8); // +8 XP for treat
+            updateUI();
+            savePetData();
+            showFeedback("Gave your pet a treat! +8 XP");
+        }
+
+        function showFeedback(message) {
+            // Feedback disabled - messages removed
+            // You can re-enable by uncommenting below:
+            /*
+            const overlay = document.querySelector('.scene-info');
+            const feedback = document.createElement('div');
+            feedback.style.cssText = 'position: absolute; top: -50px; left: 50%; transform: translateX(-50%); background: #4A9B9B; color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; white-space: nowrap; animation: slideDown 3s ease;';
+            feedback.textContent = message;
+            overlay.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 3000);
+            */
+        }
+
+        // ============================================
+        // STATS UPDATE & TIME-BASED DECAY
+        // ============================================
+
+        function updateStatsOverTime() {
+            const now = Date.now();
+            const hoursPassed = (now - petData.lastUpdated) / (1000 * 60 * 60);
+            
+            if (hoursPassed > 0.1) { // Update if more than 6 minutes passed
+                // Fullness decreases over time (gets hungry)
+                petData.fullness = Math.max(0, petData.fullness - (hoursPassed * 5));
+                
+                // Energy decreases slowly
+                petData.energy = Math.max(0, petData.energy - (hoursPassed * 2));
+                
+                // Health decreases if fullness is low (very hungry)
+                if (petData.fullness < 20) {
+                    petData.health = Math.max(0, petData.health - (hoursPassed * 4));
+                }
+                
+                // Happiness decreases if needs aren't met
+                if (petData.fullness < 40 || petData.energy < 30) {
+                    petData.happiness = Math.max(0, petData.happiness - (hoursPassed * 3));
+                }
+                
+                savePetData();
+            }
+        }
+
+        // Auto-update stats every minute
+        setInterval(() => {
+            updateStatsOverTime();
+            updateUI();
+        }, 60000);
+
+        function updateUI() {
+            document.getElementById('petNameDisplay').textContent = petData.name;
+            
+            // Ensure coins never display negative
+            const coins = Math.max(0, petData.coins || 0);
+            document.getElementById('coinsStat').textContent = coins;
+            
+            // Update age
+            const age = petData.age || 'baby';
+            const ageInfo = AGE_STAGES[age];
+            document.getElementById('ageValue').textContent = ageInfo.label;
+            
+            // Update level and XP
+            document.getElementById('levelNum').textContent = petData.level || 1;
+            document.getElementById('currentXP').textContent = petData.experience || 0;
+            document.getElementById('maxXP').textContent = petData.experienceToNextLevel || 100;
+            const xpPercentage = ((petData.experience || 0) / (petData.experienceToNextLevel || 100)) * 100;
+            document.getElementById('levelBar').style.width = xpPercentage + '%';
+            
+            // Update bond and show next milestone
+            const bond = petData.bond || 0;
+            document.getElementById('bondValue').textContent = bond;
+            document.getElementById('bondBar').style.width = bond + '%';
+            
+            // Show next age milestone
+            const milestoneEl = document.getElementById('bondMilestone');
+            if (bond < 25) {
+                milestoneEl.textContent = 'Next: 25 bond needed to become Young';
+            } else if (bond < 50) {
+                milestoneEl.textContent = 'Next: 50 bond needed to become Adult';
+            } else if (bond < 75) {
+                milestoneEl.textContent = 'Next: 75 bond needed to become Senior';
+            } else {
+                milestoneEl.textContent = 'Maximum bond reached!';
+            }
+            
+            // Update stats
+            document.getElementById('healthStat').textContent = petData.health.toFixed(0);
+            document.getElementById('happinessStat').textContent = petData.happiness.toFixed(0);
+            document.getElementById('fullnessStat').textContent = petData.fullness.toFixed(0);
+            document.getElementById('energyStat').textContent = petData.energy.toFixed(0);
+            document.getElementById('totalSpent').textContent = petData.totalSpent.toFixed(0);
+            
+            // Update progress bars
+            document.getElementById('healthBar').style.width = petData.health + '%';
+            document.getElementById('happinessBar').style.width = petData.happiness + '%';
+            document.getElementById('fullnessBar').style.width = petData.fullness + '%';
+            document.getElementById('energyBar').style.width = petData.energy + '%';
+            
+            // Update mood display
+            updateMood();
+            
+            // Update pet-specific UI
+            loadPetTraits();
+            loadPetTasks();
+            
+            // Update mini bubble selection if bubbles are loaded
+            if (typeof miniBubbleEngines !== 'undefined' && Object.keys(miniBubbleEngines).length > 0) {
+                updateMiniBubbleSelection();
+            }
+        }
+        
+        function loadPetTraits() {
+            const traits = PET_TRAITS[petData.type];
+            if (!traits) return;
+            
+            const traitTagsContainer = document.getElementById('traitTags');
+            traitTagsContainer.innerHTML = '';
+            
+            traits.traits.forEach(trait => {
+                const tag = document.createElement('span');
+                tag.className = 'trait-tag';
+                tag.textContent = trait;
+                traitTagsContainer.appendChild(tag);
+            });
+        }
+        
+        function loadPetTasks() {
+            const traits = PET_TRAITS[petData.type];
+            if (!traits) return;
+            
+            const taskListContainer = document.getElementById('taskList');
+            taskListContainer.innerHTML = '';
+            
+            // Initialize tasksCompleted if not exists
+            if (!petData.tasksCompleted) petData.tasksCompleted = {};
+            
+            // Reset daily tasks (24 hour cycle)
+            const now = Date.now();
+            const lastReset = petData.lastTaskReset || 0;
+            const hoursSinceReset = (now - lastReset) / (1000 * 60 * 60);
+            
+            if (hoursSinceReset >= 24) {
+                petData.tasksCompleted = {};
+                petData.lastTaskReset = now;
+                petData.usingAITasks = false; // Reset AI tasks flag
+                savePetData();
+            }
+            
+            // Use AI tasks if available, otherwise use default tasks
+            const tasksToShow = (petData.usingAITasks && traits.aiTasks) ? traits.aiTasks : traits.tasks;
+            
+            // Task SVG icons based on task type
+            const taskIcons = {
+                'playtime': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 15h8M9 9h.01M15 9h.01"></path></svg>',
+                'socialize': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+                'explore': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+                'run': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>',
+                'fetch': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>',
+                'train': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
+                'work': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+                'play': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'
+            };
+            
+            // Default AI task icon (sparkles)
+            const aiIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>';
+            
+            tasksToShow.forEach(task => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = 'task-item';
+                
+                const isCompleted = petData.tasksCompleted[task.id];
+                if (isCompleted) {
+                    taskDiv.classList.add('completed');
+                }
+                
+                // Use specific icon or AI icon for AI tasks
+                const iconSvg = taskIcons[task.id] || aiIcon;
+                
+                taskDiv.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-icon">${iconSvg}</span>
+                        <div class="task-name">${task.name}</div>
+                    </div>
+                    <div class="task-duration">
+                        <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        ${task.duration}
+                    </div>
+                    <div class="task-reward">
+                        <span class="task-coins">
+                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 6v12M9 9h6M9 15h6"></path>
+                            </svg>
+                            <strong>+${task.coins}</strong> coins
+                        </span>
+                        <span class="task-bond">
+                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <strong>+${task.bond}</strong> bond
+                        </span>
+                    </div>
+                    ${isCompleted ? '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' : ''}
+                `;
+                
+                if (!isCompleted) {
+                    taskDiv.onclick = () => completeTask(task);
+                }
+                
+                taskListContainer.appendChild(taskDiv);
+            });
+        }
+        
+        function completeTask(task) {
+            // Mark task as completed
+            if (!petData.tasksCompleted) petData.tasksCompleted = {};
+            petData.tasksCompleted[task.id] = true;
+            
+            // Award rewards
+            petData.coins = (petData.coins || 0) + task.coins;
+            const oldBond = petData.bond || 0;
+            petData.bond = Math.min(100, (petData.bond || 0) + task.bond);
+            petData.happiness = Math.min(100, petData.happiness + 10);
+            
+            // Check for age progression
+            checkAgeProgression(oldBond, petData.bond);
+            
+            // Give XP
+            gainExperience(task.bond);
+            
+            updateUI();
+            savePetData();
+            
+            showFeedback(`Task completed! +${task.coins} coins, +${task.bond} bond!`);
+        }
+        
+        function checkAgeProgression(oldBond, newBond) {
+            const currentAge = petData.age || 'baby';
+            let newAge = currentAge;
+            
+            // Determine new age based on bond level
+            for (const [ageKey, ageData] of Object.entries(AGE_STAGES)) {
+                if (newBond >= ageData.minBond && newBond <= ageData.maxBond) {
+                    newAge = ageKey;
+                    break;
+                }
+            }
+            
+            // If age changed, show notification and update model scale
+            if (newAge !== currentAge) {
+                petData.age = newAge;
+                const ageInfo = AGE_STAGES[newAge];
+                
+                showFeedback(`Your pet grew! Now a ${ageInfo.label}!`);
+                
+                // Update 3D model scale
+                if (model) {
+                    model.scaling.setAll(ageInfo.scale);
+                }
+            }
+        }
+        
+        function updateMood() {
+            const moodDisplay = document.getElementById('moodDisplay');
+            const moodIcon = moodDisplay.querySelector('.mood-icon');
+            
+            // Remove all mood classes
+            moodDisplay.classList.remove('happy', 'sad', 'sick', 'energetic');
+            
+            // Determine mood based on stats
+            // Priority: Sick > Sad > Energetic > Happy
+            
+            if (petData.health < 30) {
+                // Sick - Low health
+                moodDisplay.classList.add('sick');
+                moodIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 15h8M9 9h.01M15 9h.01"></path></svg>';
+                moodDisplay.title = 'Sick - Needs medical attention!';
+            } else if (petData.happiness < 40 || petData.fullness < 30) {
+                // Sad - Low happiness or very hungry
+                moodDisplay.classList.add('sad');
+                moodIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
+                moodDisplay.title = 'Sad - Needs care and attention';
+            } else if (petData.energy > 80 && petData.happiness > 70) {
+                // Energetic - High energy and happy
+                moodDisplay.classList.add('energetic');
+                moodIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><circle cx="9" cy="9" r="1" fill="currentColor"></circle><circle cx="15" cy="9" r="1" fill="currentColor"></circle></svg>';
+                moodDisplay.title = 'Energetic - Ready to play!';
+            } else if (petData.happiness > 70 && petData.health > 70) {
+                // Happy - Good stats overall
+                moodDisplay.classList.add('happy');
+                moodIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
+                moodDisplay.title = 'Happy - Feeling great!';
+            } else {
+                // Neutral/Content
+                moodIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="15" x2="16" y2="15"></line><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
+                moodDisplay.title = 'Neutral - Doing okay';
+            }
+        }
+
+        function changePetType() {
+            const newType = document.getElementById('modelSelect').value;
+            petData.type = newType;
+            savePetData();
+            loadModel(MODELS[newType].file);
+        }
+        
+        // Mini bubble system for control panel
+        function loadMiniBubbles() {
+            const container = document.getElementById('miniPetBubblesContainer');
+            container.innerHTML = ''; // Clear existing
+            
+            // Cleanup old engines
+            Object.values(miniBubbleEngines).forEach(engine => {
+                engine.stopRenderLoop();
+                engine.dispose();
+            });
+            miniBubbleEngines = {};
+            miniBubbleScenes = {};
+            miniBubbleModels = {};
+            
+            // Create bubble for each pet
+            Object.keys(userPets).forEach(petId => {
+                const pet = userPets[petId];
+                
+                // Create bubble container
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'mini-bubble';
+                bubbleDiv.setAttribute('data-pet-id', petId);
+                if (petId === currentPetId) {
+                    bubbleDiv.classList.add('selected');
+                }
+                bubbleDiv.onclick = () => selectMiniPet(petId);
+                
+                // Create canvas for 3D preview
+                const canvas = document.createElement('canvas');
+                canvas.className = 'mini-bubble-canvas';
+                canvas.id = `miniBubbleCanvas_${petId}`;
+                bubbleDiv.appendChild(canvas);
+                
+                // Create label with pet name
+                const label = document.createElement('div');
+                label.className = 'mini-bubble-label';
+                label.textContent = pet.name;
+                bubbleDiv.appendChild(label);
+                
+                container.appendChild(bubbleDiv);
+                
+                // Load 3D preview
+                setTimeout(() => loadMiniBubblePreview(petId, pet.type), 100);
+            });
+        }
+        
+        function loadMiniBubblePreview(petId, petType) {
+            const canvasId = `miniBubbleCanvas_${petId}`;
+            const canvas = document.getElementById(canvasId);
+            
+            if (!canvas) return;
+            
+            // Create engine and scene for this mini bubble
+            const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+            miniBubbleEngines[petId] = engine;
+            
+            const scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(1, 1, 1, 1);
+            miniBubbleScenes[petId] = scene;
+            
+            // Camera
+            const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 4, BABYLON.Vector3.Zero(), scene);
+            camera.lowerRadiusLimit = 3;
+            camera.upperRadiusLimit = 6;
+            
+            // Lighting
+            const light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+            light1.intensity = 0.7;
+            
+            const light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -2, -1), scene);
+            light2.position = new BABYLON.Vector3(5, 10, 5);
+            light2.intensity = 0.5;
+            
+            // Load model
+            BABYLON.SceneLoader.ImportMesh("", "", MODELS[petType].file, scene, 
+                (meshes) => {
+                    const model = meshes[0];
+                    miniBubbleModels[petId] = model;
+                    
+                    // Fix materials
+                    model.getChildMeshes().forEach(mesh => {
+                        if (mesh.material) {
+                            const mat = mesh.material;
+                            if (mat.getClassName() === "PBRMaterial") {
+                                if (mat.albedoTexture && mat.albedoTexture.hasAlpha) {
+                                    mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;
+                                    mat.alphaCutOff = 0.5;
+                                    mat.useAlphaFromAlbedoTexture = true;
+                                } else {
+                                    mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
+                                }
+                                if (!mat.metallicTexture) {
+                                    mat.metallic = 0;
+                                    mat.roughness = 1.0;
+                                }
+                                mat.backFaceCulling = true;
+                            }
+                        }
+                    });
+                    
+                    // Position model
+                    const bounds = model.getHierarchyBoundingVectors();
+                    const size = bounds.max.subtract(bounds.min);
+                    const scale = 2.0 / Math.max(size.x, size.y, size.z);
+                    model.scaling.setAll(scale);
+                    model.computeWorldMatrix(true);
+                    
+                    const newBounds = model.getHierarchyBoundingVectors();
+                    const center = BABYLON.Vector3.Center(newBounds.min, newBounds.max);
+                    model.position = new BABYLON.Vector3(-center.x, -newBounds.min.y - 0.5, -center.z);
+                    
+                    // Auto-rotate
+                    scene.registerBeforeRender(() => {
+                        model.rotation.y += 0.005;
+                    });
+                }
+            );
+            
+            // Render loop
+            engine.runRenderLoop(() => scene.render());
+        }
+        
+        function selectMiniPet(petId) {
+            currentPetId = petId;
+            petData = userPets[petId];
+            updateMiniBubbleSelection();
+            updateUI();
+            savePetData();
+            loadModel(MODELS[petData.type].file);
+        }
+        
+        function updateMiniBubbleSelection() {
+            document.querySelectorAll('.mini-bubble').forEach(bubble => {
+                bubble.classList.remove('selected');
+            });
+            const selectedBubble = document.querySelector(`[data-pet-id="${currentPetId}"]`);
+            if (selectedBubble) {
+                selectedBubble.classList.add('selected');
+            }
+        }
+
+        // ============================================
+        // 3D SCENE SETUP
+        // ============================================
+
+        function createScene() {
+            scene = new BABYLON.Scene(engine);
+            
+            camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 3, 6, new BABYLON.Vector3(0, 1, 0), scene);
+            camera.attachControl(canvas, true);
+            camera.lowerRadiusLimit = 3;
+            camera.upperRadiusLimit = 15;
+            
+            const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+            hemiLight.intensity = 0.6;
+            
+            const dirLight = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-1, -2, -1), scene);
+            dirLight.position = new BABYLON.Vector3(5, 10, 5);
+            dirLight.intensity = 0.8;
+            
+            const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
+            const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
+            groundMat.diffuseColor = new BABYLON.Color3(0.17, 0.24, 0.31);
+            ground.material = groundMat;
+            
+            // Load background
+            const panoramaTexture = new BABYLON.Texture("bg.jpg", scene);
+            panoramaTexture.onLoadObservable.addOnce(() => {
+                const skybox = BABYLON.MeshBuilder.CreateSphere("skybox", { diameter: 5000 }, scene);
+                skybox.infiniteDistance = true;
+                const skyMat = new BABYLON.StandardMaterial("skyMat", scene);
+                skyMat.backFaceCulling = false;
+                skyMat.emissiveTexture = panoramaTexture;
+                skyMat.emissiveTexture.coordinatesMode = BABYLON.Texture.FIXED_EQUIRECTANGULAR_MODE;
+                skyMat.emissiveTexture.vScale = -1;
+                skyMat.disableLighting = true;
+                skybox.material = skyMat;
+            });
+            
+            return scene;
+        }
+
+        function loadModel(modelFile) {
+            console.log(`Loading model: ${modelFile}`);
+            
+            // Remove previous model
+            if (model) {
+                console.log("Disposing previous model...");
+                model.getChildMeshes().forEach(mesh => {
+                    if (mesh.material) mesh.material.dispose();
+                    mesh.dispose();
+                });
+                model.dispose();
+                model = null;
+            }
+            
+            if (currentAnimGroup) {
+                currentAnimGroup.stop();
+                currentAnimGroup = null;
+            }
+            
+            animations = {};
+            document.getElementById('animButtons').innerHTML = '<p style="text-align: center; color: #666;">Loading...</p>';
+            
+            BABYLON.SceneLoader.ImportMesh("", "", modelFile, scene, 
+                (meshes, particleSystems, skeletons, animationGroups) => {
+                    console.log(`Model loaded: ${modelFile}`);
+                    model = meshes[0];
+                    
+                    // Fix materials
+                    model.getChildMeshes().forEach(mesh => {
+                        if (mesh.material) {
+                            const mat = mesh.material;
+                            if (mat.getClassName() === "PBRMaterial") {
+                                if (mat.albedoTexture) {
+                                    if (mat.albedoTexture.hasAlpha) {
+                                        mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;
+                                        mat.alphaCutOff = 0.5;
+                                        mat.useAlphaFromAlbedoTexture = true;
+                                    } else {
+                                        mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
+                                        mat.useAlphaFromAlbedoTexture = false;
+                                    }
+                                }
+                                if (!mat.metallicTexture) {
+                                    mat.metallic = 0;
+                                    mat.roughness = 1.0;
+                                }
+                                mat.backFaceCulling = true;
+                                mat.twoSidedLighting = false;
+                            }
+                        }
+                    });
+                    
+                    // Position model
+                    const bounds = model.getHierarchyBoundingVectors();
+                    const size = bounds.max.subtract(bounds.min);
+                    const scale = 3 / Math.max(size.x, size.y, size.z);
+                    model.scaling.setAll(scale);
+                    model.computeWorldMatrix(true);
+                    
+                    const newBounds = model.getHierarchyBoundingVectors();
+                    const center = BABYLON.Vector3.Center(newBounds.min, newBounds.max);
+                    model.position = new BABYLON.Vector3(-center.x, -newBounds.min.y, -center.z);
+                    
+                    // Setup animations
+                    animationGroups.forEach(ag => {
+                        const name = ag.name.split('|')[1] || ag.name;
+                        animations[name.toLowerCase()] = ag;
+                    });
+                    
+                    createAnimationButtons();
+                    if (Object.keys(animations).length > 0) {
+                        playAnimation(Object.keys(animations)[0]);
+                    }
+                },
+                null,
+                (scene, msg) => console.error("Load error:", msg)
+            );
+        }
+
+        function createAnimationButtons() {
+            const container = document.getElementById('animButtons');
+            container.innerHTML = '';
+            
+            if (Object.keys(animations).length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No animations</p>';
+                return;
+            }
+            
+            Object.keys(animations).forEach(name => {
+                const btn = document.createElement('button');
+                btn.className = 'anim-btn';
+                btn.setAttribute('data-animation', name);
+                btn.onclick = () => playAnimation(name);
+                btn.innerHTML = `
+                    <span class="btn-icon">🎬</span>
+                    <span class="btn-label">${name.charAt(0).toUpperCase() + name.slice(1)}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function playAnimation(name) {
+            if (!animations[name]) return;
+            if (currentAnimGroup) currentAnimGroup.stop();
+            animations[name].start(true);
+            currentAnimGroup = animations[name];
+            
+            document.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.querySelector(`[data-animation="${name}"]`);
+            if (btn) btn.classList.add('active');
+        }
+
+        function handleLogout() {
+            if (isFirebaseConfigured && auth) {
+                auth.signOut().then(() => window.location.href = 'index.html');
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        if (isFirebaseConfigured) {
+            // Firebase mode - wait for auth state
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('userGreeting').textContent = `Welcome, ${user.displayName || user.email}!`;
+                    console.log("👤 User authenticated:", user.email);
+                    loadPetData();
+                } else {
+                    console.log("❌ No user authenticated, redirecting to login");
+                    window.location.href = 'index.html';
+                }
+            });
+        } else {
+            // Development mode - no auth required
+            console.log("🔧 DEVELOPMENT MODE - No authentication required");
+            document.getElementById('userGreeting').textContent = 'Development Mode';
+            currentUser = { uid: 'dev-user' }; // Fake user for dev mode
+            loadPetData();
+        }
+
+        scene = createScene();
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener('resize', () => engine.resize());
+    </script>
+</body>
+</html>
