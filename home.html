@@ -1548,7 +1548,7 @@
             storageBucket: "helix-fbla.firebasestorage.app",
             messagingSenderId: "154951525413",
             appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
-        }; 
+        };
         
         // Check if Firebase is configured
         const isFirebaseConfigured = true;
@@ -3173,7 +3173,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
             scene.animationGroups.forEach(ag => ag.dispose());
             
             animations = {};
-            document.getElementById('animButtons').innerHTML = '<p style="text-align: center; color: #666;">Loading...</p>';
             
             BABYLON.SceneLoader.ImportMesh("", "", modelFile, scene, 
                 (meshes, particleSystems, skeletons, animationGroups) => {
@@ -3234,6 +3233,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
 
         function createAnimationButtons() {
             const container = document.getElementById('animButtons');
+            if (!container) return; // Element doesn't exist anymore
+            
             container.innerHTML = '';
             
             if (Object.keys(animations).length === 0) {
