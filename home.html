@@ -925,8 +925,25 @@
         .btn-cost { font-size: 0.75rem; color: #666; margin-top: 0.2rem; }
         .care-btn:hover .btn-cost { color: rgba(255,255,255,0.9); }
         
-        /* Animation Buttons */
-        
+        /* Floating Add Pet Button */
+        .add-pet-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: #4A9B9B;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(74, 155, 155, 0.4);
+            transition: all 0.3s;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         
         .add-pet-btn:hover {
             transform: scale(1.1);
@@ -938,6 +955,7 @@
             width: 30px;
             height: 30px;
         }
+        
         .btn-secondary { 
             width: 100%; padding: 1rem; background: transparent; 
             border: 2px solid #2C3E50; border-radius: 8px; color: #2C3E50; 
@@ -2703,108 +2721,73 @@ Respond as the pet in first person. Be emotional and reference your current stat
             });
         }
         
+        // Active timers tracking
+        const activeTimers = {};
+        
         function startTask(task, taskElement) {
-            // Parse duration (e.g., "20 min" -> 20, "5 min" -> 5)
+            // Parse duration
             const durationMatch = task.duration.match(/(\d+)/);
             if (!durationMatch) return;
             
             const durationMinutes = parseInt(durationMatch[1]);
             const durationSeconds = durationMinutes * 60;
             
+            // Prevent multiple timers on same task
+            if (activeTimers[task.id]) {
+                clearInterval(activeTimers[task.id]);
+            }
+            
             // Save original content
             const originalContent = taskElement.innerHTML;
             
-            // Mark as in progress and clear content
+            // Mark as in progress
             taskElement.classList.add('in-progress');
-            taskElement.style.position = 'relative';
             taskElement.style.minHeight = '200px';
             
-            // Create circular timer (REPLACE content, don't append)
+            // Create timer display
             const radius = 50;
             const circumference = 2 * Math.PI * radius;
             
-            const timerHTML = `
+            taskElement.innerHTML = `
                 <div class="task-timer">
                     <svg class="timer-svg" width="120" height="120">
                         <circle class="timer-circle-bg" cx="60" cy="60" r="${radius}"></circle>
                         <circle class="timer-circle-progress" cx="60" cy="60" r="${radius}"
-                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: 0"></circle>
+                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: 0;"></circle>
                     </svg>
-                    <div class="timer-text" id="timer-${task.id}">
-                        ${durationMinutes}:00
-                    </div>
+                    <div class="timer-text">${durationMinutes}:00</div>
                 </div>
             `;
             
-            // REPLACE content instead of appending
-            taskElement.innerHTML = timerHTML;
-            
             const progressCircle = taskElement.querySelector('.timer-circle-progress');
-            const timerText = taskElement.querySelector(`#timer-${task.id}`);
+            const timerText = taskElement.querySelector('.timer-text');
             
-            const startTime = Date.now();
-            const endTime = startTime + (durationSeconds * 1000);
-            let animationFrameId = null;
-            let lastUpdate = startTime;
+            let remainingSeconds = durationSeconds;
             
-            // Use requestAnimationFrame for smoother, more reliable updates
-            function updateTimer() {
-                const now = Date.now();
+            // Simple setInterval - runs every second
+            const intervalId = setInterval(() => {
+                remainingSeconds--;
                 
-                // Only update display every ~100ms to reduce overhead
-                if (now - lastUpdate >= 100) {
-                    const remainingMs = endTime - now;
-                    
-                    if (remainingMs <= 0) {
-                        // Timer complete
-                        if (animationFrameId) {
-                            cancelAnimationFrame(animationFrameId);
-                        }
-                        completeTask(task, taskElement, originalContent);
-                        return;
-                    }
-                    
-                    const remainingSeconds = Math.ceil(remainingMs / 1000);
-                    const totalSeconds = durationSeconds;
-                    
-                    // Update timer display
-                    const minutes = Math.floor(remainingSeconds / 60);
-                    const seconds = remainingSeconds % 60;
-                    if (timerText) {
-                        timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    }
-                    
-                    // Update circular progress
-                    const progress = remainingSeconds / totalSeconds;
-                    const offset = circumference * (1 - progress);
-                    if (progressCircle) {
-                        progressCircle.style.strokeDashoffset = offset;
-                    }
-                    
-                    lastUpdate = now;
-                }
+                // Update display
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 
-                // Continue animation loop
-                animationFrameId = requestAnimationFrame(updateTimer);
-            }
-            
-            // Start the animation loop
-            animationFrameId = requestAnimationFrame(updateTimer);
-            
-            // Fallback: Also use setInterval as backup
-            const backupInterval = setInterval(() => {
-                const now = Date.now();
-                if (now >= endTime) {
-                    clearInterval(backupInterval);
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                    }
-                    // Check if task is still in progress (not already completed)
-                    if (taskElement.classList.contains('in-progress')) {
-                        completeTask(task, taskElement, originalContent);
-                    }
+                // Update circle progress
+                const progress = remainingSeconds / durationSeconds;
+                const offset = circumference * (1 - progress);
+                progressCircle.style.strokeDashoffset = offset;
+                
+                // Check if done
+                if (remainingSeconds <= 0) {
+                    clearInterval(intervalId);
+                    delete activeTimers[task.id];
+                    completeTask(task, taskElement, originalContent);
                 }
             }, 1000);
+            
+            // Store interval ID
+            activeTimers[task.id] = intervalId;
         }
         
         function completeTask(task, taskElement, originalContent) {
