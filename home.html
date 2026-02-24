@@ -2726,11 +2726,15 @@ Respond as the pet in first person. Be emotional and reference your current stat
             const durationMinutes = parseInt(durationMatch[1]);
             const durationSeconds = durationMinutes * 60;
             
-            // Mark as in progress
+            // Save original content
+            const originalContent = taskElement.innerHTML;
+            
+            // Mark as in progress and clear content
             taskElement.classList.add('in-progress');
             taskElement.style.position = 'relative';
+            taskElement.style.minHeight = '200px';
             
-            // Create circular timer
+            // Create circular timer (REPLACE content, don't append)
             const radius = 50;
             const circumference = 2 * Math.PI * radius;
             
@@ -2747,7 +2751,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 </div>
             `;
             
-            taskElement.innerHTML += timerHTML;
+            // REPLACE content instead of appending
+            taskElement.innerHTML = timerHTML;
             
             const progressCircle = taskElement.querySelector('.timer-circle-progress');
             const timerText = taskElement.querySelector(`#timer-${task.id}`);
@@ -2761,7 +2766,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 
                 if (remainingSeconds <= 0) {
                     clearInterval(timerInterval);
-                    completeTask(task, taskElement);
+                    completeTask(task, taskElement, originalContent);
                     return;
                 }
                 
@@ -2778,7 +2783,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             }, 1000);
         }
         
-        function completeTask(task, taskElement) {
+        function completeTask(task, taskElement, originalContent) {
             // Mark task as completed
             if (!petData.tasksCompleted) petData.tasksCompleted = {};
             petData.tasksCompleted[task.id] = true;
@@ -2795,13 +2800,16 @@ Respond as the pet in first person. Be emotional and reference your current stat
             // Give XP
             gainExperience(task.bond);
             
-            // Update UI
-            if (taskElement) {
+            // Restore original content and add checkmark
+            if (taskElement && originalContent) {
                 taskElement.classList.remove('in-progress');
                 taskElement.classList.add('completed');
-                const timer = taskElement.querySelector('.task-timer');
-                if (timer) timer.remove();
+                taskElement.style.minHeight = '';
                 
+                // Restore original content
+                taskElement.innerHTML = originalContent;
+                
+                // Add checkmark
                 taskElement.innerHTML += '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>';
             }
             
