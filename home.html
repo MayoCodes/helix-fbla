@@ -851,6 +851,50 @@
             width: 100%;
             height: 100%;
         }
+        
+        /* Circular Timer */
+        .task-timer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+        }
+        
+        .task-item.in-progress {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-color: #4A9B9B;
+            pointer-events: none;
+        }
+        
+        .timer-svg {
+            transform: rotate(-90deg);
+        }
+        
+        .timer-circle-bg {
+            fill: none;
+            stroke: #e0e0e0;
+            stroke-width: 8;
+        }
+        
+        .timer-circle-progress {
+            fill: none;
+            stroke: #4A9B9B;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4A9B9B;
+        }
         .care-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
         
         .care-btn {
@@ -1666,7 +1710,12 @@ Return ONLY a JSON array in this exact format (no markdown, no extra text):
   {"name": "task name", "duration": "X min", "coins": number, "bond": number}
 ]
 
-Make tasks creative but realistic for a ${traits.name}. Coins should be 5-15, bond should be 10-30.`;
+IMPORTANT: 
+- Duration should be realistic and match the task intensity: 5-10 min for quick tasks, 15-20 min for moderate tasks, 30+ min for long activities
+- Coins should be 5-15 based on task difficulty
+- Bond should be 10-30 based on task engagement
+- Make tasks creative but realistic for a ${traits.name}
+- Examples of good durations: "5 min" for grooming, "15 min" for playing, "30 min" for training, "20 min" for walks`;
 
             const response = await callGroqAPI(prompt);
             
@@ -2662,14 +2711,74 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 `;
                 
                 if (!isCompleted) {
-                    taskDiv.onclick = () => completeTask(task);
+                    taskDiv.onclick = () => startTask(task, taskDiv);
                 }
                 
                 taskListContainer.appendChild(taskDiv);
             });
         }
         
-        function completeTask(task) {
+        function startTask(task, taskElement) {
+            // Parse duration (e.g., "20 min" -> 20, "5 min" -> 5)
+            const durationMatch = task.duration.match(/(\d+)/);
+            if (!durationMatch) return;
+            
+            const durationMinutes = parseInt(durationMatch[1]);
+            const durationSeconds = durationMinutes * 60;
+            
+            // Mark as in progress
+            taskElement.classList.add('in-progress');
+            taskElement.style.position = 'relative';
+            
+            // Create circular timer
+            const radius = 50;
+            const circumference = 2 * Math.PI * radius;
+            
+            const timerHTML = `
+                <div class="task-timer">
+                    <svg class="timer-svg" width="120" height="120">
+                        <circle class="timer-circle-bg" cx="60" cy="60" r="${radius}"></circle>
+                        <circle class="timer-circle-progress" cx="60" cy="60" r="${radius}"
+                            style="stroke-dasharray: ${circumference}; stroke-dashoffset: 0"></circle>
+                    </svg>
+                    <div class="timer-text" id="timer-${task.id}">
+                        ${durationMinutes}:00
+                    </div>
+                </div>
+            `;
+            
+            taskElement.innerHTML += timerHTML;
+            
+            const progressCircle = taskElement.querySelector('.timer-circle-progress');
+            const timerText = taskElement.querySelector(`#timer-${task.id}`);
+            
+            let remainingSeconds = durationSeconds;
+            const startTime = Date.now();
+            
+            const timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                remainingSeconds = durationSeconds - elapsed;
+                
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    completeTask(task, taskElement);
+                    return;
+                }
+                
+                // Update timer display
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update circular progress
+                const progress = remainingSeconds / durationSeconds;
+                const offset = circumference * (1 - progress);
+                progressCircle.style.strokeDashoffset = offset;
+                
+            }, 1000);
+        }
+        
+        function completeTask(task, taskElement) {
             // Mark task as completed
             if (!petData.tasksCompleted) petData.tasksCompleted = {};
             petData.tasksCompleted[task.id] = true;
@@ -2686,10 +2795,20 @@ Respond as the pet in first person. Be emotional and reference your current stat
             // Give XP
             gainExperience(task.bond);
             
+            // Update UI
+            if (taskElement) {
+                taskElement.classList.remove('in-progress');
+                taskElement.classList.add('completed');
+                const timer = taskElement.querySelector('.task-timer');
+                if (timer) timer.remove();
+                
+                taskElement.innerHTML += '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>';
+            }
+            
             updateUI();
             savePetData();
             
-            showFeedback(`Task completed! +${task.coins} coins, +${task.bond} bond!`);
+            showAlert(`Task completed! +${task.coins} coins, +${task.bond} bond!`, 'success');
         }
         
         function checkAgeProgression(oldBond, newBond) {
