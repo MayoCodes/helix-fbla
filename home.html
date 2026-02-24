@@ -1706,9 +1706,25 @@ You should respond in first person as the pet. Be emotional and reference your s
             const traits = PET_TRAITS[petData.type];
             const context = getPetPersonalityContext();
             
+            // Get base task types for this pet
+            const baseTaskNames = traits.tasks.map(t => t.name).join(', ');
+            
             const prompt = `${context}
 
-Based on your personality and the existing activities you enjoy (${traits.tasks.map(t => t.name).join(', ')}), generate 3 unique daily tasks that fit your personality today.
+Based on your personality and typical ${traits.name} activities (${baseTaskNames}), generate 3 unique daily tasks for today.
+
+TASK GENERATION RULES:
+1. Base tasks on the default ${traits.name} activities but make them unique and personalized
+2. Consider your current state:
+   - If hungry (fullness < 40): Include food-related bonding activity
+   - If low energy (< 30): Include calm/gentle activity
+   - If sad (happiness < 50): Include extra fun/playful activity
+   - Otherwise: Mix of physical and mental activities
+
+Examples for ${traits.name}:
+${traits.name === 'Dog' ? '- "Go to the dog park and make friends" (20 min)\n- "Learn a new trick: spin around" (10 min)\n- "Sniff walk around the neighborhood" (25 min)' : ''}
+${traits.name === 'Cat' ? '- "Hunt the laser pointer" (10 min)\n- "Explore the closet for cozy spots" (15 min)\n- "Watch birds from the window together" (20 min)' : ''}
+${traits.name === 'Bird' ? '- "Practice whistling a new song" (15 min)\n- "Explore outside the cage safely" (20 min)\n- "Learn colors with colorful toys" (10 min)' : ''}
 
 Return ONLY a JSON array in this exact format (no markdown, no extra text):
 [
@@ -1718,11 +1734,10 @@ Return ONLY a JSON array in this exact format (no markdown, no extra text):
 ]
 
 IMPORTANT: 
-- Duration should be realistic and match the task intensity: 5-10 min for quick tasks, 15-20 min for moderate tasks, 30+ min for long activities
-- Coins should be 5-15 based on task difficulty
-- Bond should be 10-30 based on task engagement
-- Make tasks creative but realistic for a ${traits.name}
-- Examples of good durations: "5 min" for grooming, "15 min" for playing, "30 min" for training, "20 min" for walks`;
+- Duration: 5-10 min for quick tasks, 15-20 min for moderate, 30+ min for long activities
+- Coins: 5-15 based on difficulty
+- Bond: 10-30 based on engagement
+- Make tasks feel personal and unique to ME, not generic`;
 
             const response = await callGroqAPI(prompt);
             
@@ -1751,18 +1766,37 @@ IMPORTANT:
         
         async function generateRandomEvent() {
             const context = getPetPersonalityContext();
+            const daysSinceAdoption = Math.floor((Date.now() - (petData.adoptionDate || Date.now())) / (1000 * 60 * 60 * 24));
+            
+            // Determine event type based on care history
+            let eventType = '';
+            if (daysSinceAdoption >= 30) {
+                eventType = 'Generate a heartfelt MEMORY about your time together. Reflect on how your owner has cared for you over the past month.';
+            } else if (petData.happiness > 80 && petData.health > 80) {
+                eventType = 'Generate a HAPPY event - you discovered something fun or met a friendly neighbor.';
+            } else if (petData.fullness < 40) {
+                eventType = 'Generate a FOOD-related event - you saw something delicious or smelled food.';
+            } else if (petData.happiness < 50) {
+                eventType = 'Generate a LONELINESS event - you miss your owner or want attention.';
+            } else {
+                eventType = 'Generate a QUIRKY/FUNNY event - something amusing happened today.';
+            }
             
             const prompt = `${context}
 
-Generate a unique random event that happened to you today as a pet. This could be:
-- Meeting another animal
-- Finding something interesting
-- Having a funny moment
-- Missing something
-- Wanting something new
+Days since adoption: ${daysSinceAdoption}
+
+${eventType}
+
+Examples of events:
+- "Your cat befriended a neighborhood bird and wants you to buy bird treats"
+- "Found a cozy sunspot by the window and took the best nap ever!"  
+- "Saw a squirrel outside and it looked so tasty..."
+- "Remember when you first adopted me? I was scared, but you took such good care of me!"
+- "I heard thunder today and got scared. Can we cuddle?"
 
 Return ONLY a JSON object in this exact format (no markdown, no extra text):
-{"event": "brief description of what happened", "dialogue": "what you say to your owner about it (under 40 words, emotional and personal)"}`;
+{"event": "brief description of what happened", "dialogue": "what you say to your owner about it (under 50 words, emotional and personal, use first person)"}`;
 
             const response = await callGroqAPI(prompt);
             
@@ -2261,8 +2295,28 @@ Respond as the pet in first person. Be emotional and reference your current stat
             // Only check if AI is enabled
             if (!isAIEnabled()) return;
             
-            // Random chance of event (10% per hour)
-            if (Math.random() < 0.1) {
+            // Dynamic event chance based on pet's state
+            let eventChance = 0.15; // Base 15% chance per check
+            
+            // Increase chance if stats are critical (pet needs attention)
+            if (petData.fullness < 30) eventChance += 0.1;
+            if (petData.happiness < 40) eventChance += 0.1;
+            if (petData.health < 50) eventChance += 0.05;
+            
+            // Memory event after 30 days (guaranteed)
+            const daysSinceAdoption = Math.floor((Date.now() - (petData.adoptionDate || Date.now())) / (1000 * 60 * 60 * 24));
+            if (daysSinceAdoption >= 30 && !petData.had30DayMemory) {
+                petData.had30DayMemory = true;
+                const event = await generateRandomEvent();
+                if (event) {
+                    showRandomEvent(event);
+                    savePetData();
+                }
+                return;
+            }
+            
+            // Random event based on dynamic chance
+            if (Math.random() < eventChance) {
                 const event = await generateRandomEvent();
                 
                 if (event) {
@@ -2282,10 +2336,10 @@ Respond as the pet in first person. Be emotional and reference your current stat
             
             eventSection.style.display = 'block';
             
-            // Hide after 10 seconds
+            // Hide after 15 seconds (longer for memories)
             setTimeout(() => {
                 eventSection.style.display = 'none';
-            }, 10000);
+            }, 15000);
         }
         
         // Check for events periodically (only if AI enabled)
@@ -2478,22 +2532,43 @@ Respond as the pet in first person. Be emotional and reference your current stat
             const hoursPassed = (now - petData.lastUpdated) / (1000 * 60 * 60);
             
             if (hoursPassed > 0.1) { // Update if more than 6 minutes passed
-                // Fullness decreases over time (gets hungry)
-                petData.fullness = Math.max(0, petData.fullness - (hoursPassed * 5));
+                // REALISTIC STAT DECAY (like real pets)
                 
-                // Energy decreases slowly
-                petData.energy = Math.max(0, petData.energy - (hoursPassed * 2));
+                // FULLNESS (Hunger) - decreases every 4-6 hours (realistic meal timing)
+                // Dogs/cats eat 2-3 times per day
+                petData.fullness = Math.max(0, petData.fullness - (hoursPassed * 3)); // ~8 hours to get hungry
                 
-                // Health decreases if fullness is low (very hungry)
-                if (petData.fullness < 20) {
-                    petData.health = Math.max(0, petData.health - (hoursPassed * 4));
+                // ENERGY - decreases during day, should rest at night
+                // Pets need 12-14 hours sleep per day
+                petData.energy = Math.max(0, petData.energy - (hoursPassed * 1.5)); // ~16 hours to get tired
+                
+                // HAPPINESS - decreases slowly if not played with
+                // Pets need attention/play daily
+                petData.happiness = Math.max(0, petData.happiness - (hoursPassed * 1)); // ~24 hours without play = sad
+                
+                // HEALTH - only decreases in specific conditions (realistic)
+                // Health doesn't naturally decay fast in real life
+                
+                // Critical hunger affects health (starving)
+                if (petData.fullness < 10) {
+                    petData.health = Math.max(0, petData.health - (hoursPassed * 5)); // Starving = serious
+                } 
+                // Very hungry affects health slowly
+                else if (petData.fullness < 30) {
+                    petData.health = Math.max(0, petData.health - (hoursPassed * 0.5)); // Minor health impact
                 }
                 
-                // Happiness decreases if needs aren't met
-                if (petData.fullness < 40 || petData.energy < 30) {
-                    petData.happiness = Math.max(0, petData.happiness - (hoursPassed * 3));
+                // Exhaustion affects health
+                if (petData.energy < 10) {
+                    petData.health = Math.max(0, petData.health - (hoursPassed * 2)); // Sleep deprivation
                 }
                 
+                // Unhappiness affects health long-term (stress/depression)
+                if (petData.happiness < 20) {
+                    petData.health = Math.max(0, petData.health - (hoursPassed * 0.3)); // Chronic stress
+                }
+                
+                petData.lastUpdated = now;
                 savePetData();
             }
         }
