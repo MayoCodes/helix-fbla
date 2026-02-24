@@ -634,46 +634,43 @@
             border-bottom-left-radius: 4px;
         }
         
-        .chat-input-container {
-            display: flex;
-            gap: 0.5rem;
+        .chat-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
         }
         
-        .chat-input {
-            flex: 1;
-            padding: 0.8rem;
+        .chat-option-btn {
+            background: #F8F9FA;
             border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
-        
-        .chat-input:focus {
-            border-color: #4A9B9B;
-        }
-        
-        .chat-send-btn {
-            background: #4A9B9B;
-            color: white;
-            border: none;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
+            border-radius: 10px;
+            padding: 0.9rem;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2C3E50;
         }
         
-        .chat-send-btn:hover {
-            background: #3d8585;
+        .chat-option-btn:hover {
+            background: #4A9B9B;
+            border-color: #4A9B9B;
+            color: white;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 155, 155, 0.3);
         }
         
-        .chat-send-btn svg {
-            width: 18px;
-            height: 18px;
+        .chat-option-btn svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        
+        .chat-option-btn:hover svg {
+            color: white;
         }
         
         /* Events Section */
@@ -1396,13 +1393,36 @@
                 <div class="chat-section">
                     <h3>Talk to Your Pet</h3>
                     <div class="chat-messages" id="chatMessages"></div>
-                    <div class="chat-input-container">
-                        <input type="text" id="chatInput" class="chat-input" placeholder="Say something to your pet...">
-                        <button class="chat-send-btn" onclick="sendChatMessage()">
+                    <div class="chat-options">
+                        <button class="chat-option-btn" onclick="sendPremadeMessage('How are you feeling today?')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                <line x1="15" y1="9" x2="15.01" y2="9"></line>
                             </svg>
+                            How are you?
+                        </button>
+                        <button class="chat-option-btn" onclick="sendPremadeMessage('Youre such a good pet!')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            Good pet!
+                        </button>
+                        <button class="chat-option-btn" onclick="sendPremadeMessage('Do you need anything?')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            Need anything?
+                        </button>
+                        <button class="chat-option-btn" onclick="sendPremadeMessage('Tell me a story!')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                            Tell story
                         </button>
                     </div>
                 </div>
@@ -2224,15 +2244,11 @@ Respond as the pet in first person. Be emotional and reference your current stat
         // AI CHAT & EVENTS
         // ============================================
         
-        async function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            
+        async function sendPremadeMessage(message) {
             if (!message) return;
             
             // Add user message to chat
             addChatMessage(message, 'user');
-            input.value = '';
             
             // Show loading
             const loadingMsg = addChatMessage('...', 'pet');
@@ -2346,18 +2362,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
         setInterval(() => {
             checkForRandomEvent();
         }, 60000); // Check every minute
-        
-        // Allow Enter key to send chat
-        document.addEventListener('DOMContentLoaded', () => {
-            const chatInput = document.getElementById('chatInput');
-            if (chatInput) {
-                chatInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        sendChatMessage();
-                    }
-                });
-            }
-        });
         
         // ============================================
         // PET CARE FUNCTIONS
@@ -2601,6 +2605,11 @@ Respond as the pet in first person. Be emotional and reference your current stat
             document.getElementById('vetSpent').textContent = cost.vetSpent;
             document.getElementById('toySpent').textContent = cost.toySpent;
             
+            // Update total spent (IMPORTANT!)
+            if (document.getElementById('totalSpent')) {
+                document.getElementById('totalSpent').textContent = cost.totalSpent || 0;
+            }
+            
             // Update budget bar
             const budgetPercent = Math.max(0, (cost.budgetRemaining / cost.monthlyBudget) * 100);
             const budgetBar = document.getElementById('budgetBar');
@@ -2658,7 +2667,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
             document.getElementById('happinessStat').textContent = petData.happiness.toFixed(0);
             document.getElementById('fullnessStat').textContent = petData.fullness.toFixed(0);
             document.getElementById('energyStat').textContent = petData.energy.toFixed(0);
-            document.getElementById('totalSpent').textContent = petData.totalSpent.toFixed(0);
             
             // Update progress bars
             document.getElementById('healthBar').style.width = petData.health + '%';
