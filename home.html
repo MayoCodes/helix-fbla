@@ -1325,8 +1325,7 @@
     </div>
 
     <script>
-        // Firebase Config - REPLACE WITH YOUR ACTUAL CONFIG
-        // Get this from Firebase Console -> Project Settings -> Your apps -> Web app
+        // Firebase Configuration (OPTIONAL - leave placeholder to use localStorage)
         const firebaseConfig = {
             apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
             authDomain: "helix-fbla.firebaseapp.com",
@@ -1336,8 +1335,9 @@
             appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
         };
         
-        // Check if Firebase is configured
-        const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo";
+        // Check if Firebase is configured - MUST be configured!
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo" 
+            && firebaseConfig.apiKey.length > 20;
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -1345,13 +1345,15 @@
             auth = firebase.auth();
             db = firebase.firestore();
             console.log("✅ Firebase initialized successfully");
+            console.log("🔐 Firestore ONLY mode - all data stored in cloud");
         } else {
-            console.log("⚠️ DEVELOPMENT MODE - Using localStorage");
-            console.log("To enable Firebase:");
-            console.log("1. Go to Firebase Console");
-            console.log("2. Create/select your project");
-            console.log("3. Enable Firestore Database");
-            console.log("4. Get your config and paste it above");
+            console.error("❌ Firebase NOT configured!");
+            console.error("This app REQUIRES Firestore. Please configure Firebase:");
+            console.error("1. Go to Firebase Console: https://console.firebase.google.com");
+            console.error("2. Create/select your project");
+            console.error("3. Enable Firestore Database");
+            console.error("4. Get your config and paste it in home.html");
+            alert("Firebase is required! Please configure Firebase to use this app. See console for instructions.");
         }
 
         // Pet Data Structure - now supports multiple pets
@@ -1382,7 +1384,7 @@
         // GROQ AI CONFIGURATION  
         // ============================================
         
-        const GROQ_API_KEY = "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"; // Not needed - using Vercel function
+        const GROQ_API_KEY = "YOUR_GROQ_API_KEY_HERE"; // Not needed - using Vercel function
         const GROQ_FUNCTION_URL = "/api/groq"; // Vercel serverless function
         
         // Check if AI is enabled (always true on Vercel if env variable is set)
@@ -1602,88 +1604,26 @@ Respond as the pet in first person. Be emotional and reference your current stat
         // ============================================
         
         async function loadPetData() {
-            if (!isFirebaseConfigured || !currentUser) {
-                // Development mode - use local storage
-                const saved = localStorage.getItem('userPets');
-                const savedCurrentId = localStorage.getItem('currentPetId');
-                
-                // Migration: Check for old single-pet data structure
-                const oldPetData = localStorage.getItem('petData');
-                if (oldPetData && !saved) {
-                    console.log("🔄 Migrating old pet data to new structure...");
-                    const oldPet = JSON.parse(oldPetData);
-                    
-                    // Convert hunger to fullness
-                    if (oldPet.hunger !== undefined && oldPet.fullness === undefined) {
-                        oldPet.fullness = 100 - oldPet.hunger; // Invert the value
-                        delete oldPet.hunger;
-                    }
-                    
-                    const petId = Date.now().toString();
-                    userPets = {
-                        [petId]: oldPet
-                    };
-                    currentPetId = petId;
-                    
-                    // Save new structure
-                    localStorage.setItem('userPets', JSON.stringify(userPets));
-                    localStorage.setItem('currentPetId', currentPetId);
-                    localStorage.removeItem('petData'); // Remove old data
-                    
-                    petData = oldPet;
-                    updateUI();
-                    loadModel(MODELS[petData.type].file);
-                    loadMiniBubbles();
-                    return;
-                }
-                
-                if (saved) {
-                    userPets = JSON.parse(saved);
-                    currentPetId = savedCurrentId;
-                    
-                    // Migrate any pets with hunger to fullness
-                    Object.keys(userPets).forEach(petId => {
-                        const pet = userPets[petId];
-                        if (pet.hunger !== undefined && pet.fullness === undefined) {
-                            pet.fullness = 100 - pet.hunger;
-                            delete pet.hunger;
-                        }
-                    });
-                    
-                    if (currentPetId && userPets[currentPetId]) {
-                        petData = userPets[currentPetId];
-                        updateUI();
-                        loadModel(MODELS[petData.type].file);
-                        loadMiniBubbles();
-                    } else {
-                        // Load first pet if no current pet selected
-                        const firstPetId = Object.keys(userPets)[0];
-                        if (firstPetId) {
-                            currentPetId = firstPetId;
-                            petData = userPets[firstPetId];
-                            localStorage.setItem('currentPetId', currentPetId);
-                            updateUI();
-                            loadModel(MODELS[petData.type].file);
-                            loadMiniBubbles();
-                        } else {
-                            showSetupModal();
-                        }
-                    }
-                } else {
-                    showSetupModal();
-                }
+            // Firebase ONLY - no localStorage fallback
+            if (!isFirebaseConfigured) {
+                alert("Firebase is not configured! Please add your Firebase config to home.html");
+                return;
+            }
+            
+            if (!currentUser) {
+                console.log("⏳ Waiting for authentication...");
                 return;
             }
 
             try {
-                // Load all pets for this user
+                // Load all pets for this user from Firestore
                 const petsSnapshot = await db.collection('users').doc(currentUser.uid).collection('pets').get();
                 
                 if (!petsSnapshot.empty) {
                     userPets = {};
                     petsSnapshot.forEach(doc => {
                         const pet = doc.data();
-                        // Migrate hunger to fullness
+                        // Migrate hunger to fullness if needed
                         if (pet.hunger !== undefined && pet.fullness === undefined) {
                             pet.fullness = 100 - pet.hunger;
                             delete pet.hunger;
@@ -1691,25 +1631,41 @@ Respond as the pet in first person. Be emotional and reference your current stat
                         userPets[doc.id] = pet;
                     });
                     
-                    // Load current pet ID
+                    // Load last active pet
                     const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    currentPetId = userDoc.data()?.currentPetId || Object.keys(userPets)[0];
+                    if (userDoc.exists && userDoc.data().currentPetId) {
+                        currentPetId = userDoc.data().currentPetId;
+                        if (userPets[currentPetId]) {
+                            petData = userPets[currentPetId];
+                            updateUI();
+                            loadModel(MODELS[petData.type].file);
+                            loadMiniBubbles();
+                            return;
+                        }
+                    }
                     
-                    petData = userPets[currentPetId];
-                    updateUI();
-                    loadModel(MODELS[petData.type].file);
-                    loadMiniBubbles();
-                    
-                    // Update stats based on time passed
-                    updateStatsOverTime();
+                    // Load first pet if no current pet selected
+                    const firstPetId = Object.keys(userPets)[0];
+                    if (firstPetId) {
+                        currentPetId = firstPetId;
+                        petData = userPets[firstPetId];
+                        await db.collection('users').doc(currentUser.uid).set({
+                            currentPetId: currentPetId
+                        }, { merge: true });
+                        updateUI();
+                        loadModel(MODELS[petData.type].file);
+                        loadMiniBubbles();
+                    }
                 } else {
+                    // No pets yet - show setup
                     showSetupModal();
                 }
             } catch (error) {
-                console.error("Error loading pet data:", error);
-                showSetupModal();
+                console.error("Error loading pet data from Firestore:", error);
+                alert("Error loading pet data. Check console for details.");
             }
         }
+
 
         async function savePetData() {
             petData.lastUpdated = Date.now();
@@ -1724,15 +1680,19 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 userPets[currentPetId] = petData;
             }
             
-            if (!isFirebaseConfigured || !currentUser) {
-                // Development mode - use local storage
-                localStorage.setItem('userPets', JSON.stringify(userPets));
-                localStorage.setItem('currentPetId', currentPetId);
+            // Firebase ONLY - no localStorage
+            if (!isFirebaseConfigured) {
+                console.error("Firebase not configured!");
+                return;
+            }
+            
+            if (!currentUser) {
+                console.log("Not authenticated - data not saved");
                 return;
             }
 
             try {
-                // Save current pet
+                // Save current pet to Firestore
                 await db.collection('users').doc(currentUser.uid).collection('pets').doc(currentPetId).set(petData);
                 
                 // Save current pet ID
@@ -1740,9 +1700,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
                     currentPetId: currentPetId
                 }, { merge: true });
                 
-                console.log("Pet data saved to Firebase");
+                console.log("✅ Pet data saved to Firestore");
             } catch (error) {
-                console.error("Error saving pet data:", error);
+                console.error("❌ Error saving pet data:", error);
             }
         }
 
