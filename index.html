@@ -10,6 +10,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
+    <!-- Babylon.js for 3D -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    
     <link rel="stylesheet" href="landing-style.css">
 </head>
 <body>
@@ -112,7 +116,7 @@
             </div>
             <div class="companions-grid">
                 <div class="companion-card">
-                    <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&h=400&fit=crop" alt="Dogs" class="companion-image">
+                    <canvas id="dogCanvas" class="companion-canvas"></canvas>
                     <div class="companion-info">
                         <h3>Dogs</h3>
                         <p>Loyal and energetic companions that help you build healthy habits through regular care routines.</p>
@@ -125,7 +129,7 @@
                     </div>
                 </div>
                 <div class="companion-card">
-                    <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop" alt="Cats" class="companion-image">
+                    <canvas id="catCanvas" class="companion-canvas"></canvas>
                     <div class="companion-info">
                         <h3>Cats</h3>
                         <p>Independent yet affectionate friends that teach you focus and time management skills.</p>
@@ -138,7 +142,7 @@
                     </div>
                 </div>
                 <div class="companion-card">
-                    <img src="https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=600&h=400&fit=crop" alt="Birds" class="companion-image">
+                    <canvas id="birdCanvas" class="companion-canvas"></canvas>
                     <div class="companion-info">
                         <h3>Birds</h3>
                         <p>Colorful and interactive companions that encourage social engagement and communication.</p>
