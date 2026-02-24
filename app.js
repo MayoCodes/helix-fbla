@@ -312,7 +312,7 @@ function createIndexBubblePreview(petType) {
     indexBubbleEngines[petType] = engine;
     
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(1, 1, 1, 1); // White background
+    scene.clearColor = new BABYLON.Color4(0.29, 0.65, 0.65, 1); // Teal background (#49a6a6)
     indexBubbleScenes[petType] = scene;
     
     // Camera setup - same as home.html bubbles

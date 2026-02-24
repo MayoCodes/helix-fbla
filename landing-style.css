@@ -276,29 +276,29 @@ nav {
 
 .companion-card {
     border-radius: 16px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: transform 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .companion-card:hover {
     transform: translateY(-8px);
 }
 
-.companion-image, .companion-canvas, .bubble-canvas-wrapper {
-    width: 100%;
-    height: 300px;
-    display: block;
-}
-
 .bubble-canvas-wrapper {
+    width: 300px;
+    height: 300px;
     border-radius: 50%;
-    background: white;
+    background: #49a6a6;
     border: 5px solid #e0e0e0;
     overflow: hidden;
     position: relative;
     transition: all 0.3s ease;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    flex-shrink: 0;
 }
 
 .companion-card:hover .bubble-canvas-wrapper {
