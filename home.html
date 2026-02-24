@@ -1569,7 +1569,8 @@
         };
         
         // Check if Firebase is configured
-        const isFirebaseConfigured = true;
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" 
+            && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -2818,12 +2819,62 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 
                 // Add checkmark
                 taskElement.innerHTML += '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>';
+                
+                // Remove click handler
+                taskElement.onclick = null;
             }
             
-            updateUI();
+            // Update UI WITHOUT reloading tasks
+            updateUIWithoutTasks();
             savePetData();
             
             showAlert(`Task completed! +${task.coins} coins, +${task.bond} bond!`, 'success');
+        }
+        
+        // Update UI without reloading tasks (used during task completion)
+        function updateUIWithoutTasks() {
+            document.getElementById('petNameDisplay').textContent = petData.name;
+            
+            const coins = Math.max(0, userData.coins || 0);
+            document.getElementById('coinsStat').textContent = coins;
+            
+            const age = petData.age || 'baby';
+            const ageInfo = AGE_STAGES[age];
+            document.getElementById('ageValue').textContent = ageInfo.label;
+            
+            document.getElementById('levelNum').textContent = petData.level || 1;
+            document.getElementById('currentXP').textContent = petData.experience || 0;
+            document.getElementById('maxXP').textContent = petData.experienceToNextLevel || 100;
+            const xpPercentage = ((petData.experience || 0) / (petData.experienceToNextLevel || 100)) * 100;
+            document.getElementById('levelBar').style.width = xpPercentage + '%';
+            
+            const bond = petData.bond || 0;
+            document.getElementById('bondValue').textContent = bond;
+            document.getElementById('bondBar').style.width = bond + '%';
+            
+            const milestoneEl = document.getElementById('bondMilestone');
+            if (bond < 25) {
+                milestoneEl.textContent = 'Next: 25 bond needed to become Young';
+            } else if (bond < 50) {
+                milestoneEl.textContent = 'Next: 50 bond needed to become Adult';
+            } else if (bond < 75) {
+                milestoneEl.textContent = 'Next: 75 bond needed to become Senior';
+            } else {
+                milestoneEl.textContent = 'Maximum bond reached!';
+            }
+            
+            document.getElementById('healthStat').textContent = petData.health.toFixed(0);
+            document.getElementById('happinessStat').textContent = petData.happiness.toFixed(0);
+            document.getElementById('fullnessStat').textContent = petData.fullness.toFixed(0);
+            document.getElementById('energyStat').textContent = petData.energy.toFixed(0);
+            
+            document.getElementById('healthBar').style.width = petData.health + '%';
+            document.getElementById('happinessBar').style.width = petData.happiness + '%';
+            document.getElementById('fullnessBar').style.width = petData.fullness + '%';
+            document.getElementById('energyBar').style.width = petData.energy + '%';
+            
+            updateMood();
+            updateCostUI();
         }
         
         function checkAgeProgression(oldBond, newBond) {
