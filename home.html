@@ -2307,6 +2307,118 @@ Respond as the pet in first person. Be emotional and reference your current stat
         }
         
         
+        // ============================================
+        // DYNAMIC SCENARIO SYSTEM
+        // ============================================
+        
+        async function generateScenario() {
+            const context = getPetPersonalityContext();
+            const traits = PET_TRAITS[petData.type];
+            
+            const prompt = `${context}
+
+Generate a random scenario that affects your stats as a ${traits.name}. This should be a realistic event that happens to pets.
+
+SCENARIO TYPES:
+- Got sick (decrease health by 15-30)
+- Found food/ate something (increase fullness by 10-20, might decrease health if bad food)
+- Got scared/stressed (decrease happiness by 15-25)
+- Had fun adventure (increase happiness by 10-20, decrease energy by 10-15)
+- Played too hard (decrease energy by 20-30)
+- Took a great nap (increase energy by 15-25)
+- Made a mess (decrease happiness by 5-10)
+
+Return ONLY a JSON object in this exact format (no markdown):
+{
+  "title": "brief scenario title (e.g., 'Got Sick!', 'Found a Treat!')",
+  "description": "what happened in first person (20-40 words, emotional)",
+  "effects": {
+    "health": -20,
+    "happiness": 0,
+    "fullness": 0,
+    "energy": 0
+  }
+}
+
+RULES:
+- Only change 1-2 stats per scenario
+- Negative events: health -15 to -30, happiness -15 to -25, energy -20 to -30
+- Positive events: happiness +10 to +20, energy +15 to +25, fullness +10 to +20
+- Make it realistic for a ${traits.name}
+- Effects must be numbers (positive or negative)
+
+Examples:
+{"title": "Ate Something Bad!", "description": "I found some old food under the couch and ate it... my tummy hurts now!", "effects": {"health": -25, "happiness": -10, "fullness": 5, "energy": 0}}
+{"title": "Had a Great Nap!", "description": "I found the sunniest spot in the house and took the best nap ever! I feel so refreshed!", "effects": {"health": 0, "happiness": 15, "fullness": 0, "energy": 20}}`;
+
+            const response = await callGroqAPI(prompt);
+            
+            if (response) {
+                try {
+                    let cleanResponse = response.trim();
+                    if (cleanResponse.startsWith('```')) {
+                        cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+                    }
+                    return JSON.parse(cleanResponse);
+                } catch (e) {
+                    console.error("Failed to parse scenario:", e);
+                    return null;
+                }
+            }
+            return null;
+        }
+        
+        function applyScenarioEffects(scenario) {
+            // Apply stat changes
+            const effects = scenario.effects;
+            
+            if (effects.health) {
+                petData.health = Math.max(0, Math.min(100, petData.health + effects.health));
+            }
+            if (effects.happiness) {
+                petData.happiness = Math.max(0, Math.min(100, petData.happiness + effects.happiness));
+            }
+            if (effects.fullness) {
+                petData.fullness = Math.max(0, Math.min(100, petData.fullness + effects.fullness));
+            }
+            if (effects.energy) {
+                petData.energy = Math.max(0, Math.min(100, petData.energy + effects.energy));
+            }
+            
+            // Build effect message
+            let effectMsg = '\n\nStat Changes:\n';
+            if (effects.health) effectMsg += `Health: ${effects.health > 0 ? '+' : ''}${effects.health}\n`;
+            if (effects.happiness) effectMsg += `Happiness: ${effects.happiness > 0 ? '+' : ''}${effects.happiness}\n`;
+            if (effects.fullness) effectMsg += `Fullness: ${effects.fullness > 0 ? '+' : ''}${effects.fullness}\n`;
+            if (effects.energy) effectMsg += `Energy: ${effects.energy > 0 ? '+' : ''}${effects.energy}\n`;
+            
+            // Show alert
+            showAlert(
+                `${scenario.title}\n\n${scenario.description}${effectMsg}`,
+                effects.health < 0 || effects.happiness < -10 ? 'error' : 'info'
+            );
+            
+            // Update UI and save
+            updateUIWithoutTasks();
+            savePetData();
+        }
+        
+        async function checkForScenario() {
+            // Random scenarios every 20-60 minutes
+            const randomMinutes = Math.random() * 40 + 20; // 20-60 minutes
+            
+            setTimeout(async () => {
+                const scenario = await generateScenario();
+                
+                if (scenario) {
+                    applyScenarioEffects(scenario);
+                }
+                
+                // Schedule next scenario
+                checkForScenario();
+            }, randomMinutes * 60 * 1000);
+        }
+        
         async function checkForRandomEvent() {
             // Only check if AI is enabled
             if (!isAIEnabled()) return;
@@ -3414,6 +3526,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
         scene = createScene();
         engine.runRenderLoop(() => scene.render());
         window.addEventListener('resize', () => engine.resize());
+        
+        // Start dynamic scenario system (20-60 min intervals)
+        checkForScenario();
     </script>
 </body>
 </html>
