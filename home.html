@@ -2311,13 +2311,13 @@ Respond as the pet in first person. Be emotional and reference your current stat
             // Only check if AI is enabled
             if (!isAIEnabled()) return;
             
-            // Dynamic event chance based on pet's state
-            let eventChance = 0.15; // Base 15% chance per check
+            // REDUCED frequency to save Groq tokens
+            let eventChance = 0.03; // Base 3% chance per check (was 15%)
             
-            // Increase chance if stats are critical (pet needs attention)
-            if (petData.fullness < 30) eventChance += 0.1;
-            if (petData.happiness < 40) eventChance += 0.1;
-            if (petData.health < 50) eventChance += 0.05;
+            // Increase chance only for critical needs
+            if (petData.fullness < 20) eventChance += 0.05;
+            if (petData.happiness < 30) eventChance += 0.05;
+            if (petData.health < 30) eventChance += 0.03;
             
             // Memory event after 30 days (guaranteed)
             const daysSinceAdoption = Math.floor((Date.now() - (petData.adoptionDate || Date.now())) / (1000 * 60 * 60 * 24));
