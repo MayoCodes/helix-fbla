@@ -59,7 +59,7 @@
         }
         
         .coins-display {
-            background: linear-gradient(135deg, #FFB347 0%, #FFA500 100%);
+            background: #4A9B9B;
             padding: 0.3rem 0.7rem;
             border-radius: 6px;
             display: flex;
@@ -175,7 +175,7 @@
         
         .level-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #4A9B9B 0%, #5FB8B8 50%, #4A9B9B 100%);
+            background: #4A9B9B;
             border-radius: 6px;
             transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             position: absolute;
@@ -235,19 +235,19 @@
         }
         
         .stat-icon-wrapper.health {
-            background: linear-gradient(135deg, #FF6B6B, #EE5A6F);
+            background: #4A9B9B;
         }
         
         .stat-icon-wrapper.happiness {
-            background: linear-gradient(135deg, #FFB347, #FFA500);
+            background: #4A9B9B;
         }
         
         .stat-icon-wrapper.hunger {
-            background: linear-gradient(135deg, #A78BFA, #8B5CF6);
+            background: #4A9B9B;
         }
         
         .stat-icon-wrapper.energy {
-            background: linear-gradient(135deg, #60A5FA, #3B82F6);
+            background: #4A9B9B;
         }
         
         .stat-icon-svg {
@@ -317,16 +317,16 @@
         
         /* Bright, vibrant colors for stats */
         .stat-bar-fill.health { 
-            background: linear-gradient(90deg, #FF6B6B 0%, #EE5A6F 100%); 
+            background: #4A9B9B; 
         }
         .stat-bar-fill.happiness { 
-            background: linear-gradient(90deg, #FFB347 0%, #FFA500 100%); 
+            background: #4A9B9B; 
         }
         .stat-bar-fill.hunger { 
-            background: linear-gradient(90deg, #A78BFA 0%, #8B5CF6 100%); 
+            background: #4A9B9B; 
         }
         .stat-bar-fill.energy { 
-            background: linear-gradient(90deg, #60A5FA 0%, #3B82F6 100%); 
+            background: #4A9B9B; 
         }
         
         /* Control Panel */
@@ -396,14 +396,83 @@
         
         /* Care Actions Section */
         .care-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; }
+        
+        /* Expense Tracker */
+        .expense-tracker {
+            background: #f0fdfa;
+            border: 2px solid #4A9B9B;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .expense-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .expense-label {
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .expense-value {
+            font-weight: 700;
+            color: #4A9B9B;
+        }
+        
+        .expense-value.remaining {
+            font-size: 1.1rem;
+        }
+        
+        .expense-value.low {
+            color: #dc2626;
+        }
+        
+        .expense-bar {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 0.75rem 0;
+        }
+        
+        .expense-bar-fill {
+            height: 100%;
+            background: #4A9B9B;
+            transition: width 0.3s ease;
+        }
+        
+        .expense-bar-fill.low {
+            background: #dc2626;
+        }
+        
+        .expense-breakdown {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #cbd5e1;
+        }
+        
+        .expense-category {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
         .care-section h3 { margin: 0 0 1rem 0; color: #2C3E50; font-size: 1.2rem; }
         
         /* Traits Section */
         .traits-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; }
+        
+
         .traits-section h3 { margin: 0 0 1rem 0; color: #2C3E50; font-size: 1.2rem; }
         
         .age-display {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #4A9B9B;
             color: white;
             padding: 0.6rem 1rem;
             border-radius: 10px;
@@ -434,7 +503,7 @@
         }
         
         .trait-tag {
-            background: linear-gradient(135deg, #4A9B9B, #5FB8B8);
+            background: #4A9B9B;
             color: white;
             padding: 0.4rem 0.8rem;
             border-radius: 20px;
@@ -496,7 +565,7 @@
         .tasks-section h3 { margin: 0 0 0.5rem 0; color: #2C3E50; font-size: 1.2rem; }
         
         .ai-button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #4A9B9B;
             color: white;
             border: none;
             padding: 0.4rem 0.8rem;
@@ -663,7 +732,7 @@
         }
         
         .task-item:hover {
-            background: linear-gradient(135deg, #4A9B9B, #5FB8B8);
+            background: #4A9B9B;
             border-color: #4A9B9B;
             transform: translateY(-3px);
             box-shadow: 0 6px 16px rgba(74, 155, 155, 0.4);
@@ -1213,6 +1282,36 @@
                 <!-- Care Actions -->
                 <div class="care-section">
                     <h3>Care Actions</h3>
+                    
+                    <!-- Cost Tracking Display -->
+                    <div class="expense-tracker">
+                        <div class="expense-row">
+                            <span class="expense-label">Monthly Budget:</span>
+                            <span class="expense-value">$<span id="monthlyBudget">200</span></span>
+                        </div>
+                        <div class="expense-row">
+                            <span class="expense-label">Remaining:</span>
+                            <span class="expense-value remaining" id="budgetRemaining">$200</span>
+                        </div>
+                        <div class="expense-bar">
+                            <div class="expense-bar-fill" id="budgetBar" style="width: 100%"></div>
+                        </div>
+                        <div class="expense-breakdown">
+                            <div class="expense-category">
+                                <span>Food/Supplies:</span>
+                                <span>$<span id="foodSpent">0</span></span>
+                            </div>
+                            <div class="expense-category">
+                                <span>Health Care:</span>
+                                <span>$<span id="vetSpent">0</span></span>
+                            </div>
+                            <div class="expense-category">
+                                <span>Toys/Activities:</span>
+                                <span>$<span id="toySpent">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="care-buttons">
                         <button class="care-btn" onclick="feedPet()">
                             <span class="btn-icon">
@@ -1224,7 +1323,7 @@
                                 </svg>
                             </span>
                             <span class="btn-label">Feed</span>
-                            <span class="btn-cost">5 coins</span>
+                            <span class="btn-cost">$10</span>
                         </button>
                         <button class="care-btn" onclick="playWithPet()">
                             <span class="btn-icon">
@@ -1233,8 +1332,17 @@
                                     <path d="M8 15h8M9 9h.01M15 9h.01"></path>
                                 </svg>
                             </span>
-                            <span class="btn-label">Play</span>
-                            <span class="btn-cost">3 coins</span>
+                            <span class="btn-label">Play (Toy)</span>
+                            <span class="btn-cost">$15</span>
+                        </button>
+                        <button class="care-btn" onclick="cleanPet()">
+                            <span class="btn-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                                </svg>
+                            </span>
+                            <span class="btn-label">Clean (Supplies)</span>
+                            <span class="btn-cost">$5</span>
                         </button>
                         <button class="care-btn" onclick="restPet()">
                             <span class="btn-icon">
@@ -1248,22 +1356,11 @@
                         <button class="care-btn" onclick="healthCheck()">
                             <span class="btn-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                                 </svg>
                             </span>
-                            <span class="btn-label">Vet Check</span>
-                            <span class="btn-cost">15 coins</span>
-                        </button>
-                        <button class="care-btn" onclick="giveTreat()">
-                            <span class="btn-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="6" y="4" width="4" height="16" rx="2"></rect>
-                                    <rect x="14" y="4" width="4" height="16" rx="2"></rect>
-                                    <rect x="8" y="10" width="8" height="4" rx="1"></rect>
-                                </svg>
-                            </span>
-                            <span class="btn-label">Treat</span>
-                            <span class="btn-cost">2 coins</span>
+                            <span class="btn-label">Health Check (Vet)</span>
+                            <span class="btn-cost">$50</span>
                         </button>
                     </div>
                 </div>
@@ -1325,33 +1422,42 @@
     </div>
 
     <script>
-        // Firebase Configuration (OPTIONAL - skigro placeholder to use localStorage)
+        // Firebase Configuration - REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
+        // Get this from: https://console.firebase.google.com -> Project Settings -> Your apps -> Web app
         const firebaseConfig = {
-                apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
-                authDomain: "helix-fbla.firebaseapp.com",
-                projectId: "helix-fbla",
-                storageBucket: "helix-fbla.firebasestorage.app",
-                messagingSenderId: "154951525413",
-                appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+            apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+            authDomain: "helix-fbla.firebaseapp.com",
+            projectId: "helix-fbla",
+            storageBucket: "helix-fbla.firebasestorage.app",
+            messagingSenderId: "154951525413",
+            appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
         };
         
-        // Check if Firebase is configured - MUST be configured!
+        // Check if Firebase is configured
         const isFirebaseConfigured = true;
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
-            firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            db = firebase.firestore();
-            console.log("✅ Firebase initialized successfully");
-            console.log("🔐 Firestore ONLY mode - all data stored in cloud");
+            try {
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                console.log("✅ Firebase initialized successfully");
+                console.log("🔐 Firestore ONLY mode - all data stored in cloud");
+                console.log("Project:", firebaseConfig.projectId);
+            } catch (error) {
+                console.error("❌ Firebase initialization error:", error);
+                alert("Firebase config error: " + error.message);
+            }
         } else {
             console.error("❌ Firebase NOT configured!");
             console.error("This app REQUIRES Firestore. Please configure Firebase:");
             console.error("1. Go to Firebase Console: https://console.firebase.google.com");
             console.error("2. Create/select your project");
             console.error("3. Enable Firestore Database");
-            console.error("4. Get your config and paste it in home.html");
+            console.error("4. Go to Project Settings -> General -> Your apps -> Web app");
+            console.error("5. Copy the firebaseConfig object");
+            console.error("6. Paste it in home.html (lines 1329-1336)");
             alert("Firebase is required! Please configure Firebase to use this app. See console for instructions.");
         }
 
@@ -1366,11 +1472,24 @@
             experienceToNextLevel: 100,
             health: 100,
             happiness: 100,
-            fullness: 100, // Fullness (0 = starving, 100 = full) - renamed from hunger
+            fullness: 100, // Fullness (0 = starving, 100 = full)
             energy: 100,
-            coins: 100, // Main currency - earned from tasks and used for purchases
+            coins: 500, // Starting budget - currency for purchases
             bond: 0, // Bond level with pet (0-100)
-            totalSpent: 0,
+            
+            // COST OF CARE SYSTEM
+            costTracking: {
+                totalSpent: 0,
+                foodSpent: 0,
+                vetSpent: 0,
+                toySpent: 0,
+                supplySpent: 0,
+                monthlyBudget: 200, // Monthly budget limit
+                budgetRemaining: 200,
+                transactions: [], // History of all purchases
+                lastMonthReset: Date.now()
+            },
+            
             treats: {}, // Pet-specific treats inventory
             tasksCompleted: {}, // Track completed tasks
             lastTaskReset: Date.now(),
