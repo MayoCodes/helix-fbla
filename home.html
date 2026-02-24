@@ -926,22 +926,18 @@
         .care-btn:hover .btn-cost { color: rgba(255,255,255,0.9); }
         
         /* Animation Buttons */
-        .animation-section { padding: 1.5rem; border-bottom: 2px solid #e0e0e0; }
-        .animation-section h3 { margin: 0 0 1rem 0; color: #2C3E50; font-size: 1.2rem; }
-        .animation-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
         
-        .anim-btn {
-            background: #F8F9FA; border: 2px solid #e0e0e0; border-radius: 10px;
-            padding: 0.8rem; cursor: pointer; transition: all 0.3s ease;
-            display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+        
+        .add-pet-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(74, 155, 155, 0.6);
+            background: #3a8a8a;
         }
-        .anim-btn:hover { background: #4A9B9B; border-color: #4A9B9B; }
-        .anim-btn.active { background: #4A9B9B; border-color: #4A9B9B; }
-        .anim-btn.active .btn-label { color: #FFFFFF; }
-        .anim-btn:hover .btn-label { color: #FFFFFF; }
         
-        /* Footer */
-        .control-footer { padding: 1.5rem; margin-top: auto; }
+        .add-pet-btn svg {
+            width: 30px;
+            height: 30px;
+        }
         .btn-secondary { 
             width: 100%; padding: 1rem; background: transparent; 
             border: 2px solid #2C3E50; border-radius: 8px; color: #2C3E50; 
@@ -1455,15 +1451,6 @@
                             <span class="btn-label">Play (Toy)</span>
                             <span class="btn-cost">$15</span>
                         </button>
-                        <button class="care-btn" onclick="cleanPet()">
-                            <span class="btn-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-                                </svg>
-                            </span>
-                            <span class="btn-label">Clean (Supplies)</span>
-                            <span class="btn-cost">$5</span>
-                        </button>
                         <button class="care-btn" onclick="restPet()">
                             <span class="btn-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1485,19 +1472,20 @@
                     </div>
                 </div>
                 
-                <!-- Animations -->
-                <div class="animation-section">
-                    <h3>Animations</h3>
-                    <div class="animation-buttons" id="animButtons">
-                        <p style="text-align: center; color: #666;">Loading animations...</p>
-                    </div>
-                </div>
                 
                 <div class="control-footer">
                     <button class="btn-secondary" onclick="window.location.href='index.html'">Back to Home</button>
                 </div>
             </div>
         </div>
+        
+        <!-- Add Pet Button (floating) -->
+        <button class="add-pet-btn" onclick="showSetupModal()" title="Add New Pet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
     </section>
 
     <!-- Custom Alert Modal -->
@@ -1563,8 +1551,7 @@
         };
         
         // Check if Firebase is configured
-        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" 
-            && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
+        const isFirebaseConfigured = true;
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -1691,7 +1678,8 @@ Your personality traits: ${traits.traits.join(', ')}.
 Your current stats: Health ${petData.health}%, Happiness ${petData.happiness}%, Fullness ${petData.fullness}%, Energy ${petData.energy}%.
 Bond level with owner: ${petData.bond}/100.
 Days since adoption: ${daysSinceAdoption}.
-Total money spent on you: ${petData.totalSpent} coins.
+
+IMPORTANT: To increase bond, your owner must complete daily tasks with you (like playing, running, training). There is no direct "pet" action - bond grows through completing tasks together. If the user asks to pet you or increase bond, remind them to do daily tasks.
 
 You should respond in first person as the pet. Be emotional and reference your stats. If stats are low, express sadness or concern. If stats are high, be happy and affectionate. Keep responses under 50 words and conversational.`;
         }
@@ -1874,6 +1862,13 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 // Load all pets for this user from Firestore
                 const petsSnapshot = await db.collection('users').doc(currentUser.uid).collection('pets').get();
                 
+                // Load USER DATA (coins, budget) - IMPORTANT!
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().userData) {
+                    userData = userDoc.data().userData;
+                    console.log("✅ Loaded userData:", userData);
+                }
+                
                 if (!petsSnapshot.empty) {
                     userPets = {};
                     petsSnapshot.forEach(doc => {
@@ -1887,7 +1882,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
                     });
                     
                     // Load last active pet
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
                     if (userDoc.exists && userDoc.data().currentPetId) {
                         currentPetId = userDoc.data().currentPetId;
                         if (userPets[currentPetId]) {
@@ -1905,7 +1899,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
                         currentPetId = firstPetId;
                         petData = userPets[firstPetId];
                         await db.collection('users').doc(currentUser.uid).set({
-                            currentPetId: currentPetId
+                            currentPetId: currentPetId,
+                            userData: userData
                         }, { merge: true });
                         updateUI();
                         loadModel(MODELS[petData.type].file);
@@ -1950,12 +1945,13 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 // Save current pet to Firestore
                 await db.collection('users').doc(currentUser.uid).collection('pets').doc(currentPetId).set(petData);
                 
-                // Save current pet ID
+                // Save current pet ID AND userData
                 await db.collection('users').doc(currentUser.uid).set({
-                    currentPetId: currentPetId
+                    currentPetId: currentPetId,
+                    userData: userData  // SAVE USER DATA!
                 }, { merge: true });
                 
-                console.log("✅ Pet data saved to Firestore");
+                console.log("✅ Pet data and userData saved to Firestore");
             } catch (error) {
                 console.error("❌ Error saving pet data:", error);
             }
@@ -2298,8 +2294,15 @@ Respond as the pet in first person. Be emotional and reference your current stat
         function feedPet() {
             const COST = 10;
             
+            // Check coins
             if (userData.coins < COST) {
                 showAlert("Not enough coins! You need $" + COST + " to feed your pet.", 'error');
+                return;
+            }
+            
+            // Check budget
+            if (userData.costTracking && userData.costTracking.budgetRemaining < COST) {
+                showAlert("Monthly budget exceeded! You've spent $" + userData.costTracking.totalSpent + " this month.", 'error');
                 return;
             }
             
@@ -2315,7 +2318,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (!userData.costTracking) {
                 userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
-                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: [], lastMonthReset: Date.now()
                 };
             }
             userData.costTracking.totalSpent += COST;
@@ -2341,6 +2344,12 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 return;
             }
             
+            // Check budget
+            if (userData.costTracking && userData.costTracking.budgetRemaining < COST) {
+                showAlert("Monthly budget exceeded! You've spent $" + userData.costTracking.totalSpent + " this month.", 'error');
+                return;
+            }
+            
             if (petData.energy < 20) {
                 showAlert("Your pet is too tired to play!", 'warning');
                 return;
@@ -2353,7 +2362,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (!userData.costTracking) {
                 userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
-                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: [], lastMonthReset: Date.now()
                 };
             }
             userData.costTracking.totalSpent += COST;
@@ -2371,37 +2380,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
             showFeedback("Played with your pet! +15 XP");
         }
         
-        function cleanPet() {
-            const COST = 5;
-            
-            if (userData.coins < COST) {
-                showAlert("Not enough coins! You need $" + COST + " for cleaning supplies.", 'error');
-                return;
-            }
-
-            // DEDUCT coins (never add!)
-            userData.coins -= COST;
-            
-            // Track expense
-            if (!userData.costTracking) {
-                userData.costTracking = {
-                    totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
-                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
-                };
-            }
-            userData.costTracking.totalSpent += COST;
-            userData.costTracking.foodSpent += COST; // Supplies category
-            userData.costTracking.budgetRemaining -= COST;
-            
-            // Apply effects
-            petData.health = Math.min(100, petData.health + 10);
-            petData.happiness = Math.min(100, petData.happiness + 5);
-            
-            gainExperience(8);
-            updateUI();
-            savePetData();
-            showFeedback("Cleaned your pet! +8 XP");
-        }
 
         function restPet() {
             if (petData.energy > 80) {
@@ -2425,6 +2403,12 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 showAlert("Not enough coins! Vet visit costs $" + COST + ".", 'error');
                 return;
             }
+            
+            // Check budget
+            if (userData.costTracking && userData.costTracking.budgetRemaining < COST) {
+                showAlert("Monthly budget exceeded! You've spent $" + userData.costTracking.totalSpent + " this month.", 'error');
+                return;
+            }
 
             // DEDUCT coins (never add!)
             userData.coins -= COST;
@@ -2433,7 +2417,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (!userData.costTracking) {
                 userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
-                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: [], lastMonthReset: Date.now()
                 };
             }
             userData.costTracking.totalSpent += COST;
@@ -3275,10 +3259,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (currentAnimGroup) currentAnimGroup.stop();
             animations[name].start(true);
             currentAnimGroup = animations[name];
-            
-            document.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.querySelector(`[data-animation="${name}"]`);
-            if (btn) btn.classList.add('active');
         }
 
         function handleLogout() {
