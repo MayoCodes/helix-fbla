@@ -500,6 +500,7 @@ footer {
     width: 100%;
     height: 100%;
     z-index: 1000;
+    backdrop-filter: blur(10px);
 }
 
 .modal-overlay {
@@ -508,7 +509,7 @@ footer {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.5);
 }
 
 .circular-auth-container {
@@ -516,8 +517,8 @@ footer {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 400px;
-    height: 400px;
+    width: 450px;
+    height: 450px;
 }
 
 .auth-circle {
@@ -526,22 +527,28 @@ footer {
     height: 100%;
     background: white;
     border-radius: 50%;
-    padding: 3rem;
+    padding: 4rem 3rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 
 .close-modal {
     position: absolute;
-    top: 1rem;
-    right: 1.5rem;
+    top: 1.5rem;
+    right: 2rem;
     background: none;
     border: none;
-    font-size: 2rem;
+    font-size: 2.5rem;
     cursor: pointer;
-    color: #666;
+    color: #999;
+    transition: color 0.3s;
+}
+
+.close-modal:hover {
+    color: #333;
 }
 
 .auth-icon {
@@ -552,10 +559,12 @@ footer {
 .auth-circle h2 {
     margin-bottom: 1.5rem;
     color: #1a1a1a;
+    font-size: 1.75rem;
 }
 
 .auth-form {
     width: 100%;
+    max-width: 300px;
 }
 
 .input-group {
@@ -564,15 +573,21 @@ footer {
 
 .input-group input {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.9rem;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
     font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #49a6a6;
 }
 
 .btn-submit {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.9rem;
     background: #49a6a6;
     color: white;
     border: none;
@@ -580,6 +595,8 @@ footer {
     font-weight: 600;
     cursor: pointer;
     margin-top: 1rem;
+    font-size: 1.1rem;
+    transition: background 0.3s;
 }
 
 .btn-submit:hover {
@@ -588,39 +605,50 @@ footer {
 
 .auth-divider {
     text-align: center;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
     color: #999;
+    font-size: 0.9rem;
 }
 
 .btn-google {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.9rem;
     background: white;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1rem;
 }
 
 .btn-google:hover {
     border-color: #49a6a6;
+    transform: translateY(-2px);
 }
 
 .switch-view {
-    margin-top: 1rem;
+    margin-top: 1.25rem;
     text-align: center;
+    font-size: 0.95rem;
 }
 
 .switch-view a {
     color: #49a6a6;
     text-decoration: none;
+    font-weight: 600;
+}
+
+.switch-view a:hover {
+    text-decoration: underline;
 }
 
 .auth-view {
     display: none;
+    width: 100%;
 }
 
 .auth-view.active {
@@ -654,6 +682,11 @@ footer {
     
     .auth-circle {
         border-radius: 20px;
-        padding: 2rem;
+        padding: 2.5rem 2rem;
+        height: auto;
+    }
+    
+    .auth-form {
+        max-width: 100%;
     }
 }

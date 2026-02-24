@@ -7,25 +7,14 @@
 // FIREBASE CONFIGURATION
 // ========================
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
-            authDomain: "helix-fbla.firebaseapp.com",
-            projectId: "helix-fbla",
-            storageBucket: "helix-fbla.firebasestorage.app",
-            messagingSenderId: "154951525413",
-            appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
-        };
-
-/*
-        const MODELS = {
-            a: { file: "Leopard_Hybrid_A2.glb", name: "Cat" },
-            b: { file: "idle02.glb", name: "Dog" },
-            c: { file: "Parrot_A4.glb", name: "Bird" }
-        };
-
-
-
-*/
+const firebaseConfig = {
+    apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+    authDomain: "helix-fbla.firebaseapp.com",
+    projectId: "helix-fbla",
+    storageBucket: "helix-fbla.firebasestorage.app",
+    messagingSenderId: "154951525413",
+    appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+};
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -293,4 +282,87 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             });
         }
     });
+});
+
+// ========================
+// 3D PET PREVIEW SCENES
+// ========================
+
+const PET_MODELS = {
+    dog: "idle02.glb",
+    cat: "Leopard_Hybrid_A2.glb",
+    bird: "Parrot_A4.glb"
+};
+
+function create3DPreview(canvasId, modelFile) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    const engine = new BABYLON.Engine(canvas, true);
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.95, 0.97, 0.97, 1);
+
+    // Camera setup - same as home.html
+    const camera = new BABYLON.ArcRotateCamera(
+        "camera",
+        -Math.PI / 2,
+        Math.PI / 2.5,
+        5,
+        new BABYLON.Vector3(0, 1, 0),
+        scene
+    );
+    camera.lowerRadiusLimit = 3;
+    camera.upperRadiusLimit = 8;
+    camera.lowerBetaLimit = 0.1;
+    camera.upperBetaLimit = Math.PI / 2;
+
+    // Auto-rotate camera
+    let angle = 0;
+    scene.registerBeforeRender(() => {
+        angle += 0.005;
+        camera.alpha = angle;
+    });
+
+    // Lighting
+    const light = new BABYLON.HemisphericLight(
+        "light",
+        new BABYLON.Vector3(0, 1, 0),
+        scene
+    );
+    light.intensity = 0.7;
+
+    const dirLight = new BABYLON.DirectionalLight(
+        "dirLight",
+        new BABYLON.Vector3(-1, -2, -1),
+        scene
+    );
+    dirLight.intensity = 0.5;
+
+    // Load model
+    BABYLON.SceneLoader.ImportMesh(
+        "",
+        "https://raw.githubusercontent.com/BabylonJS/Assets/master/meshes/",
+        modelFile,
+        scene,
+        (meshes) => {
+            if (meshes.length > 0) {
+                meshes.forEach(mesh => {
+                    mesh.position.y = 0;
+                });
+            }
+        }
+    );
+
+    // Render loop
+    engine.runRenderLoop(() => scene.render());
+    window.addEventListener('resize', () => engine.resize());
+}
+
+// Initialize 3D previews when page loads
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        create3DPreview('dogCanvas', PET_MODELS.dog);
+        create3DPreview('catCanvas', PET_MODELS.cat);
+        create3DPreview('birdCanvas', PET_MODELS.bird);
+    }, 500);
 });
