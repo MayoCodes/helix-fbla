@@ -1379,11 +1379,11 @@
         let userPets = {}; // Object storing all user's pets by ID
         
         // ============================================
-        // DEEPSEEK AI CONFIGURATION
+        // GROQ AI CONFIGURATION  
         // ============================================
         
-        const DEEPSEEK_API_KEY = "sk-a18cd983a9c8491eabffd7daef80c495"; // Not needed - using Vercel function
-        const DEEPSEEK_FUNCTION_URL = "/api/deepseek"; // Vercel serverless function
+        const GROQ_API_KEY = "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"; // Not needed - using Vercel function
+        const GROQ_FUNCTION_URL = "/api/groq"; // Vercel serverless function
         
         // Check if AI is enabled (always true on Vercel if env variable is set)
         function isAIEnabled() {
@@ -1391,10 +1391,10 @@
         }
         
         // AI Personality system
-        async function callDeepSeekAPI(prompt) {
+        async function callGroqAPI(prompt) {
             try {
                 const requestBody = {
-                    model: "deepseek-chat",
+                    model: "llama-3.3-70b-versatile", // Fast and smart model
                     messages: [{
                         role: "user",
                         content: prompt
@@ -1404,7 +1404,7 @@
                 };
                 
                 // Call Vercel serverless function
-                const response = await fetch(DEEPSEEK_FUNCTION_URL, {
+                const response = await fetch(GROQ_FUNCTION_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1414,7 +1414,7 @@
                 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error("DeepSeek API error:", response.status, errorText);
+                    console.error("Groq API error:", response.status, errorText);
                     return null;
                 }
                 
@@ -1424,7 +1424,7 @@
                 }
                 return null;
             } catch (error) {
-                console.error("DeepSeek API Error:", error);
+                console.error("Groq API Error:", error);
                 return null;
             }
         }
@@ -1461,7 +1461,7 @@ Return ONLY a JSON array in this exact format (no markdown, no extra text):
 
 Make tasks creative but realistic for a ${traits.name}. Coins should be 5-15, bond should be 10-30.`;
 
-            const response = await callGeminiAPI(prompt);
+            const response = await callGroqAPI(prompt);
             
             if (response) {
                 try {
@@ -1501,7 +1501,7 @@ Generate a unique random event that happened to you today as a pet. This could b
 Return ONLY a JSON object in this exact format (no markdown, no extra text):
 {"event": "brief description of what happened", "dialogue": "what you say to your owner about it (under 40 words, emotional and personal)"}`;
 
-            const response = await callGeminiAPI(prompt);
+            const response = await callGroqAPI(prompt);
             
             if (response) {
                 try {
@@ -1527,7 +1527,7 @@ Your owner just said to you: "${userMessage}"
 
 Respond as the pet in first person. Be emotional and reference your current state. If you're unhappy, explain why. If you're happy, show affection. Keep it under 50 words.`;
 
-            return await callDeepSeekAPI(prompt);
+            return await callGroqAPI(prompt);
         }
         
         // Age stages based on bond level
@@ -1982,7 +1982,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (response) {
                 addChatMessage(response, 'pet');
             } else {
-                addChatMessage("*looks confused* Make sure you added DEEPSEEK_API_KEY to Vercel environment variables!", 'pet');
+                addChatMessage("*looks confused* Make sure you added GROQ_API_KEY to Vercel environment variables!", 'pet');
             }
         }
         
@@ -2015,7 +2015,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 loadPetTasks();
                 savePetData();
             } else {
-                alert("Failed to generate AI tasks. Make sure you added DEEPSEEK_API_KEY to Vercel environment variables!");
+                alert("Failed to generate AI tasks. Make sure you added GROQ_API_KEY to Vercel environment variables!");
             }
             
             button.innerHTML = originalText;
