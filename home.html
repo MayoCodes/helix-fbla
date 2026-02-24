@@ -899,6 +899,75 @@
         .btn-secondary:hover { background: #2C3E50; color: #FFFFFF; }
         
         /* Modal for Pet Setup */
+        /* Custom Alert */
+        .custom-alert {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .custom-alert.active {
+            display: flex;
+        }
+        
+        .custom-alert-content {
+            background: white;
+            border: 3px solid #4A9B9B;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(74, 155, 155, 0.3);
+            animation: alertSlideIn 0.3s ease;
+        }
+        
+        @keyframes alertSlideIn {
+            from {
+                transform: scale(0.8) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .custom-alert-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .custom-alert-message {
+            font-size: 1.1rem;
+            color: #2C3E50;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .custom-alert-btn {
+            background: #4A9B9B;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .custom-alert-btn:hover {
+            background: #3a8a8a;
+            transform: translateY(-2px);
+        }
+
         .modal { 
             display: none; 
             position: fixed; 
@@ -1380,6 +1449,15 @@
         </div>
     </section>
 
+    <!-- Custom Alert Modal -->
+    <div class="custom-alert" id="customAlert">
+        <div class="custom-alert-content">
+            <div class="custom-alert-icon" id="alertIcon">ℹ️</div>
+            <div class="custom-alert-message" id="alertMessage"></div>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">OK</button>
+        </div>
+    </div>
+
     <!-- Pet Setup Modal -->
     <div class="modal" id="setupModal">
         <div class="setup-screen">
@@ -1447,7 +1525,7 @@
                 console.log("Project:", firebaseConfig.projectId);
             } catch (error) {
                 console.error("❌ Firebase initialization error:", error);
-                alert("Firebase config error: " + error.message);
+                showAlert("Firebase config error: " + error.message);
             }
         } else {
             console.error("❌ Firebase NOT configured!");
@@ -1458,7 +1536,7 @@
             console.error("4. Go to Project Settings -> General -> Your apps -> Web app");
             console.error("5. Copy the firebaseConfig object");
             console.error("6. Paste it in home.html (lines 1329-1336)");
-            alert("Firebase is required! Please configure Firebase to use this app. See console for instructions.");
+            showAlert("Firebase is required! Please configure Firebase to use this app. See console for instructions.");
         }
 
         // Pet Data Structure - now supports multiple pets
@@ -1724,7 +1802,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
         async function loadPetData() {
             // Firebase ONLY - no localStorage fallback
             if (!isFirebaseConfigured) {
-                alert("Firebase is not configured! Please add your Firebase config to home.html");
+                showAlert("Firebase is not configured! Please add your Firebase config to home.html");
                 return;
             }
             
@@ -1780,7 +1858,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 }
             } catch (error) {
                 console.error("Error loading pet data from Firestore:", error);
-                alert("Error loading pet data. Check console for details.");
+                showAlert("Error loading pet data. Check console for details.");
             }
         }
 
@@ -1943,12 +2021,12 @@ Respond as the pet in first person. Be emotional and reference your current stat
             const name = document.getElementById('petNameInput').value.trim();
             
             if (!name) {
-                alert("Please enter a pet name!");
+                showAlert("Please enter a pet name!");
                 return;
             }
             
             if (!selectedPetType) {
-                alert("Please select a pet type!");
+                showAlert("Please select a pet type!");
                 return;
             }
 
@@ -2093,7 +2171,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 loadPetTasks();
                 savePetData();
             } else {
-                alert("Failed to generate AI tasks. Make sure you added GROQ_API_KEY to Vercel environment variables!");
+                showAlert("Failed to generate AI tasks. Make sure you added GROQ_API_KEY to Vercel environment variables!");
             }
             
             button.innerHTML = originalText;
@@ -2153,54 +2231,116 @@ Respond as the pet in first person. Be emotional and reference your current stat
         // ============================================
 
         function feedPet() {
-            if (petData.coins < 5) {
-                alert("Not enough coins! You need 5 coins to feed your pet.");
+            const COST = 10;
+            
+            if (petData.coins < COST) {
+                showAlert("Not enough coins! You need $" + COST + " to feed your pet.", 'error');
                 return;
             }
             
             if (petData.fullness > 80) {
-                alert("Your pet is already full!");
+                showAlert("Your pet is already full!", 'warning');
                 return;
             }
 
-            petData.coins -= 5;
-            petData.totalSpent += 5;
-            petData.fullness = Math.min(100, petData.fullness + 40); // INCREASE fullness (higher is better)
+            // DEDUCT coins (never add!)
+            petData.coins -= COST;
+            
+            // Track expense
+            if (!petData.costTracking) {
+                petData.costTracking = {
+                    totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                };
+            }
+            petData.costTracking.totalSpent += COST;
+            petData.costTracking.foodSpent += COST;
+            petData.costTracking.budgetRemaining -= COST;
+            
+            // Apply effects
+            petData.fullness = Math.min(100, petData.fullness + 30);
             petData.health = Math.min(100, petData.health + 5);
             petData.happiness = Math.min(100, petData.happiness + 10);
             
-            gainExperience(10); // +10 XP for feeding
+            gainExperience(10);
             updateUI();
             savePetData();
-            showFeedback("Fed your pet! Fullness increased. +10 XP");
+            showFeedback("Fed your pet! +10 XP");
         }
 
         function playWithPet() {
-            if (petData.coins < 3) {
-                alert("Not enough coins! You need 3 coins for toys.");
+            const COST = 15;
+            
+            if (petData.coins < COST) {
+                showAlert("Not enough coins! You need $" + COST + " for toys.", 'error');
                 return;
             }
             
             if (petData.energy < 20) {
-                alert("Your pet is too tired to play!");
+                showAlert("Your pet is too tired to play!", 'warning');
                 return;
             }
 
-            petData.coins -= 3;
-            petData.totalSpent += 3;
-            petData.happiness = Math.min(100, petData.happiness + 20);
-            petData.energy = Math.max(0, petData.energy - 15); // DECREASE energy (gets tired from playing)
-            petData.fullness = Math.max(0, petData.fullness - 10); // DECREASE fullness (playing makes hungry)
+            // DEDUCT coins (never add!)
+            petData.coins -= COST;
             
-            gainExperience(15); // +15 XP for playing
+            // Track expense
+            if (!petData.costTracking) {
+                petData.costTracking = {
+                    totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                };
+            }
+            petData.costTracking.totalSpent += COST;
+            petData.costTracking.toySpent += COST;
+            petData.costTracking.budgetRemaining -= COST;
+            
+            // Apply effects
+            petData.happiness = Math.min(100, petData.happiness + 20);
+            petData.energy = Math.max(0, petData.energy - 15);
+            petData.fullness = Math.max(0, petData.fullness - 10);
+            
+            gainExperience(15);
             updateUI();
             savePetData();
-            showFeedback("Played with your pet! Energy used, got hungry. +15 XP");
+            showFeedback("Played with your pet! +15 XP");
+        }
+        
+        function cleanPet() {
+            const COST = 5;
+            
+            if (petData.coins < COST) {
+                showAlert("Not enough coins! You need $" + COST + " for cleaning supplies.", 'error');
+                return;
+            }
+
+            // DEDUCT coins (never add!)
+            petData.coins -= COST;
+            
+            // Track expense
+            if (!petData.costTracking) {
+                petData.costTracking = {
+                    totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                };
+            }
+            petData.costTracking.totalSpent += COST;
+            petData.costTracking.foodSpent += COST; // Supplies category
+            petData.costTracking.budgetRemaining -= COST;
+            
+            // Apply effects
+            petData.health = Math.min(100, petData.health + 10);
+            petData.happiness = Math.min(100, petData.happiness + 5);
+            
+            gainExperience(8);
+            updateUI();
+            savePetData();
+            showFeedback("Cleaned your pet! +8 XP");
         }
 
         function restPet() {
             if (petData.energy > 80) {
-                alert("Your pet isn't tired right now!");
+                showAlert("Your pet isn't tired right now!");
                 return;
             }
 
@@ -2214,16 +2354,31 @@ Respond as the pet in first person. Be emotional and reference your current stat
         }
 
         function healthCheck() {
-            if (petData.coins < 15) {
-                alert("Not enough coins! Vet visit costs 15 coins.");
+            const COST = 50;
+            
+            if (petData.coins < COST) {
+                showAlert("Not enough coins! Vet visit costs $" + COST + ".", 'error');
                 return;
             }
 
-            petData.coins -= 15;
-            petData.totalSpent += 15;
+            // DEDUCT coins (never add!)
+            petData.coins -= COST;
+            
+            // Track expense
+            if (!petData.costTracking) {
+                petData.costTracking = {
+                    totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
+                    monthlyBudget: 200, budgetRemaining: 200, transactions: []
+                };
+            }
+            petData.costTracking.totalSpent += COST;
+            petData.costTracking.vetSpent += COST;
+            petData.costTracking.budgetRemaining -= COST;
+            
+            // Apply effects
             petData.health = 100;
             
-            gainExperience(20); // +20 XP for vet visit
+            gainExperience(20);
             updateUI();
             savePetData();
             
@@ -2231,24 +2386,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (petData.fullness < 30) diagnosis += "\nBut very hungry - please feed soon!";
             if (petData.energy < 30) diagnosis += "\nLow energy - let them rest!";
             
-            alert("Vet Check-up Complete! +20 XP\n\n" + diagnosis);
-        }
-
-        function giveTreat() {
-            if (petData.coins < 2) {
-                alert("Not enough coins! Treats cost 2 coins.");
-                return;
-            }
-
-            petData.coins -= 2;
-            petData.totalSpent += 2;
-            petData.happiness = Math.min(100, petData.happiness + 15);
-            petData.fullness = Math.min(100, petData.fullness + 5);
-            
-            gainExperience(8); // +8 XP for treat
-            updateUI();
-            savePetData();
-            showFeedback("Gave your pet a treat! +8 XP");
+            showAlert("Vet Check-up Complete! +20 XP\n\n" + diagnosis, 'success');
         }
 
         function showFeedback(message) {
@@ -2298,6 +2436,44 @@ Respond as the pet in first person. Be emotional and reference your current stat
             updateStatsOverTime();
             updateUI();
         }, 60000);
+
+        function updateCostUI() {
+            // Initialize costTracking if it doesn't exist
+            if (!petData.costTracking) {
+                petData.costTracking = {
+                    totalSpent: 0,
+                    foodSpent: 0,
+                    vetSpent: 0,
+                    toySpent: 0,
+                    monthlyBudget: 200,
+                    budgetRemaining: 200,
+                    transactions: []
+                };
+            }
+            
+            const cost = petData.costTracking;
+            
+            document.getElementById('monthlyBudget').textContent = cost.monthlyBudget;
+            document.getElementById('budgetRemaining').textContent = '$' + Math.max(0, cost.budgetRemaining);
+            document.getElementById('foodSpent').textContent = cost.foodSpent;
+            document.getElementById('vetSpent').textContent = cost.vetSpent;
+            document.getElementById('toySpent').textContent = cost.toySpent;
+            
+            // Update budget bar
+            const budgetPercent = Math.max(0, (cost.budgetRemaining / cost.monthlyBudget) * 100);
+            const budgetBar = document.getElementById('budgetBar');
+            budgetBar.style.width = budgetPercent + '%';
+            
+            // Warning colors when budget is low
+            const remaining = document.getElementById('budgetRemaining');
+            if (budgetPercent < 20) {
+                budgetBar.classList.add('low');
+                remaining.classList.add('low');
+            } else {
+                budgetBar.classList.remove('low');
+                remaining.classList.remove('low');
+            }
+        }
 
         function updateUI() {
             document.getElementById('petNameDisplay').textContent = petData.name;
@@ -2350,6 +2526,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
             
             // Update mood display
             updateMood();
+            
+            // Update cost tracking display
+            updateCostUI();
             
             // Update pet-specific UI
             loadPetTraits();
@@ -2719,9 +2898,14 @@ Respond as the pet in first person. Be emotional and reference your current stat
             dirLight.position = new BABYLON.Vector3(5, 10, 5);
             dirLight.intensity = 0.8;
             
+            // Create invisible ground - pet walks on background
             const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 }, scene);
             const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
-            groundMat.diffuseColor = new BABYLON.Color3(0.17, 0.24, 0.31);
+            
+            // Make completely transparent - pet appears to walk on background
+            groundMat.alpha = 0; // Invisible platform
+            groundMat.backFaceCulling = false;
+            
             ground.material = groundMat;
             
             // Load background
@@ -2739,6 +2923,32 @@ Respond as the pet in first person. Be emotional and reference your current stat
             });
             
             return scene;
+        }
+
+        // Custom Alert System
+        function showAlert(message, type = 'info') {
+            const alertEl = document.getElementById('customAlert');
+            const messageEl = document.getElementById('alertMessage');
+            const iconEl = document.getElementById('alertIcon');
+            
+            messageEl.textContent = message;
+            
+            // Set icon based on type
+            if (type === 'error') {
+                iconEl.textContent = '❌';
+            } else if (type === 'success') {
+                iconEl.textContent = '✅';
+            } else if (type === 'warning') {
+                iconEl.textContent = '⚠️';
+            } else {
+                iconEl.textContent = 'ℹ️';
+            }
+            
+            alertEl.classList.add('active');
+        }
+        
+        function closeCustomAlert() {
+            document.getElementById('customAlert').classList.remove('active');
         }
 
         function loadModel(modelFile) {
