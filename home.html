@@ -2175,12 +2175,12 @@ Respond as the pet in first person. Be emotional and reference your current stat
             const aiTasks = await generateAIDailyTasks();
             
             if (aiTasks) {
-                // Store AI tasks
+                // Store AI tasks and set flag
                 petData.aiTasks = aiTasks;
                 petData.usingAITasks = true;
                 
-                // Display tasks
-                displayAITasks(aiTasks);
+                // Display AI tasks
+                displayTasks(aiTasks);
                 savePetData();
             } else {
                 showAlert("Failed to generate AI tasks. Make sure you added GROQ_API_KEY to Vercel environment variables!", 'error');
@@ -2192,62 +2192,6 @@ Respond as the pet in first person. Be emotional and reference your current stat
             }
         }
         
-        function displayAITasks(tasks) {
-            const taskListContainer = document.getElementById('taskList');
-            taskListContainer.innerHTML = '';
-            
-            // Initialize tasksCompleted if not exists
-            if (!petData.tasksCompleted) petData.tasksCompleted = {};
-            
-            // AI icon (sparkles)
-            const aiIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>';
-            
-            tasks.forEach(task => {
-                const taskDiv = document.createElement('div');
-                taskDiv.className = 'task-item';
-                
-                const isCompleted = petData.tasksCompleted[task.id];
-                if (isCompleted) {
-                    taskDiv.classList.add('completed');
-                }
-                
-                taskDiv.innerHTML = `
-                    <div class="task-header">
-                        <span class="task-icon">${aiIcon}</span>
-                        <div class="task-name">${task.name}</div>
-                    </div>
-                    <div class="task-duration">
-                        <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        ${task.duration}
-                    </div>
-                    <div class="task-reward">
-                        <span class="task-coins">
-                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M12 6v12M9 9h6M9 15h6"></path>
-                            </svg>
-                            +${task.coins} coins
-                        </span>
-                        <span class="task-bond">
-                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            +${task.bond} bond
-                        </span>
-                    </div>
-                    ${isCompleted ? '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' : ''}
-                `;
-                
-                if (!isCompleted) {
-                    taskDiv.onclick = () => completeTask(task);
-                }
-                
-                taskListContainer.appendChild(taskDiv);
-            });
-        }
         
         async function checkForRandomEvent() {
             // Only check if AI is enabled
@@ -2627,8 +2571,11 @@ Respond as the pet in first person. Be emotional and reference your current stat
         }
         
         function loadPetTasks() {
+            const traits = PET_TRAITS[petData.type];
+            if (!traits) return;
+            
             const taskListContainer = document.getElementById('taskList');
-            taskListContainer.innerHTML = '<p style="text-align: center; color: #666;">Loading AI tasks...</p>';
+            taskListContainer.innerHTML = '';
             
             // Initialize tasksCompleted if not exists
             if (!petData.tasksCompleted) petData.tasksCompleted = {};
@@ -2641,11 +2588,85 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (hoursSinceReset >= 24) {
                 petData.tasksCompleted = {};
                 petData.lastTaskReset = now;
+                petData.usingAITasks = false; // Reset to default tasks
                 savePetData();
             }
             
-            // ALWAYS auto-generate AI tasks
-            refreshAITasks();
+            // Use AI tasks if available AND flag is set, otherwise use default tasks
+            const tasksToShow = (petData.usingAITasks && petData.aiTasks && petData.aiTasks.length > 0) 
+                ? petData.aiTasks 
+                : traits.tasks;
+            
+            displayTasks(tasksToShow);
+        }
+        
+        function displayTasks(tasks) {
+            const taskListContainer = document.getElementById('taskList');
+            taskListContainer.innerHTML = '';
+            
+            // Task icons
+            const taskIcons = {
+                'playtime': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 15h8M9 9h.01M15 9h.01"></path></svg>',
+                'socialize': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+                'explore': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+                'run': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>',
+                'fetch': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>',
+                'train': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
+                'work': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+                'play': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'
+            };
+            
+            // AI icon (sparkles)
+            const aiIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>';
+            
+            tasks.forEach(task => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = 'task-item';
+                
+                const isCompleted = petData.tasksCompleted[task.id];
+                if (isCompleted) {
+                    taskDiv.classList.add('completed');
+                }
+                
+                // Use specific icon or AI icon for AI tasks
+                const iconSvg = taskIcons[task.id] || aiIcon;
+                
+                taskDiv.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-icon">${iconSvg}</span>
+                        <div class="task-name">${task.name}</div>
+                    </div>
+                    <div class="task-duration">
+                        <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        ${task.duration}
+                    </div>
+                    <div class="task-reward">
+                        <span class="task-coins">
+                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 6v12M9 9h6M9 15h6"></path>
+                            </svg>
+                            +${task.coins} coins
+                        </span>
+                        <span class="task-bond">
+                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            +${task.bond} bond
+                        </span>
+                    </div>
+                    ${isCompleted ? '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' : ''}
+                `;
+                
+                if (!isCompleted) {
+                    taskDiv.onclick = () => completeTask(task);
+                }
+                
+                taskListContainer.appendChild(taskDiv);
+            });
         }
         
         function completeTask(task) {
@@ -2863,13 +2884,23 @@ Respond as the pet in first person. Be emotional and reference your current stat
             engine.runRenderLoop(() => scene.render());
         }
         
+        let petSwitchTimeout = null;
+        
         function selectMiniPet(petId) {
-            currentPetId = petId;
-            petData = userPets[petId];
-            updateMiniBubbleSelection();
-            updateUI();
-            savePetData();
-            loadModel(MODELS[petData.type].file);
+            // Debounce to prevent rapid switching
+            if (petSwitchTimeout) {
+                clearTimeout(petSwitchTimeout);
+            }
+            
+            petSwitchTimeout = setTimeout(() => {
+                currentPetId = petId;
+                petData = userPets[petId];
+                updateMiniBubbleSelection();
+                updateUI();
+                savePetData();
+                loadModel(MODELS[petData.type].file);
+                petSwitchTimeout = null;
+            }, 100); // 100ms debounce
         }
         
         function updateMiniBubbleSelection() {
@@ -2964,21 +2995,31 @@ Respond as the pet in first person. Be emotional and reference your current stat
         function loadModel(modelFile) {
             console.log(`Loading model: ${modelFile}`);
             
-            // Remove previous model
+            // COMPLETE cleanup of previous model
             if (model) {
                 console.log("Disposing previous model...");
-                model.getChildMeshes().forEach(mesh => {
-                    if (mesh.material) mesh.material.dispose();
-                    mesh.dispose();
-                });
-                model.dispose();
+                try {
+                    model.getChildMeshes().forEach(mesh => {
+                        if (mesh.material) {
+                            mesh.material.dispose();
+                        }
+                        mesh.dispose();
+                    });
+                    model.dispose();
+                } catch (e) {
+                    console.error("Error disposing model:", e);
+                }
                 model = null;
             }
             
+            // Stop all animations
             if (currentAnimGroup) {
                 currentAnimGroup.stop();
                 currentAnimGroup = null;
             }
+            
+            // Clear animation groups
+            scene.animationGroups.forEach(ag => ag.dispose());
             
             animations = {};
             document.getElementById('animButtons').innerHTML = '<p style="text-align: center; color: #666;">Loading...</p>';
