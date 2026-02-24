@@ -285,7 +285,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // ========================
-// 3D PET PREVIEW SCENES
+// 3D PET PREVIEW SCENES (BUBBLE SYSTEM)
 // ========================
 
 const PET_MODELS = {
@@ -294,75 +294,121 @@ const PET_MODELS = {
     bird: "Parrot_A4.glb"
 };
 
-function create3DPreview(canvasId, modelFile) {
+let indexBubbleEngines = {};
+let indexBubbleScenes = {};
+let indexBubbleModels = {};
+
+function createIndexBubblePreview(petType) {
+    const canvasId = `indexBubbleCanvas_${petType}`;
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    
+    if (!canvas) {
+        console.error(`Canvas not found: ${canvasId}`);
+        return;
+    }
 
-    const engine = new BABYLON.Engine(canvas, true);
+    // Create engine and scene
+    const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+    indexBubbleEngines[petType] = engine;
+    
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.95, 0.97, 0.97, 1);
-
-    // Camera setup - same as home.html
+    scene.clearColor = new BABYLON.Color4(1, 1, 1, 1); // White background
+    indexBubbleScenes[petType] = scene;
+    
+    // Camera setup - same as home.html bubbles
     const camera = new BABYLON.ArcRotateCamera(
-        "camera",
-        -Math.PI / 2,
-        Math.PI / 2.5,
-        5,
-        new BABYLON.Vector3(0, 1, 0),
+        "camera", 
+        -Math.PI / 2, 
+        Math.PI / 2.5, 
+        4, 
+        BABYLON.Vector3.Zero(), 
         scene
     );
     camera.lowerRadiusLimit = 3;
-    camera.upperRadiusLimit = 8;
-    camera.lowerBetaLimit = 0.1;
-    camera.upperBetaLimit = Math.PI / 2;
-
-    // Auto-rotate camera
-    let angle = 0;
-    scene.registerBeforeRender(() => {
-        angle += 0.005;
-        camera.alpha = angle;
-    });
-
-    // Lighting
-    const light = new BABYLON.HemisphericLight(
-        "light",
-        new BABYLON.Vector3(0, 1, 0),
-        scene
-    );
-    light.intensity = 0.7;
-
-    const dirLight = new BABYLON.DirectionalLight(
-        "dirLight",
-        new BABYLON.Vector3(-1, -2, -1),
-        scene
-    );
-    dirLight.intensity = 0.5;
-
-    // Load model
+    camera.upperRadiusLimit = 6;
+    
+    // Lighting - same as home.html
+    const light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+    light1.intensity = 0.7;
+    
+    const light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -2, -1), scene);
+    light2.position = new BABYLON.Vector3(5, 10, 5);
+    light2.intensity = 0.5;
+    
+    // Load model from local directory
+    const modelFile = PET_MODELS[petType];
     BABYLON.SceneLoader.ImportMesh(
         "",
-        "https://raw.githubusercontent.com/BabylonJS/Assets/master/meshes/",
+        "./",
         modelFile,
         scene,
         (meshes) => {
-            if (meshes.length > 0) {
-                meshes.forEach(mesh => {
-                    mesh.position.y = 0;
-                });
-            }
+            const model = meshes[0];
+            indexBubbleModels[petType] = model;
+            
+            // Fix materials - same as home.html
+            model.getChildMeshes().forEach(mesh => {
+                if (mesh.material) {
+                    const mat = mesh.material;
+                    if (mat.getClassName() === "PBRMaterial") {
+                        if (mat.albedoTexture && mat.albedoTexture.hasAlpha) {
+                            mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;
+                            mat.alphaCutOff = 0.5;
+                            mat.useAlphaFromAlbedoTexture = true;
+                        } else {
+                            mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
+                        }
+                        if (!mat.metallicTexture) {
+                            mat.metallic = 0;
+                            mat.roughness = 1.0;
+                        }
+                        mat.backFaceCulling = true;
+                    }
+                }
+            });
+            
+            // Position model - same as home.html
+            const bounds = model.getHierarchyBoundingVectors();
+            const size = bounds.max.subtract(bounds.min);
+            const scale = 2.0 / Math.max(size.x, size.y, size.z);
+            model.scaling.setAll(scale);
+            model.computeWorldMatrix(true);
+            
+            const newBounds = model.getHierarchyBoundingVectors();
+            const center = BABYLON.Vector3.Center(newBounds.min, newBounds.max);
+            
+            // Position lower
+            model.position = new BABYLON.Vector3(-center.x, -newBounds.min.y - 0.5, -center.z);
+            
+            // Auto-rotate - same as home.html
+            scene.registerBeforeRender(() => {
+                model.rotation.y += 0.005;
+            });
+        },
+        null,
+        (scene, message, exception) => {
+            console.error(`Error loading ${petType} model:`, message);
         }
     );
-
+    
     // Render loop
     engine.runRenderLoop(() => scene.render());
-    window.addEventListener('resize', () => engine.resize());
 }
 
 // Initialize 3D previews when page loads
 window.addEventListener('load', () => {
+    // Wait for DOM to be ready
     setTimeout(() => {
-        create3DPreview('dogCanvas', PET_MODELS.dog);
-        create3DPreview('catCanvas', PET_MODELS.cat);
-        create3DPreview('birdCanvas', PET_MODELS.bird);
+        createIndexBubblePreview('dog');
+        createIndexBubblePreview('cat');
+        createIndexBubblePreview('bird');
     }, 500);
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    Object.values(indexBubbleEngines).forEach(engine => {
+        engine.stopRenderLoop();
+        engine.dispose();
+    });
 });
