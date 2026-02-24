@@ -724,11 +724,14 @@
             background: linear-gradient(135deg, #ffffff, #f8f9fa);
             border: 2px solid #e0e0e0;
             border-radius: 12px;
-            padding: 1.2rem;
+            padding: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
         
         .task-item:hover {
@@ -740,7 +743,7 @@
         
         .task-item:hover .task-name,
         .task-item:hover .task-duration {
-            color: #2C3E50;
+            color: white;
         }
         
         .task-item:hover .task-icon {
@@ -762,14 +765,13 @@
         
         .task-header {
             display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 0.5rem;
+            align-items: flex-start;
+            gap: 0.75rem;
         }
         
         .task-icon {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             color: #4A9B9B;
             transition: transform 0.3s ease;
             flex-shrink: 0;
@@ -793,42 +795,47 @@
         }
         
         .task-name {
-            font-weight: 700;
+            font-weight: 600;
             color: #2C3E50;
-            font-size: 1rem;
+            font-size: 0.95rem;
             flex: 1;
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .task-duration {
             font-size: 0.75rem;
             color: #666;
-            margin-left: 2.6rem;
-            margin-bottom: 0.6rem;
             display: flex;
             align-items: center;
             gap: 0.3rem;
+            margin-left: 36px;
         }
         
         .task-reward {
             display: flex;
-            gap: 1.2rem;
-            font-size: 0.85rem;
+            gap: 1rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-left: 2.6rem;
+            margin-left: 36px;
+            flex-wrap: wrap;
         }
         
         .task-coins {
             color: #FFB347;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.25rem;
+            white-space: nowrap;
         }
         
         .task-bond {
             color: #FF6B99;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.25rem;
+            white-space: nowrap;
         }
         
         .task-checkmark {
@@ -1539,6 +1546,21 @@
             showAlert("Firebase is required! Please configure Firebase to use this app. See console for instructions.");
         }
 
+        // USER DATA - shared across all pets
+        let userData = {
+            coins: 500, // Shared currency
+            costTracking: {
+                totalSpent: 0,
+                foodSpent: 0,
+                vetSpent: 0,
+                toySpent: 0,
+                monthlyBudget: 200,
+                budgetRemaining: 200,
+                transactions: [],
+                lastMonthReset: Date.now()
+            }
+        };
+
         // Pet Data Structure - now supports multiple pets
         let currentPetId = null; // ID of currently active pet
         let petData = {
@@ -1552,24 +1574,11 @@
             happiness: 100,
             fullness: 100, // Fullness (0 = starving, 100 = full)
             energy: 100,
-            coins: 500, // Starting budget - currency for purchases
             bond: 0, // Bond level with pet (0-100)
-            
-            // COST OF CARE SYSTEM
-            costTracking: {
-                totalSpent: 0,
-                foodSpent: 0,
-                vetSpent: 0,
-                toySpent: 0,
-                supplySpent: 0,
-                monthlyBudget: 200, // Monthly budget limit
-                budgetRemaining: 200,
-                transactions: [], // History of all purchases
-                lastMonthReset: Date.now()
-            },
             
             treats: {}, // Pet-specific treats inventory
             tasksCompleted: {}, // Track completed tasks
+            aiTasks: [], // AI-generated tasks for this pet
             lastTaskReset: Date.now(),
             lastUpdated: Date.now()
         };
@@ -1867,8 +1876,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
             petData.lastUpdated = Date.now();
             
             // Safety check: prevent negative coins
-            if (petData.coins < 0) {
-                petData.coins = 0;
+            if (userData.coins < 0) {
+                userData.coins = 0;
             }
             
             // Update in memory
@@ -2105,7 +2114,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             petData.experienceToNextLevel = Math.floor(petData.experienceToNextLevel * 1.5); // 50% more XP needed each level
             
             // Bonus rewards for leveling up
-            petData.coins += 50;
+            userData.coins += 50;
             petData.health = Math.min(100, petData.health + 20);
             petData.happiness = Math.min(100, petData.happiness + 20);
             
@@ -2153,29 +2162,91 @@ Respond as the pet in first person. Be emotional and reference your current stat
         }
         
         async function refreshAITasks() {
-            const button = event.target.closest('.ai-button');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg> Loading...';
-            button.disabled = true;
+            // Check if triggered by button or auto-load
+            const button = event ? event.target.closest('.ai-button') : null;
+            let originalText = '';
+            
+            if (button) {
+                originalText = button.innerHTML;
+                button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg> Loading...';
+                button.disabled = true;
+            }
             
             const aiTasks = await generateAIDailyTasks();
             
             if (aiTasks) {
-                // Replace current tasks with AI tasks
-                const traits = PET_TRAITS[petData.type];
-                traits.aiTasks = aiTasks;
-                
-                // Mark as AI-generated
+                // Store AI tasks
+                petData.aiTasks = aiTasks;
                 petData.usingAITasks = true;
                 
-                loadPetTasks();
+                // Display tasks
+                displayAITasks(aiTasks);
                 savePetData();
             } else {
-                showAlert("Failed to generate AI tasks. Make sure you added GROQ_API_KEY to Vercel environment variables!");
+                showAlert("Failed to generate AI tasks. Make sure you added GROQ_API_KEY to Vercel environment variables!", 'error');
             }
             
-            button.innerHTML = originalText;
-            button.disabled = false;
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        function displayAITasks(tasks) {
+            const taskListContainer = document.getElementById('taskList');
+            taskListContainer.innerHTML = '';
+            
+            // Initialize tasksCompleted if not exists
+            if (!petData.tasksCompleted) petData.tasksCompleted = {};
+            
+            // AI icon (sparkles)
+            const aiIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>';
+            
+            tasks.forEach(task => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = 'task-item';
+                
+                const isCompleted = petData.tasksCompleted[task.id];
+                if (isCompleted) {
+                    taskDiv.classList.add('completed');
+                }
+                
+                taskDiv.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-icon">${aiIcon}</span>
+                        <div class="task-name">${task.name}</div>
+                    </div>
+                    <div class="task-duration">
+                        <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        ${task.duration}
+                    </div>
+                    <div class="task-reward">
+                        <span class="task-coins">
+                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 6v12M9 9h6M9 15h6"></path>
+                            </svg>
+                            +${task.coins} coins
+                        </span>
+                        <span class="task-bond">
+                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            +${task.bond} bond
+                        </span>
+                    </div>
+                    ${isCompleted ? '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' : ''}
+                `;
+                
+                if (!isCompleted) {
+                    taskDiv.onclick = () => completeTask(task);
+                }
+                
+                taskListContainer.appendChild(taskDiv);
+            });
         }
         
         async function checkForRandomEvent() {
@@ -2233,7 +2304,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
         function feedPet() {
             const COST = 10;
             
-            if (petData.coins < COST) {
+            if (userData.coins < COST) {
                 showAlert("Not enough coins! You need $" + COST + " to feed your pet.", 'error');
                 return;
             }
@@ -2244,18 +2315,18 @@ Respond as the pet in first person. Be emotional and reference your current stat
             }
 
             // DEDUCT coins (never add!)
-            petData.coins -= COST;
+            userData.coins -= COST;
             
             // Track expense
-            if (!petData.costTracking) {
-                petData.costTracking = {
+            if (!userData.costTracking) {
+                userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
                     monthlyBudget: 200, budgetRemaining: 200, transactions: []
                 };
             }
-            petData.costTracking.totalSpent += COST;
-            petData.costTracking.foodSpent += COST;
-            petData.costTracking.budgetRemaining -= COST;
+            userData.costTracking.totalSpent += COST;
+            userData.costTracking.foodSpent += COST;
+            userData.costTracking.budgetRemaining -= COST;
             
             // Apply effects
             petData.fullness = Math.min(100, petData.fullness + 30);
@@ -2271,7 +2342,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
         function playWithPet() {
             const COST = 15;
             
-            if (petData.coins < COST) {
+            if (userData.coins < COST) {
                 showAlert("Not enough coins! You need $" + COST + " for toys.", 'error');
                 return;
             }
@@ -2282,18 +2353,18 @@ Respond as the pet in first person. Be emotional and reference your current stat
             }
 
             // DEDUCT coins (never add!)
-            petData.coins -= COST;
+            userData.coins -= COST;
             
             // Track expense
-            if (!petData.costTracking) {
-                petData.costTracking = {
+            if (!userData.costTracking) {
+                userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
                     monthlyBudget: 200, budgetRemaining: 200, transactions: []
                 };
             }
-            petData.costTracking.totalSpent += COST;
-            petData.costTracking.toySpent += COST;
-            petData.costTracking.budgetRemaining -= COST;
+            userData.costTracking.totalSpent += COST;
+            userData.costTracking.toySpent += COST;
+            userData.costTracking.budgetRemaining -= COST;
             
             // Apply effects
             petData.happiness = Math.min(100, petData.happiness + 20);
@@ -2309,24 +2380,24 @@ Respond as the pet in first person. Be emotional and reference your current stat
         function cleanPet() {
             const COST = 5;
             
-            if (petData.coins < COST) {
+            if (userData.coins < COST) {
                 showAlert("Not enough coins! You need $" + COST + " for cleaning supplies.", 'error');
                 return;
             }
 
             // DEDUCT coins (never add!)
-            petData.coins -= COST;
+            userData.coins -= COST;
             
             // Track expense
-            if (!petData.costTracking) {
-                petData.costTracking = {
+            if (!userData.costTracking) {
+                userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
                     monthlyBudget: 200, budgetRemaining: 200, transactions: []
                 };
             }
-            petData.costTracking.totalSpent += COST;
-            petData.costTracking.foodSpent += COST; // Supplies category
-            petData.costTracking.budgetRemaining -= COST;
+            userData.costTracking.totalSpent += COST;
+            userData.costTracking.foodSpent += COST; // Supplies category
+            userData.costTracking.budgetRemaining -= COST;
             
             // Apply effects
             petData.health = Math.min(100, petData.health + 10);
@@ -2356,24 +2427,24 @@ Respond as the pet in first person. Be emotional and reference your current stat
         function healthCheck() {
             const COST = 50;
             
-            if (petData.coins < COST) {
+            if (userData.coins < COST) {
                 showAlert("Not enough coins! Vet visit costs $" + COST + ".", 'error');
                 return;
             }
 
             // DEDUCT coins (never add!)
-            petData.coins -= COST;
+            userData.coins -= COST;
             
             // Track expense
-            if (!petData.costTracking) {
-                petData.costTracking = {
+            if (!userData.costTracking) {
+                userData.costTracking = {
                     totalSpent: 0, foodSpent: 0, vetSpent: 0, toySpent: 0,
                     monthlyBudget: 200, budgetRemaining: 200, transactions: []
                 };
             }
-            petData.costTracking.totalSpent += COST;
-            petData.costTracking.vetSpent += COST;
-            petData.costTracking.budgetRemaining -= COST;
+            userData.costTracking.totalSpent += COST;
+            userData.costTracking.vetSpent += COST;
+            userData.costTracking.budgetRemaining -= COST;
             
             // Apply effects
             petData.health = 100;
@@ -2439,8 +2510,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
 
         function updateCostUI() {
             // Initialize costTracking if it doesn't exist
-            if (!petData.costTracking) {
-                petData.costTracking = {
+            if (!userData.costTracking) {
+                userData.costTracking = {
                     totalSpent: 0,
                     foodSpent: 0,
                     vetSpent: 0,
@@ -2451,7 +2522,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 };
             }
             
-            const cost = petData.costTracking;
+            const cost = userData.costTracking;
             
             document.getElementById('monthlyBudget').textContent = cost.monthlyBudget;
             document.getElementById('budgetRemaining').textContent = '$' + Math.max(0, cost.budgetRemaining);
@@ -2479,7 +2550,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             document.getElementById('petNameDisplay').textContent = petData.name;
             
             // Ensure coins never display negative
-            const coins = Math.max(0, petData.coins || 0);
+            const coins = Math.max(0, userData.coins || 0);
             document.getElementById('coinsStat').textContent = coins;
             
             // Update age
@@ -2556,11 +2627,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
         }
         
         function loadPetTasks() {
-            const traits = PET_TRAITS[petData.type];
-            if (!traits) return;
-            
             const taskListContainer = document.getElementById('taskList');
-            taskListContainer.innerHTML = '';
+            taskListContainer.innerHTML = '<p style="text-align: center; color: #666;">Loading AI tasks...</p>';
             
             // Initialize tasksCompleted if not exists
             if (!petData.tasksCompleted) petData.tasksCompleted = {};
@@ -2573,76 +2641,11 @@ Respond as the pet in first person. Be emotional and reference your current stat
             if (hoursSinceReset >= 24) {
                 petData.tasksCompleted = {};
                 petData.lastTaskReset = now;
-                petData.usingAITasks = false; // Reset AI tasks flag
                 savePetData();
             }
             
-            // Use AI tasks if available, otherwise use default tasks
-            const tasksToShow = (petData.usingAITasks && traits.aiTasks) ? traits.aiTasks : traits.tasks;
-            
-            // Task SVG icons based on task type
-            const taskIcons = {
-                'playtime': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 15h8M9 9h.01M15 9h.01"></path></svg>',
-                'socialize': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
-                'explore': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
-                'run': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>',
-                'fetch': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>',
-                'train': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
-                'work': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
-                'play': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'
-            };
-            
-            // Default AI task icon (sparkles)
-            const aiIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path></svg>';
-            
-            tasksToShow.forEach(task => {
-                const taskDiv = document.createElement('div');
-                taskDiv.className = 'task-item';
-                
-                const isCompleted = petData.tasksCompleted[task.id];
-                if (isCompleted) {
-                    taskDiv.classList.add('completed');
-                }
-                
-                // Use specific icon or AI icon for AI tasks
-                const iconSvg = taskIcons[task.id] || aiIcon;
-                
-                taskDiv.innerHTML = `
-                    <div class="task-header">
-                        <span class="task-icon">${iconSvg}</span>
-                        <div class="task-name">${task.name}</div>
-                    </div>
-                    <div class="task-duration">
-                        <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        ${task.duration}
-                    </div>
-                    <div class="task-reward">
-                        <span class="task-coins">
-                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M12 6v12M9 9h6M9 15h6"></path>
-                            </svg>
-                            <strong>+${task.coins}</strong> coins
-                        </span>
-                        <span class="task-bond">
-                            <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            <strong>+${task.bond}</strong> bond
-                        </span>
-                    </div>
-                    ${isCompleted ? '<span class="task-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' : ''}
-                `;
-                
-                if (!isCompleted) {
-                    taskDiv.onclick = () => completeTask(task);
-                }
-                
-                taskListContainer.appendChild(taskDiv);
-            });
+            // ALWAYS auto-generate AI tasks
+            refreshAITasks();
         }
         
         function completeTask(task) {
@@ -2651,7 +2654,7 @@ Respond as the pet in first person. Be emotional and reference your current stat
             petData.tasksCompleted[task.id] = true;
             
             // Award rewards
-            petData.coins = (petData.coins || 0) + task.coins;
+            userData.coins = (userData.coins || 0) + task.coins;
             const oldBond = petData.bond || 0;
             petData.bond = Math.min(100, (petData.bond || 0) + task.bond);
             petData.happiness = Math.min(100, petData.happiness + 10);
@@ -2890,6 +2893,13 @@ Respond as the pet in first person. Be emotional and reference your current stat
             camera.attachControl(canvas, true);
             camera.lowerRadiusLimit = 3;
             camera.upperRadiusLimit = 15;
+            
+            // Lock camera height (beta axis) - can't move up/down
+            camera.lowerBetaLimit = Math.PI / 3; // Lock at this angle
+            camera.upperBetaLimit = Math.PI / 3; // Same angle = locked
+            
+            // Lock vertical panning
+            camera.panningSensibility = 0; // Disable panning entirely
             
             const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
             hemiLight.intensity = 0.6;
