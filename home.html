@@ -1563,7 +1563,8 @@
         };
         
         // Check if Firebase is configured
-        const isFirebaseConfigured = true;
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" 
+            && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -2757,29 +2758,68 @@ Respond as the pet in first person. Be emotional and reference your current stat
             const progressCircle = taskElement.querySelector('.timer-circle-progress');
             const timerText = taskElement.querySelector(`#timer-${task.id}`);
             
-            let remainingSeconds = durationSeconds;
             const startTime = Date.now();
+            const endTime = startTime + (durationSeconds * 1000);
+            let animationFrameId = null;
+            let lastUpdate = startTime;
             
-            const timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                remainingSeconds = durationSeconds - elapsed;
+            // Use requestAnimationFrame for smoother, more reliable updates
+            function updateTimer() {
+                const now = Date.now();
                 
-                if (remainingSeconds <= 0) {
-                    clearInterval(timerInterval);
-                    completeTask(task, taskElement, originalContent);
-                    return;
+                // Only update display every ~100ms to reduce overhead
+                if (now - lastUpdate >= 100) {
+                    const remainingMs = endTime - now;
+                    
+                    if (remainingMs <= 0) {
+                        // Timer complete
+                        if (animationFrameId) {
+                            cancelAnimationFrame(animationFrameId);
+                        }
+                        completeTask(task, taskElement, originalContent);
+                        return;
+                    }
+                    
+                    const remainingSeconds = Math.ceil(remainingMs / 1000);
+                    const totalSeconds = durationSeconds;
+                    
+                    // Update timer display
+                    const minutes = Math.floor(remainingSeconds / 60);
+                    const seconds = remainingSeconds % 60;
+                    if (timerText) {
+                        timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Update circular progress
+                    const progress = remainingSeconds / totalSeconds;
+                    const offset = circumference * (1 - progress);
+                    if (progressCircle) {
+                        progressCircle.style.strokeDashoffset = offset;
+                    }
+                    
+                    lastUpdate = now;
                 }
                 
-                // Update timer display
-                const minutes = Math.floor(remainingSeconds / 60);
-                const seconds = remainingSeconds % 60;
-                timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
-                // Update circular progress
-                const progress = remainingSeconds / durationSeconds;
-                const offset = circumference * (1 - progress);
-                progressCircle.style.strokeDashoffset = offset;
-                
+                // Continue animation loop
+                animationFrameId = requestAnimationFrame(updateTimer);
+            }
+            
+            // Start the animation loop
+            animationFrameId = requestAnimationFrame(updateTimer);
+            
+            // Fallback: Also use setInterval as backup
+            const backupInterval = setInterval(() => {
+                const now = Date.now();
+                if (now >= endTime) {
+                    clearInterval(backupInterval);
+                    if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                    }
+                    // Check if task is still in progress (not already completed)
+                    if (taskElement.classList.contains('in-progress')) {
+                        completeTask(task, taskElement, originalContent);
+                    }
+                }
             }, 1000);
         }
         
