@@ -616,9 +616,10 @@ footer {
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    margin-top: 1rem;
+    margin: 1rem auto 0 auto;
     font-size: 1.1rem;
     transition: background 0.3s;
+    display: block;
 }
 
 .btn-submit:hover {
@@ -646,6 +647,7 @@ footer {
     cursor: pointer;
     transition: all 0.3s;
     font-size: 1rem;
+    margin: 0 auto;
 }
 
 .btn-google:hover {
