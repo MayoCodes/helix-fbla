@@ -632,7 +632,8 @@ footer {
 }
 
 .btn-google {
-    width: 100%;
+    width: 85%;
+    max-width: 380px;
     padding: 0.9rem;
     background: white;
     border: 2px solid #e0e0e0;
