@@ -1403,7 +1403,7 @@
                             </svg>
                             How are you?
                         </button>
-                        <button class="chat-option-btn" onclick="sendPremadeMessage('Youre such a good pet!')">
+                        <button class="chat-option-btn" onclick="sendPremadeMessage('Youre such a good pet!')">>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                             </svg>
@@ -1576,21 +1576,21 @@
         </div>
     </div>
 
-    <script src="loading.js"></script>
     <script>
         // Firebase Configuration - REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
         // Get this from: https://console.firebase.google.com -> Project Settings -> Your apps -> Web app
         const firebaseConfig = {
-            apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
-            authDomain: "helix-fbla.firebaseapp.com",
-            projectId: "helix-fbla",
-            storageBucket: "helix-fbla.firebasestorage.app",
-            messagingSenderId: "154951525413",
-            appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         
         // Check if Firebase is configured
-        const isFirebaseConfigured = true;
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" 
+            && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -1910,9 +1910,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
         let miniBubbleModels = {};
 
         const MODELS = {
-            a: { file: "Leopard_Hybrid_A2.glb", name: "Cat" },
-            b: { file: "idle02.glb", name: "Dog" },
-            c: { file: "Parrot_A4.glb", name: "Bird" }
+            a: { file: "a.glb", name: "Cat" },
+            b: { file: "b.glb", name: "Dog" },
+            c: { file: "c.glb", name: "Bird" }
         };
 
         // ============================================
@@ -1920,14 +1920,19 @@ Respond as the pet in first person. Be emotional and reference your current stat
         // ============================================
         
         async function loadPetData() {
+            // Show loading for initial page load
+            showLoading('Loading your pets...');
+            
             // Firebase ONLY - no localStorage fallback
             if (!isFirebaseConfigured) {
                 showAlert("Firebase is not configured! Please add your Firebase config to home.html");
+                hideLoading();
                 return;
             }
             
             if (!currentUser) {
                 console.log("⏳ Waiting for authentication...");
+                hideLoading();
                 return;
             }
 
@@ -1962,6 +1967,8 @@ Respond as the pet in first person. Be emotional and reference your current stat
                             updateUI();
                             loadModel(MODELS[petData.type].file);
                             loadMiniBubbles();
+                            // Hide loading after model loads (500ms delay for smooth transition)
+                            setTimeout(() => hideLoading(), 500);
                             return;
                         }
                     }
@@ -1978,14 +1985,18 @@ Respond as the pet in first person. Be emotional and reference your current stat
                         updateUI();
                         loadModel(MODELS[petData.type].file);
                         loadMiniBubbles();
+                        // Hide loading after model loads (500ms delay for smooth transition)
+                        setTimeout(() => hideLoading(), 500);
                     }
                 } else {
                     // No pets yet - show setup
+                    hideLoading();
                     showSetupModal();
                 }
             } catch (error) {
                 console.error("Error loading pet data from Firestore:", error);
                 showAlert("Error loading pet data. Check console for details.");
+                hideLoading();
             }
         }
 
@@ -2031,21 +2042,39 @@ Respond as the pet in first person. Be emotional and reference your current stat
         }
 
         function showSetupModal() {
+            // Show loading while 3D models load
+            showLoading('Loading pet options...');
+            
             document.getElementById('setupModal').classList.add('active');
+            
+            // Track how many models have loaded
+            let modelsLoaded = 0;
+            const totalModels = 3;
+            
+            const checkAllLoaded = () => {
+                modelsLoaded++;
+                if (modelsLoaded === totalModels) {
+                    // All 3 pet models loaded, hide loading
+                    setTimeout(() => hideLoading(), 500);
+                }
+            };
             
             // Load 3D previews for each pet type after a short delay
             setTimeout(() => {
-                loadBubblePreview('a');
-                loadBubblePreview('b');
-                loadBubblePreview('c');
+                loadBubblePreview('a', checkAllLoaded);
+                loadBubblePreview('b', checkAllLoaded);
+                loadBubblePreview('c', checkAllLoaded);
             }, 100);
         }
 
-        function loadBubblePreview(petType) {
+        function loadBubblePreview(petType, onLoadCallback) {
             const canvasId = `bubbleCanvas_${petType}`;
             const canvas = document.getElementById(canvasId);
             
-            if (!canvas) return;
+            if (!canvas) {
+                if (onLoadCallback) onLoadCallback();
+                return;
+            }
             
             // Create engine and scene for this bubble
             const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
@@ -2113,6 +2142,15 @@ Respond as the pet in first person. Be emotional and reference your current stat
                     scene.registerBeforeRender(() => {
                         model.rotation.y += 0.005;
                     });
+                    
+                    // Notify that model is loaded
+                    if (onLoadCallback) onLoadCallback();
+                },
+                null,
+                (scene, message, exception) => {
+                    console.error(`Error loading ${petType} model:`, message);
+                    // Even on error, call callback to prevent infinite loading
+                    if (onLoadCallback) onLoadCallback();
                 }
             );
             
@@ -2157,6 +2195,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
                 showAlert("Please select a pet type!");
                 return;
             }
+
+            // Show loading while creating pet
+            showLoading('Creating ' + name + '...');
 
             // Create new pet with unique ID
             const newPetId = Date.now().toString(); // Simple unique ID
@@ -2205,6 +2246,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
             await savePetData();
             loadModel(MODELS[selectedPetType].file);
             loadMiniBubbles();
+            
+            // Hide loading after everything is set up
+            setTimeout(() => hideLoading(), 800);
         }
 
         // ============================================
@@ -3273,12 +3317,19 @@ Examples:
             }
             
             petSwitchTimeout = setTimeout(() => {
+                // Show loading when switching pets
+                showLoading('Switching to ' + userPets[petId].name + '...');
+                
                 currentPetId = petId;
                 petData = userPets[petId];
                 updateMiniBubbleSelection();
                 updateUI();
                 savePetData();
                 loadModel(MODELS[petData.type].file);
+                
+                // Hide loading after model loads (with delay for smooth transition)
+                setTimeout(() => hideLoading(), 800);
+                
                 petSwitchTimeout = null;
             }, 100); // 100ms debounce
         }
@@ -3531,5 +3582,8 @@ Examples:
         // Start dynamic scenario system (20-60 min intervals)
         checkForScenario();
     </script>
+    
+    <!-- Loading Script -->
+    <script src="loading.js"></script>
 </body>
 </html>
