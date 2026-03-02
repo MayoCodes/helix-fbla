@@ -80,19 +80,24 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
+    // Show loading
+    showLoading('Logging in...');
+
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         const user = userCredential.user;
         console.log('User logged in:', user);
         showNotification(`Welcome back, ${user.displayName || user.email}!`, 'success');
         closeAuthModal();
-        // Redirect to home page
+        // Keep loading while redirecting
+        showLoading('Loading your dashboard...');
         setTimeout(() => {
             window.location.href = 'home.html';
         }, 1000);
     } catch (error) {
         console.error('Login error:', error);
         showNotification(`Error: ${error.message}`, 'error');
+        hideLoading(); // Hide loading on error
     }
 });
 
@@ -103,6 +108,9 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
+
+    // Show loading
+    showLoading('Creating your account...');
 
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -123,18 +131,23 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
         console.log('User registered:', user);
         showNotification(`Welcome, ${name}!`, 'success');
         closeAuthModal();
-        // Redirect to home page
+        // Keep loading while redirecting
+        showLoading('Setting up your dashboard...');
         setTimeout(() => {
             window.location.href = 'home.html';
         }, 1000);
     } catch (error) {
         console.error('Signup error:', error);
         showNotification(`Error: ${error.message}`, 'error');
+        hideLoading(); // Hide loading on error
     }
 });
 
 // Google Authentication
 async function handleGoogleAuth(type) {
+    // Show loading
+    showLoading('Signing in with Google...');
+    
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
         const result = await auth.signInWithPopup(provider);
@@ -153,13 +166,15 @@ async function handleGoogleAuth(type) {
         console.log('Google auth successful:', user);
         showNotification(`Welcome, ${user.displayName}!`, 'success');
         closeAuthModal();
-        // Redirect to home page
+        // Keep loading while redirecting
+        showLoading('Loading your dashboard...');
         setTimeout(() => {
             window.location.href = 'home.html';
         }, 1000);
     } catch (error) {
         console.error('Google auth error:', error);
         showNotification(`Error: ${error.message}`, 'error');
+        hideLoading(); // Hide loading on error
     }
 }
 
@@ -298,12 +313,13 @@ let indexBubbleEngines = {};
 let indexBubbleScenes = {};
 let indexBubbleModels = {};
 
-function createIndexBubblePreview(petType) {
+function createIndexBubblePreview(petType, onLoadCallback) {
     const canvasId = `indexBubbleCanvas_${petType}`;
     const canvas = document.getElementById(canvasId);
     
     if (!canvas) {
         console.error(`Canvas not found: ${canvasId}`);
+        if (onLoadCallback) onLoadCallback();
         return;
     }
 
@@ -384,10 +400,15 @@ function createIndexBubblePreview(petType) {
             scene.registerBeforeRender(() => {
                 model.rotation.y += 0.005;
             });
+            
+            // Notify that this model is loaded
+            if (onLoadCallback) onLoadCallback();
         },
         null,
         (scene, message, exception) => {
             console.error(`Error loading ${petType} model:`, message);
+            // Even if error, call callback to prevent infinite loading
+            if (onLoadCallback) onLoadCallback();
         }
     );
     
@@ -397,11 +418,27 @@ function createIndexBubblePreview(petType) {
 
 // Initialize 3D previews when page loads
 window.addEventListener('load', () => {
+    // Show loading overlay
+    showLoading('Loading 3D models...');
+    
     // Wait for DOM to be ready
     setTimeout(() => {
-        createIndexBubblePreview('dog');
-        createIndexBubblePreview('cat');
-        createIndexBubblePreview('bird');
+        let modelsLoaded = 0;
+        const totalModels = 3;
+        
+        // Track when models finish loading
+        const checkAllLoaded = () => {
+            modelsLoaded++;
+            if (modelsLoaded === totalModels) {
+                // All models loaded, hide loading after 500ms
+                hideLoading(500);
+            }
+        };
+        
+        // Pass callback to track loading
+        createIndexBubblePreview('dog', checkAllLoaded);
+        createIndexBubblePreview('cat', checkAllLoaded);
+        createIndexBubblePreview('bird', checkAllLoaded);
     }, 500);
 });
 
