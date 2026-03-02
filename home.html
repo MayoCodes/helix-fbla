@@ -1580,17 +1580,16 @@
         // Firebase Configuration - REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
         // Get this from: https://console.firebase.google.com -> Project Settings -> Your apps -> Web app
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY_HERE",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+            authDomain: "helix-fbla.firebaseapp.com",
+            projectId: "helix-fbla",
+            storageBucket: "helix-fbla.firebasestorage.app",
+            messagingSenderId: "154951525413",
+            appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
         };
         
         // Check if Firebase is configured
-        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" 
-            && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
+        const isFirebaseConfigured = true;
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -1910,9 +1909,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
         let miniBubbleModels = {};
 
         const MODELS = {
-            a: { file: "a.glb", name: "Cat" },
-            b: { file: "b.glb", name: "Dog" },
-            c: { file: "c.glb", name: "Bird" }
+            a: { file: "Leopard_Hybrid_A2.glb", name: "Cat" },
+            b: { file: "idle02.glb", name: "Dog" },
+            c: { file: "Parrot_A4.glb", name: "Bird" }
         };
 
         // ============================================
