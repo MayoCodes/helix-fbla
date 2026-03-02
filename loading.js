@@ -40,10 +40,10 @@
         .spinner-svg {
             width: 100%;
             height: 100%;
-            transform: rotate(-90deg);
             position: absolute;
             top: 0;
             left: 0;
+            animation: spinnerRotate 2s linear infinite;
         }
         
         .spinner-track {
@@ -58,21 +58,14 @@
             stroke-width: 4;
             stroke-linecap: round;
             stroke-dasharray: 251.2;
-            stroke-dashoffset: 251.2;
-            animation: spinnerAnimation 1.5s ease-in-out infinite;
+            stroke-dashoffset: 188.4;
         }
         
-        @keyframes spinnerAnimation {
+        @keyframes spinnerRotate {
             0% {
-                stroke-dashoffset: 251.2;
                 transform: rotate(0deg);
             }
-            50% {
-                stroke-dashoffset: 62.8;
-                transform: rotate(180deg);
-            }
             100% {
-                stroke-dashoffset: 251.2;
                 transform: rotate(360deg);
             }
         }
@@ -87,6 +80,7 @@
             border-radius: 50%;
             object-fit: cover;
             background: white;
+            z-index: 1;
         }
         
         .loading-text {
@@ -111,11 +105,11 @@
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-container">
                 <div class="loading-spinner">
+                    <img src="logo.png" alt="Helix Logo" class="loading-logo">
                     <svg class="spinner-svg" viewBox="0 0 100 100">
                         <circle class="spinner-track" cx="50" cy="50" r="40"></circle>
                         <circle class="spinner-circle" cx="50" cy="50" r="40"></circle>
                     </svg>
-                    <img src="logo.png" alt="Helix Logo" class="loading-logo">
                 </div>
                 <p class="loading-text">Loading...</p>
             </div>
