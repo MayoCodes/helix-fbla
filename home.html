@@ -1403,7 +1403,12 @@
                             </svg>
                             How are you?
                         </button>
-                        <button class="chat-option-btn" onclick="sendPremadeMessage('Youre such a good pet!')">>
+                        <button class="chat-option-btn" onclick="sendPremadeMessage('Youre such a good pet!')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            Good pet!
+                        </button>>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                             </svg>
@@ -1580,16 +1585,17 @@
         // Firebase Configuration - REPLACE WITH YOUR ACTUAL FIREBASE CONFIG
         // Get this from: https://console.firebase.google.com -> Project Settings -> Your apps -> Web app
         const firebaseConfig = {
-            apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
-            authDomain: "helix-fbla.firebaseapp.com",
-            projectId: "helix-fbla",
-            storageBucket: "helix-fbla.firebasestorage.app",
-            messagingSenderId: "154951525413",
-            appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         
         // Check if Firebase is configured
-        const isFirebaseConfigured = true;
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" 
+            && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
         let db, auth, currentUser;
         
         if (isFirebaseConfigured) {
@@ -1909,9 +1915,9 @@ Respond as the pet in first person. Be emotional and reference your current stat
         let miniBubbleModels = {};
 
         const MODELS = {
-            a: { file: "Leopard_Hybrid_A2.glb", name: "Cat" },
-            b: { file: "idle02.glb", name: "Dog" },
-            c: { file: "Parrot_A4.glb", name: "Bird" }
+            a: { file: "a.glb", name: "Cat" },
+            b: { file: "b.glb", name: "Dog" },
+            c: { file: "c.glb", name: "Bird" }
         };
 
         // ============================================
@@ -2557,6 +2563,16 @@ Examples:
             userData.costTracking.foodSpent += COST;
             userData.costTracking.budgetRemaining -= COST;
             
+            // Add transaction record
+            const transaction = {
+                id: Date.now().toString(),
+                category: "food",
+                item: "Pet Food",
+                amount: COST,
+                date: Date.now()
+            };
+            userData.costTracking.transactions.push(transaction);
+            
             // Apply effects
             petData.fullness = Math.min(100, petData.fullness + 30);
             petData.health = Math.min(100, petData.health + 5);
@@ -2600,6 +2616,16 @@ Examples:
             userData.costTracking.totalSpent += COST;
             userData.costTracking.toySpent += COST;
             userData.costTracking.budgetRemaining -= COST;
+            
+            // Add transaction record
+            const transaction = {
+                id: Date.now().toString(),
+                category: "toy",
+                item: "Pet Toy",
+                amount: COST,
+                date: Date.now()
+            };
+            userData.costTracking.transactions.push(transaction);
             
             // Apply effects
             petData.happiness = Math.min(100, petData.happiness + 20);
@@ -2655,6 +2681,16 @@ Examples:
             userData.costTracking.totalSpent += COST;
             userData.costTracking.vetSpent += COST;
             userData.costTracking.budgetRemaining -= COST;
+            
+            // Add transaction record
+            const transaction = {
+                id: Date.now().toString(),
+                category: "vet",
+                item: "Veterinary Health Check",
+                amount: COST,
+                date: Date.now()
+            };
+            userData.costTracking.transactions.push(transaction);
             
             // Apply effects
             petData.health = 100;
