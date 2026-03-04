@@ -71,20 +71,7 @@
         .loading-text { font-family: var(--font-display); font-size: 22px; letter-spacing: 1px; color: var(--text-dark); margin-bottom: 24px; }
         .loading-bar { width: 180px; height: 3px; background: var(--teal-pale); border-radius: 2px; overflow: hidden; }
         .loading-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--teal), var(--teal-light)); transition: width 0.3s; border-radius: 2px; }
-        /* DEBUG PANEL */
-        .debug-panel { position: absolute; top: 12px; right: 12px; z-index: 50; background: rgba(30,42,42,0.94); backdrop-filter: blur(8px); border-radius: 10px; padding: 14px 16px; width: 280px; font-family: var(--font-mono); font-size: 10px; color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
-        .debug-panel .debug-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--teal-light); margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .debug-toggle { background: rgba(255,255,255,0.15); border: none; color: #fff; font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; cursor: pointer; letter-spacing: 1px; }
-        .debug-toggle:hover { background: rgba(255,255,255,0.25); }
-        .debug-body { overflow: hidden; transition: max-height 0.3s, opacity 0.3s; max-height: 500px; opacity: 1; }
-        .debug-body.collapsed { max-height: 0; opacity: 0; }
-        .debug-panel .debug-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-        .debug-panel label { min-width: 52px; color: #8fa3a0; font-size: 9px; }
-        .debug-panel input[type="range"] { flex: 1; height: 3px; accent-color: var(--teal-light); cursor: pointer; }
-        .debug-panel .debug-val { min-width: 44px; text-align: right; color: var(--teal-light); font-weight: 700; font-size: 9px; }
-        .debug-panel .debug-output { margin-top: 8px; padding: 6px 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 8px; color: #ccc; word-break: break-all; user-select: all; cursor: text; border: 1px solid rgba(255,255,255,0.08); line-height: 1.6; }
-        .debug-panel .debug-output strong { color: var(--teal-light); }
-        .debug-section-title { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin: 8px 0 4px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; }
+
         @media (max-width: 768px) { .product-section { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } .info-panel { padding: 30px 40px; } .hero-title { font-size: 56px; } }
     </style>
 </head>
@@ -135,16 +122,14 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 // ─── CONFIGURATION ────────────────────────────────────────────────────────────
-// 0-indexed model numbers that have Blender-offset origins (models 2, 5, 8)
-var OFFSET_INDICES = [1, 4, 7];
 
-// Per-model camera/scale overrides.  After using the debug panel on an offset
-// model, copy the JSON snippet it outputs and paste it here, e.g.:
-//   1: { camX: 0, camY: 1.2, camZ: 3.5, tgtX: 0, tgtY: 0, tgtZ: 0, scale: 1.0 },
 var MODEL_OVERRIDES = {
-    // 1: null,
-    // 4: null,
-    // 7: null,
+    2: {"camX":-3.45,"camY":12.8,"camZ":0.6,"tgtX":0.5,"tgtY":2.4,"tgtZ":-0.5,"scale":5},
+    5: {"camX":-3.45,"camY":12.8,"camZ":0.6,"tgtX":0.5,"tgtY":2.4,"tgtZ":-0.5,"scale":5},
+    8: {"camX":-3.45,"camY":12.8,"camZ":0.6,"tgtX":0.5,"tgtY":2.4,"tgtZ":-0.5,"scale":5},
+    1: {"scale":0.85},
+    4: {"scale":0.85},
+    7: {"scale":0.85},
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -273,86 +258,8 @@ function frameNormalModel(model, camera, controls, overrides) {
     controls.update();
 }
 
-// ─── DEBUG PANEL (info-panel side only) ───────────────────────────────────────
-function createDebugPanel(infoContainer, index, camera, controls) {
-    var panel = document.createElement('div');
-    panel.className = 'debug-panel';
-
-    var rows = [
-        { label: 'Cam X',  prop: 'camX',  min: -20,  max: 20, step: 0.05 },
-        { label: 'Cam Y',  prop: 'camY',  min: -20,  max: 20, step: 0.05 },
-        { label: 'Cam Z',  prop: 'camZ',  min: -20,  max: 20, step: 0.05 },
-        { label: 'Tgt X',  prop: 'tgtX',  min: -10,  max: 10, step: 0.05 },
-        { label: 'Tgt Y',  prop: 'tgtY',  min: -10,  max: 10, step: 0.05 },
-        { label: 'Tgt Z',  prop: 'tgtZ',  min: -10,  max: 10, step: 0.05 },
-        { label: 'Scale',  prop: 'scale', min: 0.01, max: 5,  step: 0.01 },
-    ];
-
-    var html = '<div class="debug-title"><span>DEBUG — Model ' + (index + 1) + '</span>' +
-               '<button class="debug-toggle" id="dbgToggle' + index + '">HIDE</button></div>' +
-               '<div class="debug-body" id="dbgBody' + index + '">' +
-               '<div class="debug-section-title">Camera &amp; Target</div>';
-    rows.forEach(function(r) {
-        var def = r.prop === 'scale' ? 1 : 0;
-        html += '<div class="debug-row"><label>' + r.label + '</label>' +
-                '<input type="range" min="' + r.min + '" max="' + r.max + '" step="' + r.step + '" value="' + def + '" data-prop="' + r.prop + '">' +
-                '<span class="debug-val" data-out="' + r.prop + '">' + def + '</span></div>';
-    });
-    html += '<div class="debug-output" id="debugOut' + index + '">Use sliders to frame the model, then copy the snippet below into MODEL_OVERRIDES in the JS.</div></div>';
-    panel.innerHTML = html;
-    infoContainer.appendChild(panel);
-
-    var toggleBtn = panel.querySelector('#dbgToggle' + index);
-    var body      = panel.querySelector('#dbgBody'   + index);
-    toggleBtn.addEventListener('click', function() {
-        body.classList.toggle('collapsed');
-        toggleBtn.textContent = body.classList.contains('collapsed') ? 'SHOW' : 'HIDE';
-    });
-    // Stop touch/wheel events from leaking to the scroll system
-    ['pointerdown','pointermove'].forEach(function(ev) {
-        panel.addEventListener(ev, function(e) { e.stopPropagation(); });
-    });
-    panel.addEventListener('wheel', function(e) { e.stopPropagation(); }, { passive: true });
-
-    var sliders  = panel.querySelectorAll('input[type="range"]');
-    var outputEl = panel.querySelector('#debugOut' + index);
-
-    function applySliders() {
-        var v = {};
-        sliders.forEach(function(s) {
-            v[s.dataset.prop] = parseFloat(s.value);
-            panel.querySelector('[data-out="' + s.dataset.prop + '"]').textContent = parseFloat(s.value).toFixed(2);
-        });
-        camera.position.set(v.camX, v.camY, v.camZ);
-        controls.target.set(v.tgtX, v.tgtY, v.tgtZ);
-        controls.update();
-        if (panel._model) panel._model.scale.setScalar(v.scale);
-        var snippet = JSON.stringify({ camX: v.camX, camY: v.camY, camZ: v.camZ, tgtX: v.tgtX, tgtY: v.tgtY, tgtZ: v.tgtZ, scale: +v.scale.toFixed(3) });
-        outputEl.innerHTML = '<strong>Paste into MODEL_OVERRIDES[' + index + ']:</strong><br>' + snippet;
-    }
-    sliders.forEach(function(s) { s.addEventListener('input', applySliders); });
-
-    return {
-        setModel: function(m) {
-            panel._model = m;
-            // Initialise sliders to match the auto-framed state
-            setTimeout(function() {
-                var map = { camX: camera.position.x, camY: camera.position.y, camZ: camera.position.z,
-                            tgtX: controls.target.x,  tgtY: controls.target.y,  tgtZ: controls.target.z,
-                            scale: m.scale.x };
-                Object.keys(map).forEach(function(k) {
-                    var el = panel.querySelector('[data-prop="' + k + '"]');
-                    if (el) { el.value = map[k]; }
-                    var out = panel.querySelector('[data-out="' + k + '"]');
-                    if (out) out.textContent = (+map[k]).toFixed(2);
-                });
-            }, 120);
-        }
-    };
-}
-
 // ─── SCENE INIT ───────────────────────────────────────────────────────────────
-function initScene(container, infoContainer, glbPath, index) {
+function initScene(container, glbPath, index) {
     var w = container.clientWidth  || window.innerWidth / 2;
     var h = container.clientHeight || window.innerHeight - 52;
 
@@ -401,18 +308,12 @@ function initScene(container, infoContainer, glbPath, index) {
     var envScene = new THREE.Scene(); envScene.background = new THREE.Color(0xf0ede8);
     scene.environment = pmrem.fromScene(envScene, 0.04).texture;
 
-    var debugCtrl = null;
-    var isOffset  = OFFSET_INDICES.indexOf(index) !== -1;
-    if (isOffset) {
-        controls.autoRotate = false;
-        debugCtrl = createDebugPanel(infoContainer, index, camera, controls);
-    }
-
-    loadGLB(scene, camera, controls, glbPath, index, debugCtrl, isOffset);
+    var isOffset = [2, 5, 8].indexOf(index) !== -1;
+    loadGLB(scene, camera, controls, glbPath, index, isOffset);
     sceneData.push({ renderer: renderer, scene: scene, camera: camera, controls: controls, container: container });
 }
 
-function loadGLB(scene, camera, controls, path, index, debugCtrl, isOffset) {
+function loadGLB(scene, camera, controls, path, index, isOffset) {
     gltfLoader.load(path, function(gltf) {
         var model = gltf.scene;
         fixMaterials(model);
@@ -425,7 +326,6 @@ function loadGLB(scene, camera, controls, path, index, debugCtrl, isOffset) {
             frameNormalModel(model, camera, controls, overrides);
         }
 
-        if (debugCtrl) debugCtrl.setModel(model);
         updateLoadProgress();
     }, undefined, function(err) {
         console.error('[Item ' + index + '] Load error:', err.message || err);
@@ -450,7 +350,7 @@ function updateLoadProgress() {
 
 var idx = 0;
 function initNext() {
-    if (idx < products.length) { initScene(products[idx].container, products[idx].infoContainer, products[idx].glb, idx); idx++; setTimeout(initNext, 150); }
+    if (idx < products.length) { initScene(products[idx].container, products[idx].glb, idx); idx++; setTimeout(initNext, 150); }
 }
 setTimeout(initNext, 300);
 
