@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helix - Instructions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #2C3E50;
+            color: #FFFFFF;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 3px solid #4A9B9B;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #4A9B9B;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #E0E0E0;
+            font-weight: 400;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            border-radius: 12px;
+            border-left: 4px solid #4A9B9B;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #4A9B9B;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: #FFFFFF;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 1.05rem;
+            color: #E0E0E0;
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            list-style: none;
+            margin-left: 1.5rem;
+        }
+
+        li {
+            font-size: 1.05rem;
+            color: #E0E0E0;
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        li:before {
+            content: "•";
+            color: #4A9B9B;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+            font-size: 1.5rem;
+        }
+
+        .important {
+            background: rgba(74, 155, 155, 0.15);
+            border: 2px solid #4A9B9B;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .important p {
+            color: #FFFFFF;
+            margin: 0;
+        }
+
+        .stat-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(74, 155, 155, 0.3);
+        }
+
+        .stat-card h4 {
+            color: #4A9B9B;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .back-button {
+            display: inline-block;
+            background: #4A9B9B;
+            color: white;
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+        }
+
+        .back-button:hover {
+            background: #3a8a8a;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 2px solid rgba(74, 155, 155, 0.3);
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.6rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            .stat-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>HELIX</h1>
+            <p class="subtitle">Your Virtual Pet Care Guide</p>
+        </header>
+
+        <div class="section">
+            <h2>Getting Started</h2>
+            <p>Welcome to Helix, your virtual pet companion platform. This guide will help you understand how to care for your pet and make the most of your experience.</p>
+            
+            <h3>Creating Your Account</h3>
+            <ul>
+                <li>Sign up using your email and password or Google account</li>
+                <li>Choose your first pet from Cat, Dog, or Bird</li>
+                <li>Give your pet a unique name</li>
+                <li>Start your journey with 500 coins and a monthly budget of 200 dollars</li>
+            </ul>
+
+            <h3>Adding More Pets</h3>
+            <ul>
+                <li>Click the floating plus button in the bottom right corner</li>
+                <li>Select a new pet type and give it a name</li>
+                <li>Switch between your pets using the pet bubbles in the control panel</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Understanding Your Pet Stats</h2>
+            <p>Your pet has four main stats that you need to monitor and maintain. Each stat decreases over time and requires different care actions.</p>
+
+            <div class="stat-info">
+                <div class="stat-card">
+                    <h4>Health</h4>
+                    <p>Overall wellbeing. Decreases when other stats are critically low. Restore with vet visits.</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Happiness</h4>
+                    <p>Emotional state. Decreases over 24 hours without play. Restore by playing with toys.</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Fullness</h4>
+                    <p>Hunger level. Decreases every 8 hours. Restore by feeding your pet.</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Energy</h4>
+                    <p>Rest level. Decreases every 16 hours. Restore by letting your pet rest.</p>
+                </div>
+            </div>
+
+            <div class="important">
+                <p>Critical Warning: If fullness drops below 10, health will decrease rapidly. Keep your pet well-fed to maintain good health.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Care Actions</h2>
+            <p>You have four care actions available on the dashboard. Each action has different costs and effects.</p>
+
+            <h3>Feed - 10 Dollars</h3>
+            <ul>
+                <li>Increases fullness by 30 points</li>
+                <li>Increases health by 5 points</li>
+                <li>Increases happiness by 10 points</li>
+                <li>Grants 10 experience points</li>
+            </ul>
+
+            <h3>Play with Toy - 15 Dollars</h3>
+            <ul>
+                <li>Increases happiness by 20 points</li>
+                <li>Decreases energy by 15 points</li>
+                <li>Decreases fullness by 10 points</li>
+                <li>Grants 15 experience points</li>
+                <li>Cannot be used if energy is below 20</li>
+            </ul>
+
+            <h3>Rest - Free</h3>
+            <ul>
+                <li>Increases energy by 40 points</li>
+                <li>Increases health by 5 points</li>
+                <li>Grants 5 experience points</li>
+                <li>Cannot be used if energy is above 80</li>
+            </ul>
+
+            <h3>Health Check at Vet - 50 Dollars</h3>
+            <ul>
+                <li>Restores health to 100 points</li>
+                <li>Grants 20 experience points</li>
+                <li>Provides diagnosis of other stat issues</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Daily Tasks and Bonding</h2>
+            <p>Complete daily tasks to earn coins and increase your bond level with your pet. Higher bond levels unlock new age stages.</p>
+
+            <h3>Task System</h3>
+            <ul>
+                <li>Each pet type has unique tasks based on their personality</li>
+                <li>Tasks reward coins and bond points when completed</li>
+                <li>Tasks reset every 24 hours</li>
+                <li>Use the AI Tasks button to generate personalized tasks</li>
+            </ul>
+
+            <h3>Bond Levels and Aging</h3>
+            <ul>
+                <li>Baby: 0 to 24 bond points</li>
+                <li>Young: 25 to 49 bond points</li>
+                <li>Adult: 50 to 74 bond points</li>
+                <li>Senior: 75 to 100 bond points</li>
+            </ul>
+
+            <div class="important">
+                <p>Bond increases only through completing daily tasks together. There is no direct petting action. Focus on tasks to strengthen your relationship.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Experience and Leveling</h2>
+            <p>Your pet gains experience points through care actions and tasks. Leveling up provides rewards and increases your pet's abilities.</p>
+
+            <h3>Gaining Experience</h3>
+            <ul>
+                <li>Feed: 10 XP</li>
+                <li>Play: 15 XP</li>
+                <li>Rest: 5 XP</li>
+                <li>Vet Visit: 20 XP</li>
+                <li>Daily Tasks: Variable XP based on task difficulty</li>
+            </ul>
+
+            <h3>Level Up Rewards</h3>
+            <ul>
+                <li>50 bonus coins</li>
+                <li>20 point health increase</li>
+                <li>20 point happiness increase</li>
+                <li>Experience requirement increases by 50 percent each level</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Budget and Expense Tracking</h2>
+            <p>Manage your monthly budget of 200 dollars. Track spending across categories to stay within your limits.</p>
+
+            <h3>Expense Categories</h3>
+            <ul>
+                <li>Food and Supplies: Feeding your pet</li>
+                <li>Health Care: Veterinary visits</li>
+                <li>Toys and Activities: Play and entertainment</li>
+            </ul>
+
+            <h3>Budget Management</h3>
+            <ul>
+                <li>Monitor remaining budget in the expense tracker</li>
+                <li>Budget prevents spending when exceeded</li>
+                <li>All transactions are saved to your account history</li>
+                <li>Budget resets monthly</li>
+            </ul>
+
+            <div class="important">
+                <p>Warning: Once your monthly budget is exceeded, you cannot make any purchases until the next month. Plan your spending carefully.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Pet Traits and Personalities</h2>
+            <p>Each pet type has unique traits and specialized tasks that match their personality.</p>
+
+            <h3>Cat</h3>
+            <ul>
+                <li>Traits: Independent, Playful, Curious</li>
+                <li>Tasks: Play with toys, Pet and cuddle, Explore the house</li>
+                <li>Special Item: Cat Treats</li>
+            </ul>
+
+            <h3>Dog</h3>
+            <ul>
+                <li>Traits: Loyal, Energetic, Social</li>
+                <li>Tasks: Go for a run, Play fetch, Practice commands</li>
+                <li>Special Item: Dog Biscuits</li>
+            </ul>
+
+            <h3>Bird</h3>
+            <ul>
+                <li>Traits: Social, Intelligent, Vocal</li>
+                <li>Tasks: Talk and interact, Teach new words, Play with toys</li>
+                <li>Special Item: Spray Millet</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>AI Features</h2>
+            <p>Helix includes artificial intelligence features to enhance your pet care experience.</p>
+
+            <h3>AI Generated Tasks</h3>
+            <ul>
+                <li>Click the AI Tasks button to generate personalized daily tasks</li>
+                <li>Tasks adapt to your pet's current stats and needs</li>
+                <li>Each task is unique and reflects your pet's personality</li>
+                <li>AI tasks reward the same as standard tasks</li>
+            </ul>
+
+            <h3>Chat with Your Pet</h3>
+            <ul>
+                <li>Use premade chat options to interact with your pet</li>
+                <li>Your pet responds based on their current stats and mood</li>
+                <li>Pets express happiness when stats are high</li>
+                <li>Pets express concerns when stats are low</li>
+            </ul>
+
+            <h3>Random Events</h3>
+            <ul>
+                <li>Events occur periodically based on your pet's condition</li>
+                <li>Events can affect stats positively or negatively</li>
+                <li>Special memory events trigger after 30 days</li>
+                <li>Events appear in the events panel and disappear after 15 seconds</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Tips for Success</h2>
+            <ul>
+                <li>Check your pet regularly to maintain healthy stats</li>
+                <li>Complete daily tasks to earn coins and increase bond</li>
+                <li>Monitor your budget to avoid running out of funds</li>
+                <li>Keep fullness above 30 to prevent health decline</li>
+                <li>Use rest action when energy is low to maintain health</li>
+                <li>Level up your pet by completing care actions consistently</li>
+                <li>Switch between multiple pets to care for them all</li>
+                <li>Use AI tasks for variety and personalization</li>
+                <li>Read random events to learn more about your pet's daily life</li>
+                <li>Plan your spending to make your budget last the full month</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Account and Data</h2>
+            <p>Your account data is securely stored in the cloud and accessible from any device.</p>
+
+            <h3>What Gets Saved</h3>
+            <ul>
+                <li>All pet stats and progress</li>
+                <li>Coins and budget information</li>
+                <li>Task completion status</li>
+                <li>Transaction history</li>
+                <li>Multiple pets and their individual data</li>
+                <li>Bond levels and age progression</li>
+            </ul>
+
+            <h3>Account Security</h3>
+            <ul>
+                <li>Log out when using shared devices</li>
+                <li>Use a strong password for your account</li>
+                <li>Your data is private and not shared with other users</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="index.html" class="back-button">Back to Home</a>
+        </div>
+
+        <footer>
+            <p>Helix - Virtual Pet Care Platform</p>
+            <p>For support or questions, please contact your administrator</p>
+        </footer>
+    </div>
+</body>
+</html>
