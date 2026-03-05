@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -212,8 +212,141 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .delay-1 { animation-delay: 0.05s; } .delay-2 { animation-delay: 0.1s; } .delay-3 { animation-delay: 0.15s; }
 .delay-4 { animation-delay: 0.2s; } .delay-5 { animation-delay: 0.25s; } .delay-6 { animation-delay: 0.3s; }
 
+/* ── DOCS MODAL ─────────────────────────────────────────────────────────── */
+.docs-backdrop {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(15, 21, 53, 0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+}
+.docs-backdrop.open { opacity: 1; visibility: visible; }
+.docs-modal {
+  background: var(--card-bg); border-radius: 20px;
+  width: min(820px, 94vw); max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+  transform: translateY(20px) scale(0.98);
+  transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.docs-backdrop.open .docs-modal { transform: translateY(0) scale(1); }
+
+.docs-modal-header {
+  background: var(--dark-card); padding: 24px 32px;
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.docs-modal-header-left { display: flex; align-items: center; gap: 14px; }
+.docs-modal-header-icon {
+  width: 44px; height: 44px; background: var(--primary); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;
+}
+.docs-modal-header h2 { font-size: 18px; font-weight: 800; color: white; }
+.docs-modal-header p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.docs-close {
+  width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.12);
+  border: none; color: white; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;
+}
+.docs-close:hover { background: rgba(255,255,255,0.25); }
+
+.docs-layout { display: flex; flex: 1; overflow: hidden; }
+.docs-sidebar {
+  width: 210px; flex-shrink: 0; background: #F7FAFC;
+  border-right: 1px solid var(--border); padding: 20px 12px; overflow-y: auto;
+}
+.docs-nav-section { margin-bottom: 20px; }
+.docs-nav-section-label {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); padding: 0 10px; margin-bottom: 6px; display: block;
+}
+.docs-nav-btn {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border: none; background: transparent; border-radius: 10px;
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-light);
+  cursor: pointer; text-align: left; transition: all 0.18s; margin-bottom: 2px;
+}
+.docs-nav-btn:hover { background: white; color: var(--text-primary); }
+.docs-nav-btn.active { background: white; color: var(--primary-dark); box-shadow: var(--shadow-md); }
+.docs-nav-btn.active .docs-nav-icon { background: var(--primary); color: white; }
+.docs-nav-icon {
+  width: 28px; height: 28px; border-radius: 8px; background: var(--border);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: var(--text-secondary); transition: all 0.18s;
+}
+
+.docs-content { flex: 1; overflow-y: auto; padding: 32px; }
+.docs-page { display: none; }
+.docs-page.active { display: block; }
+
+.docs-page h3 {
+  font-size: 20px; font-weight: 800; color: var(--text-primary);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+}
+.docs-page-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+.docs-section { margin-bottom: 28px; }
+.docs-section h4 {
+  font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.docs-section h4 .section-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.docs-section p { font-size: 13px; color: var(--text-light); line-height: 1.75; margin-bottom: 10px; }
+.docs-section ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.docs-section ul li {
+  font-size: 13px; color: var(--text-light); line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.docs-section ul li::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary); flex-shrink: 0; margin-top: 7px;
+}
+
+.docs-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.docs-stat-card {
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.docs-stat-card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.docs-stat-card h5 { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+.docs-stat-card p { font-size: 11px; line-height: 1.5; }
+
+.docs-tip {
+  background: var(--primary-light); border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0; padding: 12px 16px; margin-top: 12px;
+  font-size: 12px; color: var(--primary-dark); font-weight: 600; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.docs-tip-icon { flex-shrink: 0; margin-top: 1px; }
+
+.docs-warn {
+  background: #FFFFF0; border-left: 3px solid var(--orange);
+  border-radius: 0 10px 10px 0; padding: 12px 16px; margin-top: 12px;
+  font-size: 12px; color: #7B5E00; font-weight: 600; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+
+.docs-step {
+  display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px;
+}
+.docs-step-num {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--primary);
+  color: white; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.docs-step-body h5 { font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 3px; }
+.docs-step-body p { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+
+.docs-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--primary-light); color: var(--primary-dark);
+  border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700;
+}
+
 @media (max-width: 1100px) { .stat-cards { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } .bottom-row { grid-template-columns: 1fr; } .banner-row { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(3,1fr); } }
-@media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } .stat-cards { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } .stat-cards { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(2,1fr); } .docs-layout { flex-direction: column; } .docs-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); } }
 </style>
 </head>
 <body>
@@ -245,7 +378,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   </div>
   <div class="sidebar-divider"></div>
 
-  <!-- Pet Selector -->
   <div class="pet-selector">
     <label>Active Pet</label>
     <select id="pet-select" onchange="switchPet(this.value)"></select>
@@ -272,7 +404,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     </div>
     <h4>Need help?</h4>
     <p>Check our guides for pet care tips</p>
-    <button class="sidebar-help-btn">DOCUMENTATION</button>
+    <button class="sidebar-help-btn" onclick="openDocs()">DOCUMENTATION</button>
   </div>
 </aside>
 
@@ -436,7 +568,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         </div>
       </div>
     </div>
-    <!-- Budget usage bar -->
     <div class="stat-cards" style="grid-template-columns:1fr;margin-top:20px;">
       <div class="stat-card" style="flex-direction:column;align-items:stretch;gap:12px;padding:24px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -623,6 +754,395 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   </div>
 </div>
 
+<!-- ══ DOCUMENTATION MODAL ══════════════════════════════════════════════════ -->
+<div class="docs-backdrop" id="docsBackdrop">
+  <div class="docs-modal">
+
+    <div class="docs-modal-header">
+      <div class="docs-modal-header-left">
+        <div class="docs-modal-header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div>
+          <h2>PetCare Documentation</h2>
+          <p>Everything you need to know about caring for your pet and using this dashboard</p>
+        </div>
+      </div>
+      <button class="docs-close" onclick="closeDocs()">✕</button>
+    </div>
+
+    <div class="docs-layout">
+
+      <!-- Docs Sidebar Nav -->
+      <nav class="docs-sidebar">
+        <div class="docs-nav-section">
+          <span class="docs-nav-section-label">Getting Started</span>
+          <button class="docs-nav-btn active" onclick="showDocsPage('intro', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+            Introduction
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('dashboard', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></div>
+            Dashboard Overview
+          </button>
+        </div>
+        <div class="docs-nav-section">
+          <span class="docs-nav-section-label">Pet Care</span>
+          <button class="docs-nav-btn" onclick="showDocsPage('stats', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
+            Pet Stats Guide
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('tasks', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div>
+            Daily Tasks
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('leveling', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+            Leveling &amp; XP
+          </button>
+        </div>
+        <div class="docs-nav-section">
+          <span class="docs-nav-section-label">Features</span>
+          <button class="docs-nav-btn" onclick="showDocsPage('budget', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            Budget &amp; Spending
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('ai', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>
+            AI Assistant
+          </button>
+        </div>
+      </nav>
+
+      <!-- Docs Content -->
+      <div class="docs-content">
+
+        <!-- INTRO PAGE -->
+        <div class="docs-page active" id="docs-intro">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            Welcome to PetCare
+          </h3>
+          <p class="docs-page-subtitle">Your all-in-one virtual pet care and tracking platform.</p>
+
+          <div class="docs-section">
+            <p>PetCare is a dashboard that connects to your companion app to give you a real-time view of your virtual pet's health, happiness, and your spending. Everything you do in the app — feeding, playing, visiting the vet — is reflected here instantly.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>What you can do here</h4>
+            <ul>
+              <li>Monitor all five of your pet's vital stats at a glance</li>
+              <li>Track every dollar you spend on your pet, broken down by category</li>
+              <li>See which tasks you've completed today and what still needs doing</li>
+              <li>Get AI-generated care tips and spending analysis personalized to your pet</li>
+              <li>Chat with the AI assistant any time for quick advice</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>How to get the most out of it</h4>
+            <div class="docs-step">
+              <div class="docs-step-num">1</div>
+              <div class="docs-step-body"><h5>Sign in with Google</h5><p>Your pet data is tied to your account. Use the same Google account as your companion app.</p></div>
+            </div>
+            <div class="docs-step">
+              <div class="docs-step-num">2</div>
+              <div class="docs-step-body"><h5>Select your pet</h5><p>Use the dropdown in the sidebar to switch between pets if you have more than one.</p></div>
+            </div>
+            <div class="docs-step">
+              <div class="docs-step-num">3</div>
+              <div class="docs-step-body"><h5>Check in daily</h5><p>Stats decay over time. Reviewing your dashboard each day helps you catch low health or happiness before it becomes a problem.</p></div>
+            </div>
+            <div class="docs-step">
+              <div class="docs-step-num">4</div>
+              <div class="docs-step-body"><h5>Use the AI tab weekly</h5><p>The AI analysis gives a fresh summary of your spending trends and pet condition — great for a quick weekly review.</p></div>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            All data shown here is live from Firebase — there's no manual entry needed. Just use your pet app normally and the dashboard updates automatically.
+          </div>
+        </div>
+
+        <!-- DASHBOARD PAGE -->
+        <div class="docs-page" id="docs-dashboard">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            Dashboard Overview
+          </h3>
+          <p class="docs-page-subtitle">A tour of every section of the dashboard and what it shows you.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>The four tabs</h4>
+            <ul>
+              <li><strong>Overview</strong> — Your home base. Top-level stats, quick AI insights, spending breakdown, and recent transactions all in one place.</li>
+              <li><strong>Financial</strong> — Detailed budget tracking: donut chart, cumulative spending line graph, and how far you are through your monthly budget.</li>
+              <li><strong>Health &amp; Mood</strong> — All five stat gauges, a side-by-side bar chart, and milestone cards for level, XP, and days since adoption.</li>
+              <li><strong>AI Insights</strong> — Full AI-written summary, bullet-point recommendations, alerts, and a spending forecast for the rest of the month.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--green)"></div>The four stat cards (top of Overview)</h4>
+            <div class="docs-stat-grid">
+              <div class="docs-stat-card" style="background:#E6FFFA;">
+                <div class="docs-stat-card-icon" style="background:var(--primary);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div>
+                <div><h5 style="color:var(--primary-dark)">Total Spent</h5><p style="color:var(--text-light)">All spending recorded this calendar month.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#F0FFF4;">
+                <div class="docs-stat-card-icon" style="background:var(--green);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                <div><h5 style="color:#276749">Budget Remaining</h5><p style="color:var(--text-light)">How much of your monthly budget is left.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FFFAF0;">
+                <div class="docs-stat-card-icon" style="background:var(--orange);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></div>
+                <div><h5 style="color:#7B4F00">Pet Happiness</h5><p style="color:var(--text-light)">Current happiness % from the app.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FAF5FF;">
+                <div class="docs-stat-card-icon" style="background:var(--purple);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M9.5 9.5c0-1.1.9-2 2-2h1a2 2 0 0 1 2 2v.5c0 1-.6 1.5-1.5 2l-1 .5c-.9.5-1.5 1-1.5 2v.5"/></svg></div>
+                <div><h5 style="color:#553C9A">Coins</h5><p style="color:var(--text-light)">In-game coins earned through care tasks.</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--purple)"></div>Switching pets</h4>
+            <p>If you have multiple pets registered in the app, use the <strong>Active Pet</strong> dropdown at the top of the sidebar to switch between them. All charts and stats update instantly.</p>
+          </div>
+
+          <div class="docs-warn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7B5E00" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            The dashboard is read-only. All data is managed through the companion pet app — you can't edit stats or transactions directly here.
+          </div>
+        </div>
+
+        <!-- STATS PAGE -->
+        <div class="docs-page" id="docs-stats">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            Understanding Your Pet's Stats
+          </h3>
+          <p class="docs-page-subtitle">Each stat reflects a different aspect of your pet's wellbeing. Keep them all high!</p>
+
+          <div class="docs-section">
+            <div class="docs-stat-grid">
+              <div class="docs-stat-card" style="background:#F0FFF4;">
+                <div class="docs-stat-card-icon" style="background:#48BB78;color:white;font-size:18px;">💚</div>
+                <div><h5 style="color:#276749">Health (0–100)</h5><p style="color:var(--text-light)">Overall physical condition. Drops if your pet goes unfed, ungroomed, or skips vet visits. Below 30 is critical.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FFFAF0;">
+                <div class="docs-stat-card-icon" style="background:#F6AD55;color:white;font-size:18px;">😊</div>
+                <div><h5 style="color:#7B4F00">Happiness (0–100)</h5><p style="color:var(--text-light)">Emotional state. Boosted by play, toys, and quality time. Falls when your pet is lonely or bored.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#E6FFFA;">
+                <div class="docs-stat-card-icon" style="background:#4FD1C5;color:white;font-size:18px;">🍽️</div>
+                <div><h5 style="color:var(--primary-dark)">Fullness (0–100)</h5><p style="color:var(--text-light)">Hunger level. Drops steadily over time. Feed your pet in the app to keep this above 50.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FAF5FF;">
+                <div class="docs-stat-card-icon" style="background:#9F7AEA;color:white;font-size:18px;">⚡</div>
+                <div><h5 style="color:#553C9A">Energy (0–100)</h5><p style="color:var(--text-light)">Vitality and alertness. Recovers with rest and sleep tasks. Low energy means your pet can't enjoy activities.</p></div>
+              </div>
+            </div>
+            <div class="docs-stat-card" style="background:#FFF5F5;margin-top:12px;">
+              <div class="docs-stat-card-icon" style="background:#FC8181;color:white;font-size:18px;">❤️</div>
+              <div><h5 style="color:#9B2335">Bond (0–100)</h5><p style="color:var(--text-light)">Your relationship strength with your pet. Grows slowly through consistent daily care. The hardest stat to build but the most rewarding.</p></div>
+            </div>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--red)"></div>Stat rating scale</h4>
+            <ul>
+              <li><strong style="color:#48BB78">90–100 — Excellent:</strong> Your pet is thriving. Keep it up!</li>
+              <li><strong style="color:var(--primary)">70–89 — Good:</strong> Everything is comfortable. Minor improvements possible.</li>
+              <li><strong style="color:var(--orange)">50–69 — Fair:</strong> Getting into the yellow zone. Take action soon.</li>
+              <li><strong style="color:#DD6B20">30–49 — Low:</strong> Your pet needs attention. Open the app and complete tasks.</li>
+              <li><strong style="color:var(--red)">0–29 — Critical:</strong> Urgent! Extended neglect here can affect other stats too.</li>
+            </ul>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            Stats decay at different rates. Fullness drops the fastest (check in at least twice a day), while Bond changes the most slowly over weeks of consistent care.
+          </div>
+        </div>
+
+        <!-- TASKS PAGE -->
+        <div class="docs-page" id="docs-tasks">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Daily Care Tasks
+          </h3>
+          <p class="docs-page-subtitle">Complete tasks in the app every day to keep your pet happy and healthy.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>What are tasks?</h4>
+            <p>Tasks are daily activities you perform in the companion app — things like feeding, playing, grooming, and sleeping. Each completed task raises one or more stats and awards XP. The dashboard shows you which tasks were completed today in the <strong>Tasks Completed</strong> card on the Overview tab.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--green)"></div>Common tasks and their effects</h4>
+            <ul>
+              <li><strong>Feed</strong> — Raises Fullness significantly. Also gives a small Health boost.</li>
+              <li><strong>Play</strong> — Raises Happiness and Bond. Costs a little Energy.</li>
+              <li><strong>Groom</strong> — Raises Health and Happiness. Counts as a care interaction for Bond.</li>
+              <li><strong>Sleep / Rest</strong> — Fully restores Energy. Should be done at least once daily.</li>
+              <li><strong>Vet Visit</strong> — Big Health boost. Costs money but prevents serious health drops.</li>
+              <li><strong>Give Treat</strong> — Quick Happiness spike. Best used when happiness is in the Fair range.</li>
+              <li><strong>Train</strong> — Awards bonus XP. Requires decent Energy to perform.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>Why completing tasks every day matters</h4>
+            <p>Stats decay passively over time whether you interact or not. Skipping a full day will noticeably drop Fullness and Happiness. Skipping multiple days can push Health into the critical range. The dashboard's Tasks Completed card is a quick sanity check — if it shows 0, open the app.</p>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            A good daily routine: Feed → Play → Groom → Sleep. This covers all five stats and takes just a few minutes in the app.
+          </div>
+        </div>
+
+        <!-- LEVELING PAGE -->
+        <div class="docs-page" id="docs-leveling">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Leveling Up &amp; XP
+          </h3>
+          <p class="docs-page-subtitle">Your pet earns experience points for every care interaction. Watch them grow!</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>How XP works</h4>
+            <p>Every completed task in the app awards a certain amount of XP (experience points). When your pet's XP reaches the threshold for the next level, they level up automatically. The Health &amp; Mood tab shows your current level, XP progress, and how much XP is needed to level up.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>XP rewards by task type</h4>
+            <ul>
+              <li><strong>Feed</strong> — Small XP reward (routine care)</li>
+              <li><strong>Play</strong> — Medium XP reward (active engagement)</li>
+              <li><strong>Groom</strong> — Small XP reward</li>
+              <li><strong>Sleep</strong> — Minimal XP (recovery task)</li>
+              <li><strong>Vet Visit</strong> — Large XP reward (reflects real cost and effort)</li>
+              <li><strong>Train</strong> — Largest XP reward (dedicated skill-building)</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--purple)"></div>What leveling up does</h4>
+            <p>Higher-level pets unlock new tasks, accessories, and interactions in the companion app. Leveling up also awards Coins, which can be spent on in-app items. The dashboard tracks your level but all rewards are delivered in the app.</p>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            The fastest way to level up is to combine daily tasks with regular Train sessions. Train gives the most XP per interaction but requires your pet to have decent Energy first.
+          </div>
+        </div>
+
+        <!-- BUDGET PAGE -->
+        <div class="docs-page" id="docs-budget">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Budget &amp; Spending Tracking
+          </h3>
+          <p class="docs-page-subtitle">Keep your pet care costs under control with real-time budget monitoring.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>How spending is tracked</h4>
+            <p>Every time you perform an action in the app that has a real-world cost equivalent — buying food, toys, grooming supplies, or scheduling vet visits — a transaction is logged to your account. The dashboard reads these transactions and categorises them automatically.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--green)"></div>The four spending categories</h4>
+            <ul>
+              <li><strong>Food &amp; Supplies</strong> — Kibble, treats, bowls, leashes, and everyday consumables.</li>
+              <li><strong>Vet &amp; Health</strong> — Check-ups, vaccinations, medications, and emergency visits.</li>
+              <li><strong>Toys &amp; Activities</strong> — Toys, training classes, grooming, and entertainment.</li>
+              <li><strong>Other</strong> — Anything that doesn't fit the above categories.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>Reading the Financial tab</h4>
+            <ul>
+              <li>The <strong>donut chart</strong> shows your spending split across categories, plus how much budget is remaining.</li>
+              <li>The <strong>transaction timeline</strong> shows your cumulative spending as a running total — the red dashed line is your monthly budget ceiling.</li>
+              <li>The <strong>budget bar</strong> at the bottom gives an instant percentage view. It turns orange/red when you're over 90%.</li>
+            </ul>
+          </div>
+
+          <div class="docs-warn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7B5E00" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            Transactions reset at the start of each calendar month. Historical data from prior months is not shown in the current view — only the current month's spending is displayed.
+          </div>
+        </div>
+
+        <!-- AI PAGE -->
+        <div class="docs-page" id="docs-ai">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            AI Assistant &amp; Insights
+          </h3>
+          <p class="docs-page-subtitle">Let the AI help you understand your pet's condition and make smarter care decisions.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>AI Insights tab</h4>
+            <p>The AI Insights tab generates a fresh analysis every time you load it. It reads your pet's live stats, your spending data, and your transaction history, then produces three sections:</p>
+            <ul>
+              <li><strong>Summary</strong> — A plain-English overview of your pet's current condition and your financial position.</li>
+              <li><strong>Recommendations</strong> — Specific, actionable suggestions tailored to what your pet actually needs right now.</li>
+              <li><strong>Alerts &amp; Anomalies</strong> — Flags unusual patterns, like a stat that's been dropping fast or spending in a category that's unusually high.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>The AI Chat assistant</h4>
+            <p>Click the teal robot button in the bottom-right corner to open the chat panel. You can ask it anything about your pet — it has full context of your pet's current stats and your spending data, so answers are specific to your situation, not generic.</p>
+            <p>Good questions to try:</p>
+            <ul>
+              <li>"My pet's energy is low — what should I do?"</li>
+              <li>"Am I spending too much on toys?"</li>
+              <li>"What tasks should I prioritize today?"</li>
+              <li>"How long until my pet levels up?"</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--purple)"></div>Quick insights on the Overview</h4>
+            <p>The three bullet points on the teal banner on the Overview tab are AI-generated at load time. They give you a fast snapshot of the most important things to know right now — budget status, happiness level, and the most pressing health concern — without needing to navigate to the full AI tab.</p>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            The AI generates a new analysis each time you visit the AI Insights tab. If stats change significantly after completing tasks in the app, reload the tab to get an updated read.
+          </div>
+        </div>
+
+      </div><!-- /docs-content -->
+    </div><!-- /docs-layout -->
+  </div><!-- /docs-modal -->
+</div><!-- /docs-backdrop -->
+
+<script>
+// ── DOCS MODAL ──────────────────────────────────────────────────────────────
+window.openDocs = function() {
+  document.getElementById('docsBackdrop').classList.add('open');
+};
+window.closeDocs = function() {
+  document.getElementById('docsBackdrop').classList.remove('open');
+};
+document.getElementById('docsBackdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeDocs();
+});
+window.showDocsPage = function(pageId, btn) {
+  document.querySelectorAll('.docs-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.docs-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('docs-' + pageId).classList.add('active');
+  btn.classList.add('active');
+};
+</script>
+
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -642,7 +1162,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Expose for inline handlers
 window._auth = auth;
 window._signInWithPopup = signInWithPopup;
 window._GoogleAuthProvider = GoogleAuthProvider;
@@ -652,7 +1171,6 @@ Chart.defaults.font.weight = 600;
 Chart.defaults.plugins.legend.display = false;
 Chart.defaults.scale.grid.display = false;
 
-// ---- State ----
 let allPets = {};
 let currentPetId = null;
 let userData = null;
@@ -662,7 +1180,6 @@ function destroyChart(id) {
   if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
 }
 
-// ---- Auth ----
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById('loading-overlay').style.display = 'flex';
@@ -681,7 +1198,6 @@ window.signInWithGoogle = async () => {
   catch(e) { console.error(e); }
 };
 
-// ---- Load Data ----
 async function loadUserData(uid) {
   try {
     const userDoc = await getDoc(doc(db, 'users', uid));
@@ -689,16 +1205,12 @@ async function loadUserData(uid) {
     const data = userDoc.data();
     userData = data.userData || {};
     currentPetId = data.currentPetId;
-
-    // Load all pets
     const petsSnap = await getDocs(collection(db, 'users', uid, 'pets'));
     allPets = {};
     petsSnap.forEach(d => { allPets[d.id] = d.data(); });
-
     if (!currentPetId || !allPets[currentPetId]) {
       currentPetId = Object.keys(allPets)[0] || null;
     }
-
     buildPetSelector();
     renderAll();
   } catch(e) {
@@ -719,35 +1231,27 @@ function buildPetSelector() {
   });
 }
 
-window.switchPet = (id) => {
-  currentPetId = id;
-  renderAll();
-};
+window.switchPet = (id) => { currentPetId = id; renderAll(); };
 
 function renderAll() {
   if (!currentPetId || !allPets[currentPetId]) return;
   const pet = allPets[currentPetId];
   const ct = userData?.costTracking || {};
-
   renderOverview(pet, ct);
   renderFinancial(ct);
   renderHealth(pet, ct);
   renderAI(pet, ct);
 }
 
-// ---- Helpers ----
 function petTypeLabel(t) {
   if (t === 'a') return 'cat'; if (t === 'b') return 'dog'; if (t === 'c') return 'bird';
   return 'pet';
 }
-
 function statLabel(val) {
   if (val >= 90) return 'Excellent'; if (val >= 70) return 'Good';
   if (val >= 50) return 'Fair'; if (val >= 30) return 'Low'; return 'Critical';
 }
-
 function gaugeOffset(val) { return 213.6 * (1 - (val || 0) / 100); }
-
 function setGauge(circleId, valId, labelId, val, color) {
   const circle = document.getElementById(circleId);
   const valEl = document.getElementById(valId);
@@ -756,19 +1260,7 @@ function setGauge(circleId, valId, labelId, val, color) {
   if (valEl) valEl.textContent = Math.round(val ?? 0);
   if (labelEl) labelEl.textContent = statLabel(val ?? 0);
 }
-
-function daysSince(ts) {
-  if (!ts) return 0;
-  return Math.floor((Date.now() - ts) / 86400000);
-}
-
-function formatDate(ts) {
-  if (!ts) return '';
-  const d = new Date(ts);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
-    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
+function daysSince(ts) { if (!ts) return 0; return Math.floor((Date.now() - ts) / 86400000); }
 function thisMonthTx(transactions) {
   const now = new Date();
   return (transactions || []).filter(tx => {
@@ -776,7 +1268,6 @@ function thisMonthTx(transactions) {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 }
-
 const catColors = {
   food: { bg: '#E6FFFA', color: 'var(--primary)' },
   vet:  { bg: '#FFF5F5', color: 'var(--red)' },
@@ -784,7 +1275,6 @@ const catColors = {
   grooming: { bg: '#FFFFF0', color: 'var(--orange)' },
   other: { bg: '#EBF8FF', color: 'var(--blue)' }
 };
-
 function catIcon(cat) {
   const icons = {
     food: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M13 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,
@@ -796,120 +1286,70 @@ function catIcon(cat) {
   return icons[cat] || icons.other;
 }
 
-// ---- Overview ----
 function renderOverview(pet, ct) {
   const totalSpent = ct.totalSpent || 0;
   const budgetRemaining = ct.budgetRemaining ?? (ct.monthlyBudget || 200) - totalSpent;
   const coins = userData?.coins || 0;
   const txList = thisMonthTx(ct.transactions);
-
   document.getElementById('stat-total-spent').textContent = totalSpent.toFixed(2);
   document.getElementById('stat-budget-left').textContent = budgetRemaining.toFixed(2);
   document.getElementById('stat-happiness').textContent = Math.round(pet.happiness ?? 0);
   document.getElementById('stat-coins').textContent = coins;
-
-  // Welcome banner
   document.getElementById('welcome-pet-name').textContent = pet.name || 'Your Pet';
-  document.getElementById('welcome-desc').innerHTML =
-    `Your ${petTypeLabel(pet.type)} <strong>${pet.name}</strong> is ${statLabel(pet.health ?? 100).toLowerCase()} — health at <span style="color:var(--primary)">${Math.round(pet.health ?? 100)}%</span> and happiness at <span style="color:var(--primary)">${Math.round(pet.happiness ?? 100)}%</span>. Level ${pet.level || 1} with ${pet.experience || 0} XP.`;
-
-  // AI quick insights (generated from real data)
+  document.getElementById('welcome-desc').innerHTML = `Your ${petTypeLabel(pet.type)} <strong>${pet.name}</strong> is ${statLabel(pet.health ?? 100).toLowerCase()} — health at <span style="color:var(--primary)">${Math.round(pet.health ?? 100)}%</span> and happiness at <span style="color:var(--primary)">${Math.round(pet.happiness ?? 100)}%</span>. Level ${pet.level || 1} with ${pet.experience || 0} XP.`;
   const budgetPct = Math.round((totalSpent / (ct.monthlyBudget || 200)) * 100);
   const insights = generateInsights(pet, ct, budgetPct);
   document.getElementById('insight-1').textContent = insights[0] || '';
   document.getElementById('insight-2').textContent = insights[1] || '';
   document.getElementById('insight-3').textContent = insights[2] || '';
-
-  // Spending category chart
   const foodSpent = ct.foodSpent || 0;
   const vetSpent = ct.vetSpent || 0;
   const toySpent = ct.toySpent || 0;
   const otherSpent = totalSpent - foodSpent - vetSpent - toySpent;
-
   document.getElementById('mini-food').textContent = '$' + foodSpent.toFixed(0);
   document.getElementById('mini-vet').textContent = '$' + vetSpent.toFixed(0);
   document.getElementById('mini-toy').textContent = '$' + toySpent.toFixed(0);
-
   destroyChart('spending-cat');
   const scCtx = document.getElementById('chart-spending-cat').getContext('2d');
   chartInstances['spending-cat'] = new Chart(scCtx, {
     type: 'bar',
-    data: {
-      labels: ['Food', 'Vet', 'Toys', 'Other'],
-      datasets: [{ data: [foodSpent, vetSpent, toySpent, Math.max(0, otherSpent)], backgroundColor: ['rgba(79,209,197,0.85)','rgba(252,129,129,0.85)','rgba(159,122,234,0.85)','rgba(99,179,237,0.85)'], borderRadius: 6, borderSkipped: false, barPercentage: 0.5 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, border: { display: false } },
-        y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } }
-      }
-    }
+    data: { labels: ['Food', 'Vet', 'Toys', 'Other'], datasets: [{ data: [foodSpent, vetSpent, toySpent, Math.max(0, otherSpent)], backgroundColor: ['rgba(79,209,197,0.85)','rgba(252,129,129,0.85)','rgba(159,122,234,0.85)','rgba(99,179,237,0.85)'], borderRadius: 6, borderSkipped: false, barPercentage: 0.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } } } }
   });
-
-  // Stats radar
   destroyChart('stats-radar');
   const srCtx = document.getElementById('chart-stats-radar').getContext('2d');
   chartInstances['stats-radar'] = new Chart(srCtx, {
     type: 'radar',
-    data: {
-      labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'],
-      datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: 'rgba(79,209,197,0.2)', borderColor: '#4FD1C5', borderWidth: 2, pointBackgroundColor: '#4FD1C5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { display: true, color: 'rgba(0,0,0,0.05)' }, pointLabels: { font: { size: 11, weight: 700 }, color: '#718096' } } },
-      plugins: { legend: { display: false } }
-    }
+    data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: 'rgba(79,209,197,0.2)', borderColor: '#4FD1C5', borderWidth: 2, pointBackgroundColor: '#4FD1C5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { display: true, color: 'rgba(0,0,0,0.05)' }, pointLabels: { font: { size: 11, weight: 700 }, color: '#718096' } } }, plugins: { legend: { display: false } } }
   });
-
-  // Transactions table
   const tbody = document.getElementById('tx-table-body');
   const budget = ct.monthlyBudget || 200;
   document.getElementById('tx-count').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> ${txList.length} this month`;
-
   if (txList.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No transactions yet this month</td></tr>';
   } else {
     const recent = [...txList].sort((a,b) => b.date - a.date).slice(0, 8);
-    const cc = catColors;
     tbody.innerHTML = recent.map(tx => {
       const cat = tx.category || 'other';
-      const style = cc[cat] || cc.other;
+      const style = catColors[cat] || catColors.other;
       const pct = Math.min(100, Math.round((tx.amount / budget) * 100));
-      return `<tr>
-        <td><div class="expense-category">
-          <div class="expense-category-icon" style="background:${style.bg};color:${style.color}">${catIcon(cat)}</div>
-          ${cat.charAt(0).toUpperCase() + cat.slice(1)}
-        </div></td>
-        <td>${tx.item || '—'}</td>
-        <td style="font-weight:800">$${(tx.amount||0).toFixed(2)}</td>
-        <td><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:var(--primary)"></div></div></td>
-      </tr>`;
+      return `<tr><td><div class="expense-category"><div class="expense-category-icon" style="background:${style.bg};color:${style.color}">${catIcon(cat)}</div>${cat.charAt(0).toUpperCase() + cat.slice(1)}</div></td><td>${tx.item || '—'}</td><td style="font-weight:800">$${(tx.amount||0).toFixed(2)}</td><td><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:var(--primary)"></div></div></td></tr>`;
     }).join('');
   }
-
-  // Tasks list
   const tasks = pet.tasksCompleted || {};
   const taskKeys = Object.keys(tasks).filter(k => tasks[k]);
   const taskColors = ['var(--primary)','var(--orange)','var(--purple)','var(--green)','var(--red)','var(--blue)'];
-  const taskIcons = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 9a2 2 0 1 0 4 0"/><path d="M13 9a2 2 0 1 0 4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>`
-  ];
+  const taskIcons = [`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 9a2 2 0 1 0 4 0"/><path d="M13 9a2 2 0 1 0 4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>`];
   document.getElementById('tasks-subtitle').textContent = taskKeys.length + ' tasks completed today';
   const tasksList = document.getElementById('tasks-list');
   if (taskKeys.length === 0) {
     tasksList.innerHTML = '<li class="activity-item"><div class="activity-dot" style="background:var(--border);color:var(--text-secondary)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="activity-info"><h4>No tasks completed yet today</h4><p>Head to the app to care for your pet</p></div></li>';
   } else {
-    tasksList.innerHTML = taskKeys.map((k, i) => `
-      <li class="activity-item">
-        <div class="activity-dot" style="background:${taskColors[i % taskColors.length]};color:white">${taskIcons[i % taskIcons.length]}</div>
-        <div class="activity-info"><h4>${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h4><p>Completed today</p></div>
-      </li>`).join('');
+    tasksList.innerHTML = taskKeys.map((k, i) => `<li class="activity-item"><div class="activity-dot" style="background:${taskColors[i % taskColors.length]};color:white">${taskIcons[i % taskIcons.length]}</div><div class="activity-info"><h4>${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h4><p>Completed today</p></div></li>`).join('');
   }
 }
 
-// ---- Financial ----
 function renderFinancial(ct) {
   const budget = ct.monthlyBudget || 200;
   const totalSpent = ct.totalSpent || 0;
@@ -920,7 +1360,6 @@ function renderFinancial(ct) {
   const otherSpent = Math.max(0, totalSpent - foodSpent - vetSpent - toySpent);
   const pct = Math.min(100, Math.round((totalSpent / budget) * 100));
   const txList = thisMonthTx(ct.transactions);
-
   document.getElementById('fin-budget').textContent = budget.toFixed(2);
   document.getElementById('fin-food').textContent = foodSpent.toFixed(2);
   document.getElementById('fin-vet').textContent = vetSpent.toFixed(2);
@@ -930,217 +1369,83 @@ function renderFinancial(ct) {
   document.getElementById('budget-pct').textContent = pct + '%';
   document.getElementById('budget-bar').style.width = pct + '%';
   document.getElementById('budget-bar').style.background = pct > 90 ? 'linear-gradient(90deg,var(--orange),var(--red))' : 'linear-gradient(90deg,var(--primary),var(--green))';
-
   destroyChart('budget-donut');
   const bdCtx = document.getElementById('chart-budget-donut').getContext('2d');
-  chartInstances['budget-donut'] = new Chart(bdCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Food', 'Vet & Health', 'Toys', 'Other', 'Remaining'],
-      datasets: [{ data: [foodSpent, vetSpent, toySpent, otherSpent, Math.max(0, remaining)], backgroundColor: ['#4FD1C5','#FC8181','#9F7AEA','#63B3ED','#EDF2F7'], borderWidth: 0, hoverOffset: 8 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } }
-  });
-
-  // Transaction timeline
+  chartInstances['budget-donut'] = new Chart(bdCtx, { type: 'doughnut', data: { labels: ['Food', 'Vet & Health', 'Toys', 'Other', 'Remaining'], datasets: [{ data: [foodSpent, vetSpent, toySpent, otherSpent, Math.max(0, remaining)], backgroundColor: ['#4FD1C5','#FC8181','#9F7AEA','#63B3ED','#EDF2F7'], borderWidth: 0, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } } });
   destroyChart('tx-timeline');
   const tlCtx = document.getElementById('chart-tx-timeline').getContext('2d');
   const sorted = [...txList].sort((a,b) => a.date - b.date);
   let running = 0;
   const tlData = sorted.map(tx => { running += tx.amount || 0; return { x: new Date(tx.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}), y: parseFloat(running.toFixed(2)) }; });
   if (tlData.length === 0) tlData.push({ x: 'No data', y: 0 });
-  chartInstances['tx-timeline'] = new Chart(tlCtx, {
-    type: 'line',
-    data: {
-      labels: tlData.map(d => d.x),
-      datasets: [{
-        data: tlData.map(d => d.y),
-        borderColor: '#4FD1C5',
-        backgroundColor: (ctx) => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,260); g.addColorStop(0,'rgba(79,209,197,0.3)'); g.addColorStop(1,'rgba(79,209,197,0)'); return g; },
-        fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#4FD1C5', pointBorderColor: 'white', pointBorderWidth: 2, borderWidth: 3
-      }, {
-        data: tlData.map(() => budget),
-        borderColor: '#FC8181', borderDash: [4,4], backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, label: 'Budget'
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 10, weight: 600 } } } },
-      scales: {
-        x: { ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
-        y: { ticks: { color: '#A0AEC0', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } }
-      }
-    }
-  });
+  chartInstances['tx-timeline'] = new Chart(tlCtx, { type: 'line', data: { labels: tlData.map(d => d.x), datasets: [{ data: tlData.map(d => d.y), borderColor: '#4FD1C5', backgroundColor: (ctx) => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,260); g.addColorStop(0,'rgba(79,209,197,0.3)'); g.addColorStop(1,'rgba(79,209,197,0)'); return g; }, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#4FD1C5', pointBorderColor: 'white', pointBorderWidth: 2, borderWidth: 3 }, { data: tlData.map(() => budget), borderColor: '#FC8181', borderDash: [4,4], backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, label: 'Budget' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 10, weight: 600 } } } }, scales: { x: { ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#A0AEC0', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } } } } });
 }
 
-// ---- Health ----
 function renderHealth(pet, ct) {
   setGauge('gauge-health-circle', 'gauge-health-val', 'gauge-health-label', pet.health ?? 100, '#48BB78');
   setGauge('gauge-happiness-circle', 'gauge-happiness-val', 'gauge-happiness-label', pet.happiness ?? 100, '#F6AD55');
   setGauge('gauge-fullness-circle', 'gauge-fullness-val', 'gauge-fullness-label', pet.fullness ?? 100, '#4FD1C5');
   setGauge('gauge-energy-circle', 'gauge-energy-val', 'gauge-energy-label', pet.energy ?? 100, '#9F7AEA');
   setGauge('gauge-bond-circle', 'gauge-bond-val', 'gauge-bond-label', pet.bond ?? 0, '#FC8181');
-
   const tasks = pet.tasksCompleted || {};
   const tasksDone = Object.values(tasks).filter(Boolean).length;
   document.getElementById('health-streak').textContent = tasksDone;
   document.getElementById('health-level').textContent = 'Level ' + (pet.level || 1);
   document.getElementById('health-xp-label').textContent = `${pet.experience || 0} / ${pet.experienceToNextLevel || 100} XP`;
   document.getElementById('health-days').textContent = daysSince(pet.adoptionDate);
-
-  // Stats bar chart
   destroyChart('stats-bar');
   const sbCtx = document.getElementById('chart-stats-bar').getContext('2d');
-  chartInstances['stats-bar'] = new Chart(sbCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'],
-      datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderRadius: 8, borderSkipped: false, barPercentage: 0.6 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      scales: {
-        x: { min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
-        y: { ticks: { color: '#718096', font: { size: 11, weight: 700 } }, border: { display: false } }
-      }
-    }
-  });
-
-  // Spending vs happiness scatter (from tx data)
+  chartInstances['stats-bar'] = new Chart(sbCtx, { type: 'bar', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderRadius: 8, borderSkipped: false, barPercentage: 0.6 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#718096', font: { size: 11, weight: 700 } }, border: { display: false } } } } });
   const txList = thisMonthTx(ct.transactions);
   const scatterData = txList.map(tx => ({ x: tx.amount || 0, y: pet.happiness ?? 0 }));
   if (scatterData.length === 0) scatterData.push({ x: 0, y: pet.happiness ?? 0 });
   destroyChart('spending-vs-happiness');
   const svhCtx = document.getElementById('chart-spending-vs-happiness').getContext('2d');
-  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, {
-    type: 'scatter',
-    data: { datasets: [{ data: scatterData, backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5', pointRadius: 7, pointHoverRadius: 10 }] },
-    options: { responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
-        y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }
-      }
-    }
-  });
+  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, { type: 'scatter', data: { datasets: [{ data: scatterData, backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5', pointRadius: 7, pointHoverRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } } } } });
 }
 
-// ---- AI Insights ----
 async function renderAI(pet, ct) {
   const totalSpent = ct.totalSpent || 0;
   const budget = ct.monthlyBudget || 200;
   const budgetPct = Math.round((totalSpent / budget) * 100);
   const txList = thisMonthTx(ct.transactions);
-
-  // Spending forecast chart
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
   const dayOfMonth = new Date().getDate();
   const projectedTotal = dayOfMonth > 0 ? (totalSpent / dayOfMonth) * daysInMonth : totalSpent;
   const projectedRemaining = Math.max(0, budget - projectedTotal);
-
   destroyChart('ai-forecast');
   const afCtx = document.getElementById('chart-ai-forecast').getContext('2d');
-  chartInstances['ai-forecast'] = new Chart(afCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Spent So Far', 'Projected Additional', 'Remaining Budget'],
-      datasets: [{ data: [totalSpent, Math.max(0, projectedTotal - totalSpent), projectedRemaining], backgroundColor: ['#4FD1C5', 'rgba(79,209,197,0.4)', '#EDF2F7'], borderRadius: 8, borderSkipped: false, barPercentage: 0.5 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { ticks: { color: '#A0AEC0', font: { size: 11 } }, border: { display: false } },
-        y: { ticks: { color: '#A0AEC0', font: { size: 11 }, callback: v => '$'+v }, border: { display: false } }
-      }
-    }
-  });
-
-  document.getElementById('forecast-subtitle').innerHTML = projectedTotal <= budget
-    ? `Projected to finish <span class="highlight">$${(budget - projectedTotal).toFixed(0)} under budget</span>`
-    : `Projected to go <span style="color:var(--red);font-weight:700">$${(projectedTotal - budget).toFixed(0)} over budget</span>`;
-
-  // Stats overview chart (AI tab)
+  chartInstances['ai-forecast'] = new Chart(afCtx, { type: 'bar', data: { labels: ['Spent So Far', 'Projected Additional', 'Remaining Budget'], datasets: [{ data: [totalSpent, Math.max(0, projectedTotal - totalSpent), projectedRemaining], backgroundColor: ['#4FD1C5', 'rgba(79,209,197,0.4)', '#EDF2F7'], borderRadius: 8, borderSkipped: false, barPercentage: 0.5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#A0AEC0', font: { size: 11 } }, border: { display: false } }, y: { ticks: { color: '#A0AEC0', font: { size: 11 }, callback: v => '$'+v }, border: { display: false } } } } });
+  document.getElementById('forecast-subtitle').innerHTML = projectedTotal <= budget ? `Projected to finish <span class="highlight">$${(budget - projectedTotal).toFixed(0)} under budget</span>` : `Projected to go <span style="color:var(--red);font-weight:700">$${(projectedTotal - budget).toFixed(0)} over budget</span>`;
   destroyChart('ai-stats');
   const asCtx = document.getElementById('chart-ai-stats').getContext('2d');
-  chartInstances['ai-stats'] = new Chart(asCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'],
-      datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderWidth: 0, hoverOffset: 6 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } }
-  });
-
-  // AI text analysis
+  chartInstances['ai-stats'] = new Chart(asCtx, { type: 'doughnut', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderWidth: 0, hoverOffset: 6 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } } });
   await generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget);
 }
 
 async function generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget) {
-  const petData = {
-    name: pet.name, type: petTypeLabel(pet.type), age: pet.age,
-    health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100),
-    fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100),
-    bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0,
-    experienceToNextLevel: pet.experienceToNextLevel||100,
-    daysSinceAdoption: daysSince(pet.adoptionDate),
-    tasksCompletedToday: Object.values(pet.tasksCompleted||{}).filter(Boolean).length,
-    totalSpent: ct.totalSpent||0, budget, budgetPct,
-    foodSpent: ct.foodSpent||0, vetSpent: ct.vetSpent||0, toySpent: ct.toySpent||0,
-    transactionsThisMonth: txList.length, projectedMonthlyTotal: Math.round(projectedTotal)
-  };
-
+  const petData = { name: pet.name, type: petTypeLabel(pet.type), age: pet.age, health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0, experienceToNextLevel: pet.experienceToNextLevel||100, daysSinceAdoption: daysSince(pet.adoptionDate), tasksCompletedToday: Object.values(pet.tasksCompleted||{}).filter(Boolean).length, totalSpent: ct.totalSpent||0, budget, budgetPct, foodSpent: ct.foodSpent||0, vetSpent: ct.vetSpent||0, toySpent: ct.toySpent||0, transactionsThisMonth: txList.length, projectedMonthlyTotal: Math.round(projectedTotal) };
   document.getElementById('ai-summary').textContent = 'Generating analysis...';
   document.getElementById('ai-recommendations').textContent = 'Generating recommendations...';
   document.getElementById('ai-alerts').textContent = 'Checking for alerts...';
-
   try {
-    const res = await fetch("/api/groq", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 1000,
-        messages: [
-          { role: "system", content: `You are a pet care AI analyst. Given real pet data, return ONLY a JSON object (no markdown, no backticks) with these exact keys:
-{
-  "summary": "2-3 sentence paragraph about the pet's overall condition and spending",
-  "recommendations": ["rec1", "rec2", "rec3", "rec4", "rec5"],
-  "alerts": ["alert1", "alert2"],
-  "insights": ["insight1", "insight2", "insight3"]
-}
-Be specific using the actual numbers provided. Be concise and actionable.` },
-          { role: "user", content: `Analyze this pet data: ${JSON.stringify(petData)}` }
-        ]
-      })
-    });
+    const res = await fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 1000, messages: [{ role: "system", content: `You are a pet care AI analyst. Given real pet data, return ONLY a JSON object (no markdown, no backticks) with these exact keys: {"summary": "2-3 sentence paragraph about the pet's overall condition and spending","recommendations": ["rec1", "rec2", "rec3", "rec4", "rec5"],"alerts": ["alert1", "alert2"],"insights": ["insight1", "insight2", "insight3"]} Be specific using the actual numbers provided. Be concise and actionable.` }, { role: "user", content: `Analyze this pet data: ${JSON.stringify(petData)}` }] }) });
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content || '{}';
     let parsed;
-    try { parsed = JSON.parse(text.replace(/```json|```/g,'').trim()); }
-    catch { parsed = null; }
-
+    try { parsed = JSON.parse(text.replace(/```json|```/g,'').trim()); } catch { parsed = null; }
     if (parsed) {
       document.getElementById('ai-summary').innerHTML = `<p>${parsed.summary || ''}</p>`;
-      document.getElementById('ai-recommendations').innerHTML = (parsed.recommendations||[]).map(r =>
-        `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
-      document.getElementById('ai-alerts').innerHTML = (parsed.alerts||[]).map(a =>
-        `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>${a}</p>`).join('');
-      // Update overview insights too
-      if (parsed.insights) {
-        document.getElementById('insight-1').textContent = parsed.insights[0] || '';
-        document.getElementById('insight-2').textContent = parsed.insights[1] || '';
-        document.getElementById('insight-3').textContent = parsed.insights[2] || '';
-      }
+      document.getElementById('ai-recommendations').innerHTML = (parsed.recommendations||[]).map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
+      document.getElementById('ai-alerts').innerHTML = (parsed.alerts||[]).map(a => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>${a}</p>`).join('');
+      if (parsed.insights) { document.getElementById('insight-1').textContent = parsed.insights[0] || ''; document.getElementById('insight-2').textContent = parsed.insights[1] || ''; document.getElementById('insight-3').textContent = parsed.insights[2] || ''; }
     } else { fallbackAIText(petData); }
   } catch(e) { fallbackAIText(petData); }
 }
 
 function fallbackAIText(d) {
   document.getElementById('ai-summary').innerHTML = `<p>${d.name} is at ${d.health}% health and ${d.happiness}% happiness. You've spent $${d.totalSpent.toFixed(2)} of your $${d.budget} budget (${d.budgetPct}%) this month across ${d.transactionsThisMonth} transactions.</p>`;
-  document.getElementById('ai-recommendations').innerHTML = [
-    d.fullness < 60 ? `Feed ${d.name} soon — fullness is at ${d.fullness}%` : `${d.name}'s fullness looks good at ${d.fullness}%`,
-    d.energy < 50 ? `Let ${d.name} rest — energy is low at ${d.energy}%` : `Keep up the activity — energy at ${d.energy}%`,
-    d.bond < 50 ? `Spend more quality time to build the bond (currently ${d.bond}%)` : `Bond is growing well at ${d.bond}%`,
-    d.budgetPct > 80 ? `Watch spending — ${d.budgetPct}% of budget used` : `Budget on track at ${d.budgetPct}% used`,
-    `${d.name} is Level ${d.level} with ${d.experience}/${d.experienceToNextLevel} XP`
-  ].map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
+  document.getElementById('ai-recommendations').innerHTML = [d.fullness < 60 ? `Feed ${d.name} soon — fullness is at ${d.fullness}%` : `${d.name}'s fullness looks good at ${d.fullness}%`, d.energy < 50 ? `Let ${d.name} rest — energy is low at ${d.energy}%` : `Keep up the activity — energy at ${d.energy}%`, d.bond < 50 ? `Spend more quality time to build the bond (currently ${d.bond}%)` : `Bond is growing well at ${d.bond}%`, d.budgetPct > 80 ? `Watch spending — ${d.budgetPct}% of budget used` : `Budget on track at ${d.budgetPct}% used`, `${d.name} is Level ${d.level} with ${d.experience}/${d.experienceToNextLevel} XP`].map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
   document.getElementById('ai-alerts').innerHTML = `<p>No connection to AI — showing basic stats for ${d.name}.</p>`;
 }
 
@@ -1163,7 +1468,6 @@ function showEmpty() {
   document.getElementById('welcome-desc').textContent = 'No pets or user data found in Firebase for this account.';
 }
 
-// ---- Tabs ----
 window.switchTab = (tabId, e) => {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1171,14 +1475,10 @@ window.switchTab = (tabId, e) => {
   document.getElementById('tab-' + tabId).classList.add('active');
   if (e && e.target) {
     e.target.classList.add('active');
-    // Sync sidebar
-    document.querySelectorAll('.sidebar-nav li a').forEach(a => {
-      if (a.getAttribute('onclick') && a.getAttribute('onclick').includes(tabId)) a.classList.add('active');
-    });
+    document.querySelectorAll('.sidebar-nav li a').forEach(a => { if (a.getAttribute('onclick') && a.getAttribute('onclick').includes(tabId)) a.classList.add('active'); });
   }
 };
 
-// ---- Chat ----
 window.toggleChat = () => document.getElementById('ai-chat-panel').classList.toggle('open');
 
 window.sendChat = async (presetMsg) => {
@@ -1190,30 +1490,11 @@ window.sendChat = async (presetMsg) => {
   messagesDiv.innerHTML += `<div class="chat-msg user">${msg}</div>`;
   messagesDiv.innerHTML += `<div class="chat-msg loading" id="loading-msg">Thinking...</div>`;
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
   const pet = currentPetId ? allPets[currentPetId] : null;
   const ct = userData?.costTracking || {};
-  const context = pet ? {
-    name: pet.name, type: petTypeLabel(pet.type), health: Math.round(pet.health??100),
-    happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100),
-    energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0),
-    level: pet.level||1, experience: pet.experience||0,
-    totalSpent: ct.totalSpent||0, budget: ct.monthlyBudget||200,
-    budgetRemaining: ct.budgetRemaining??((ct.monthlyBudget||200)-(ct.totalSpent||0)),
-    coins: userData?.coins||0, transactionsThisMonth: thisMonthTx(ct.transactions).length
-  } : {};
-
+  const context = pet ? { name: pet.name, type: petTypeLabel(pet.type), health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0, totalSpent: ct.totalSpent||0, budget: ct.monthlyBudget||200, budgetRemaining: ct.budgetRemaining??((ct.monthlyBudget||200)-(ct.totalSpent||0)), coins: userData?.coins||0, transactionsThisMonth: thisMonthTx(ct.transactions).length } : {};
   try {
-    const res = await fetch("/api/groq", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile", max_tokens: 1000,
-        messages: [
-          { role: "system", content: `You are a helpful PetCare AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}` },
-          { role: "user", content: msg }
-        ]
-      })
-    });
+    const res = await fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 1000, messages: [{ role: "system", content: `You are a helpful PetCare AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}` }, { role: "user", content: msg }] }) });
     const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't process that.";
     document.getElementById('loading-msg')?.remove();
