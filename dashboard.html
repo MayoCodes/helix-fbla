@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetCare Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #4FD1C5; --primary-dark: #38B2AC; --primary-light: #E6FFFA;
+  --bg: #F8F9FA; --card-bg: #FFFFFF; --dark-card: #0F1535; --dark-card-inner: #1A1F4E;
+  --text-primary: #2D3748; --text-secondary: #A0AEC0; --text-light: #718096;
+  --green: #48BB78; --red: #FC8181; --orange: #F6AD55; --yellow: #F6E05E;
+  --purple: #9F7AEA; --blue: #63B3ED; --border: #E2E8F0;
+  --shadow: 0 3.5px 5.5px rgba(0,0,0,0.02); --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+  --radius: 15px;
+}
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-primary); display: flex; min-height: 100vh; }
+
+/* LOADING OVERLAY */
+#loading-overlay {
+  position: fixed; inset: 0; background: var(--dark-card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; gap: 16px;
+}
+#loading-overlay .load-icon { color: var(--primary); }
+#loading-overlay p { color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600; }
+.spinner {
+  width: 40px; height: 40px; border: 3px solid rgba(79,209,197,0.2);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* LOGIN SCREEN */
+#login-screen {
+  position: fixed; inset: 0; background: var(--dark-card);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9998; gap: 20px;
+}
+#login-screen h2 { color: white; font-size: 22px; font-weight: 800; }
+#login-screen p { color: rgba(255,255,255,0.6); font-size: 14px; text-align: center; max-width: 300px; }
+.login-btn {
+  background: var(--primary); color: white; border: none; padding: 12px 32px;
+  border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px; background: transparent; padding: 24px 20px;
+  position: fixed; height: 100vh; overflow-y: auto; z-index: 100;
+}
+.sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 0 12px; margin-bottom: 32px; }
+.sidebar-brand-icon { width: 36px; height: 36px; background: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; }
+.sidebar-brand h2 { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-primary); }
+.sidebar-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 16px 0; }
+.sidebar-nav { list-style: none; }
+.sidebar-nav li a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--text-light); font-size: 13px; font-weight: 600; transition: all 0.2s; margin-bottom: 2px; }
+.sidebar-nav li a:hover { background: #f7f7f7; }
+.sidebar-nav li a.active { background: var(--card-bg); color: var(--text-primary); box-shadow: var(--shadow-md); }
+.sidebar-nav li a .nav-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.sidebar-nav li a.active .nav-icon { background: var(--primary); color: white; }
+.sidebar-help { margin-top: 32px; background: var(--primary); border-radius: var(--radius); padding: 24px 20px; color: white; text-align: center; }
+.sidebar-help-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.25); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: white; }
+.sidebar-help h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.sidebar-help p { font-size: 11px; opacity: 0.85; margin-bottom: 14px; }
+.sidebar-help-btn { background: white; color: var(--text-primary); border: none; padding: 8px 20px; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+/* PET SELECTOR */
+.pet-selector { padding: 0 12px; margin-bottom: 16px; }
+.pet-selector label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+.pet-selector select { width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-primary); outline: none; cursor: pointer; }
+
+/* MAIN */
+.main { margin-left: 260px; flex: 1; padding: 24px 30px 40px; min-height: 100vh; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.breadcrumb { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.breadcrumb span { color: var(--text-primary); font-weight: 700; }
+.topbar h1 { font-size: 15px; font-weight: 800; color: var(--text-primary); margin-top: 2px; }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.search-box { display: flex; align-items: center; gap: 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-size: 12px; color: var(--text-secondary); }
+.search-box input { border: none; outline: none; font-family: inherit; font-size: 12px; width: 120px; color: var(--text-primary); }
+
+/* STAT CARDS */
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+.stat-card { background: var(--card-bg); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; }
+.stat-card-info p { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+.stat-card-info h3 { font-size: 20px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.stat-change { font-size: 12px; font-weight: 700; }
+.stat-change.up { color: var(--green); }
+.stat-change.down { color: var(--red); }
+.stat-card-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.icon-teal { background: var(--primary); color: white; }
+.icon-green { background: var(--green); color: white; }
+.icon-orange { background: var(--orange); color: white; }
+.icon-purple { background: var(--purple); color: white; }
+
+/* BANNER ROW */
+.banner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.banner-welcome { background: var(--dark-card); border-radius: var(--radius); padding: 28px 32px; color: white; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; }
+.banner-welcome::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; background: rgba(79,209,197,0.12); border-radius: 50%; }
+.banner-welcome::after { content: ''; position: absolute; bottom: -60px; right: 60px; width: 150px; height: 150px; background: rgba(79,209,197,0.08); border-radius: 50%; }
+.banner-welcome p.label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
+.banner-welcome h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.banner-welcome p.desc { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.5; max-width: 320px; }
+.banner-pet-display { position: absolute; right: 30px; bottom: 20px; z-index: 2; color: rgba(79,209,197,0.6); }
+.banner-ai { background: linear-gradient(135deg, var(--primary), #319795); border-radius: var(--radius); padding: 28px 32px; color: white; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; }
+.banner-ai::before { content: ''; position: absolute; top: -30px; right: -30px; width: 180px; height: 180px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+.banner-ai h2 { font-size: 18px; font-weight: 800; margin-bottom: 8px; position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
+.banner-ai p { font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.5; max-width: 300px; position: relative; z-index: 1; }
+.ai-insights-list { list-style: none; margin-top: 12px; position: relative; z-index: 1; }
+.ai-insights-list li { font-size: 12px; color: rgba(255,255,255,0.9); padding: 4px 0; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+.ai-insights-list li .list-bullet { color: #F6E05E; flex-shrink: 0; margin-top: 2px; }
+.banner-link { color: white; font-size: 13px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 6px; margin-top: 12px; position: relative; z-index: 1; cursor: pointer; }
+
+/* CHARTS */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.chart-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.chart-card-dark { background: var(--dark-card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.chart-inner-dark { background: var(--dark-card-inner); border-radius: 12px; margin: 16px; padding: 16px; height: 200px; position: relative; }
+.chart-card-body { padding: 16px 20px; }
+.chart-card-dark .chart-card-body { padding: 0 20px 20px; color: white; }
+.chart-card-body h3 { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+.chart-card-body .chart-subtitle { font-size: 12px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.chart-subtitle .highlight { color: var(--green); font-weight: 700; }
+.chart-area { padding: 16px; height: 220px; position: relative; }
+.chart-area canvas, .chart-inner-dark canvas { width: 100% !important; height: 100% !important; }
+.mini-stats { display: flex; gap: 24px; padding: 16px 20px; color: white; }
+.mini-stat { display: flex; align-items: center; gap: 8px; }
+.mini-stat-dot { width: 10px; height: 10px; border-radius: 4px; }
+.mini-stat-info p { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+.mini-stat-info h4 { font-size: 16px; font-weight: 800; }
+
+/* BOTTOM ROW */
+.bottom-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.table-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.table-header h3 { font-size: 16px; font-weight: 800; }
+.table-header .table-count { font-size: 12px; color: var(--green); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.expense-table { width: 100%; border-collapse: collapse; }
+.expense-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); text-align: left; padding: 8px 12px 12px; border-bottom: 1px solid var(--border); }
+.expense-table td { padding: 14px 12px; font-size: 13px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+.expense-table tr:last-child td { border-bottom: none; }
+.expense-category { display: flex; align-items: center; gap: 10px; }
+.expense-category-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.progress-bar-wrap { width: 100%; height: 4px; background: #EDF2F7; border-radius: 4px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.empty-state { text-align: center; padding: 32px; color: var(--text-secondary); font-size: 13px; }
+
+/* ACTIVITY */
+.activity-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+.activity-card h3 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+.activity-card .activity-subtitle { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 20px; }
+.activity-list { list-style: none; }
+.activity-item { display: flex; gap: 14px; padding: 10px 0; position: relative; }
+.activity-item:not(:last-child)::after { content: ''; position: absolute; left: 15px; top: 40px; bottom: -4px; width: 2px; background: var(--border); }
+.activity-dot { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+.activity-info h4 { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.activity-info p { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+/* GAUGE */
+.gauge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+.gauge-card { background: var(--card-bg); border-radius: var(--radius); padding: 20px 16px; box-shadow: var(--shadow); text-align: center; }
+.gauge-ring { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px; position: relative; display: flex; align-items: center; justify-content: center; }
+.gauge-ring svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+.gauge-ring .gauge-val { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.gauge-card h4 { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.gauge-card p { font-size: 11px; color: var(--text-secondary); }
+
+/* TABS */
+.dashboard-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card-bg); border-radius: 12px; padding: 4px; box-shadow: var(--shadow); width: fit-content; }
+.tab-btn { padding: 8px 20px; border: none; background: transparent; border-radius: 10px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+.tab-btn.active { background: var(--primary); color: white; }
+.tab-btn:hover:not(.active) { color: var(--text-primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* STREAK */
+.streak-icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px; margin: 0 auto 8px; }
+
+/* AI CHAT */
+.ai-chat-fab { position: fixed; bottom: 28px; right: 28px; width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary), #319795); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 8px 24px rgba(79,209,197,0.4); z-index: 999; transition: transform 0.2s, box-shadow 0.2s; border: none; }
+.ai-chat-fab:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(79,209,197,0.5); }
+.ai-chat-panel { position: fixed; bottom: 96px; right: 28px; width: 380px; max-height: 520px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); z-index: 998; display: none; flex-direction: column; overflow: hidden; }
+.ai-chat-panel.open { display: flex; }
+.ai-chat-header { background: var(--dark-card); padding: 18px 20px; color: white; display: flex; align-items: center; gap: 12px; }
+.ai-chat-header-icon { width: 36px; height: 36px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+.ai-chat-header h4 { font-size: 14px; font-weight: 700; }
+.ai-chat-header p { font-size: 11px; color: var(--text-secondary); }
+.ai-chat-messages { flex: 1; padding: 16px; overflow-y: auto; max-height: 350px; display: flex; flex-direction: column; gap: 12px; }
+.chat-msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; font-weight: 500; }
+.chat-msg.bot { background: #F0FFF4; color: var(--text-primary); align-self: flex-start; border-bottom-left-radius: 4px; }
+.chat-msg.user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+.chat-msg.loading { background: #F7FAFC; color: var(--text-secondary); align-self: flex-start; font-style: italic; }
+.ai-chat-input { display: flex; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--border); }
+.ai-chat-input input { flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-family: inherit; font-size: 13px; outline: none; color: var(--text-primary); }
+.ai-chat-input input:focus { border-color: var(--primary); }
+.ai-chat-send { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
+.chat-chip { background: var(--primary-light); color: var(--primary-dark); border: none; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+.chat-chip:hover { background: #C6F6D5; }
+
+/* INFO TIP */
+.info-tip { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); font-size: 9px; font-weight: 800; color: var(--text-secondary); cursor: help; position: relative; margin-left: 6px; }
+.info-tip:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--dark-card); color: white; padding: 6px 10px; border-radius: 8px; font-size: 11px; white-space: nowrap; z-index: 100; margin-bottom: 6px; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.animate-in { animation: fadeUp 0.5s ease forwards; opacity: 0; }
+.delay-1 { animation-delay: 0.05s; } .delay-2 { animation-delay: 0.1s; } .delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.2s; } .delay-5 { animation-delay: 0.25s; } .delay-6 { animation-delay: 0.3s; }
+
+/* ── DOCS MODAL ─────────────────────────────────────────────────────────── */
+.docs-backdrop {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(15, 21, 53, 0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+}
+.docs-backdrop.open { opacity: 1; visibility: visible; }
+.docs-modal {
+  background: var(--card-bg); border-radius: 20px;
+  width: min(820px, 94vw); max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+  transform: translateY(20px) scale(0.98);
+  transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.docs-backdrop.open .docs-modal { transform: translateY(0) scale(1); }
+
+.docs-modal-header {
+  background: var(--dark-card); padding: 24px 32px;
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.docs-modal-header-left { display: flex; align-items: center; gap: 14px; }
+.docs-modal-header-icon {
+  width: 44px; height: 44px; background: var(--primary); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;
+}
+.docs-modal-header h2 { font-size: 18px; font-weight: 800; color: white; }
+.docs-modal-header p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.docs-close {
+  width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.12);
+  border: none; color: white; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;
+}
+.docs-close:hover { background: rgba(255,255,255,0.25); }
+
+.docs-layout { display: flex; flex: 1; overflow: hidden; }
+.docs-sidebar {
+  width: 210px; flex-shrink: 0; background: #F7FAFC;
+  border-right: 1px solid var(--border); padding: 20px 12px; overflow-y: auto;
+}
+.docs-nav-section { margin-bottom: 20px; }
+.docs-nav-section-label {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); padding: 0 10px; margin-bottom: 6px; display: block;
+}
+.docs-nav-btn {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border: none; background: transparent; border-radius: 10px;
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-light);
+  cursor: pointer; text-align: left; transition: all 0.18s; margin-bottom: 2px;
+}
+.docs-nav-btn:hover { background: white; color: var(--text-primary); }
+.docs-nav-btn.active { background: white; color: var(--primary-dark); box-shadow: var(--shadow-md); }
+.docs-nav-btn.active .docs-nav-icon { background: var(--primary); color: white; }
+.docs-nav-icon {
+  width: 28px; height: 28px; border-radius: 8px; background: var(--border);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: var(--text-secondary); transition: all 0.18s;
+}
+
+.docs-content { flex: 1; overflow-y: auto; padding: 32px; }
+.docs-page { display: none; }
+.docs-page.active { display: block; }
+
+.docs-page h3 {
+  font-size: 20px; font-weight: 800; color: var(--text-primary);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+}
+.docs-page-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+.docs-section { margin-bottom: 28px; }
+.docs-section h4 {
+  font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.docs-section h4 .section-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.docs-section p { font-size: 13px; color: var(--text-light); line-height: 1.75; margin-bottom: 10px; }
+.docs-section ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.docs-section ul li {
+  font-size: 13px; color: var(--text-light); line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.docs-section ul li::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary); flex-shrink: 0; margin-top: 7px;
+}
+
+.docs-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.docs-stat-card {
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.docs-stat-card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.docs-stat-card h5 { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+.docs-stat-card p { font-size: 11px; line-height: 1.5; }
+
+.docs-tip {
+  background: var(--primary-light); border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0; padding: 12px 16px; margin-top: 12px;
+  font-size: 12px; color: var(--primary-dark); font-weight: 600; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.docs-tip-icon { flex-shrink: 0; margin-top: 1px; }
+
+.docs-warn {
+  background: #FFFFF0; border-left: 3px solid var(--orange);
+  border-radius: 0 10px 10px 0; padding: 12px 16px; margin-top: 12px;
+  font-size: 12px; color: #7B5E00; font-weight: 600; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+
+.docs-step {
+  display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px;
+}
+.docs-step-num {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--primary);
+  color: white; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.docs-step-body h5 { font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 3px; }
+.docs-step-body p { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+
+.docs-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--primary-light); color: var(--primary-dark);
+  border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700;
+}
+
+@media (max-width: 1100px) { .stat-cards { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } .bottom-row { grid-template-columns: 1fr; } .banner-row { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } .stat-cards { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(2,1fr); } .docs-layout { flex-direction: column; } .docs-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); } }
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p>Loading your PetCare dashboard...</p>
+</div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#4FD1C5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+  <h2>PetCare Dashboard</h2>
+  <p>Please sign in to view your dashboard</p>
+  <button class="login-btn" onclick="signInWithGoogle()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+    Sign In
+  </button>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+    </div>
+    <h2>PETCARE DASHBOARD</h2>
+  </div>
+  <div class="sidebar-divider"></div>
+
+  <div class="pet-selector">
+    <label>Active Pet</label>
+    <select id="pet-select" onchange="switchPet(this.value)"></select>
+  </div>
+
+  <ul class="sidebar-nav">
+    <li><a href="#" class="active" onclick="switchTab('overview',event);return false;">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></div>
+      Dashboard</a></li>
+    <li><a href="#" onclick="switchTab('financial',event);return false;">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      Budget</a></li>
+    <li><a href="#" onclick="switchTab('health',event);return false;">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
+      Health &amp; Mood</a></li>
+    <li><a href="#" onclick="switchTab('ai',event);return false;">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>
+      AI Insights</a></li>
+  </ul>
+
+  <div class="sidebar-help">
+    <div class="sidebar-help-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+    </div>
+    <h4>Need help?</h4>
+    <p>Check our guides for pet care tips</p>
+    <button class="sidebar-help-btn" onclick="openDocs()">DOCUMENTATION</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar animate-in delay-1">
+    <div>
+      <div class="breadcrumb">Pages / <span>Dashboard</span></div>
+      <h1>Dashboard</h1>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Type here...">
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-tabs animate-in delay-2">
+    <button class="tab-btn active" onclick="switchTab('overview',event)">Overview</button>
+    <button class="tab-btn" onclick="switchTab('financial',event)">Financial</button>
+    <button class="tab-btn" onclick="switchTab('health',event)">Health &amp; Mood</button>
+    <button class="tab-btn" onclick="switchTab('ai',event)">AI Insights</button>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="stat-cards animate-in delay-3">
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Total Spent</p><h3>$<span id="stat-total-spent">—</span></h3></div>
+        <div class="stat-card-icon icon-teal"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Budget Remaining</p><h3>$<span id="stat-budget-left">—</span></h3></div>
+        <div class="stat-card-icon icon-green"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Pet Happiness</p><h3><span id="stat-happiness">—</span>%</h3></div>
+        <div class="stat-card-icon icon-orange"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Coins</p><h3><span id="stat-coins">—</span></h3></div>
+        <div class="stat-card-icon icon-purple"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M9.5 9.5c0-1.1.9-2 2-2h1a2 2 0 0 1 2 2v.5c0 1-.6 1.5-1.5 2l-1 .5c-.9.5-1.5 1-1.5 2v.5"/><path d="M12 18.5v.5"/></svg></div>
+      </div>
+    </div>
+
+    <div class="banner-row animate-in delay-4">
+      <div class="banner-welcome">
+        <div>
+          <p class="label">Welcome back,</p>
+          <h2 id="welcome-pet-name">Loading...</h2>
+          <p class="desc" id="welcome-desc">Loading your pet's data...</p>
+        </div>
+        <div class="banner-pet-display">
+          <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+        </div>
+      </div>
+      <div class="banner-ai">
+        <div>
+          <h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            AI Quick Insights
+          </h2>
+          <ul class="ai-insights-list" id="ai-quick-insights">
+            <li><svg class="list-bullet" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="#F6E05E" stroke="#F6E05E" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span id="insight-1">Loading insights...</span></li>
+            <li><svg class="list-bullet" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="#F6E05E" stroke="#F6E05E" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span id="insight-2"></span></li>
+            <li><svg class="list-bullet" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="#F6E05E" stroke="#F6E05E" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span id="insight-3"></span></li>
+          </ul>
+        </div>
+        <span class="banner-link" onclick="switchTab('ai',event)">View full analysis <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+      </div>
+    </div>
+
+    <div class="charts-row animate-in delay-5">
+      <div class="chart-card-dark">
+        <div class="chart-inner-dark"><canvas id="chart-spending-cat"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Spending by Category</h3>
+          <p class="chart-subtitle">This month's breakdown</p>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="mini-stat-dot" style="background:var(--primary)"></div><div class="mini-stat-info"><p>Food</p><h4 id="mini-food">$0</h4></div></div>
+          <div class="mini-stat"><div class="mini-stat-dot" style="background:var(--orange)"></div><div class="mini-stat-info"><p>Vet</p><h4 id="mini-vet">$0</h4></div></div>
+          <div class="mini-stat"><div class="mini-stat-dot" style="background:var(--purple)"></div><div class="mini-stat-info"><p>Toys</p><h4 id="mini-toy">$0</h4></div></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-area"><canvas id="chart-stats-radar"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Pet Stats Overview <span class="info-tip" data-tip="Current health, happiness, fullness, energy and bond">i</span></h3>
+          <p class="chart-subtitle">Current condition at a glance</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-row animate-in delay-6">
+      <div class="table-card">
+        <div class="table-header">
+          <div>
+            <h3>Recent Transactions</h3>
+            <span class="table-count" id="tx-count">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              0 this month
+            </span>
+          </div>
+        </div>
+        <table class="expense-table">
+          <thead><tr><th>Category</th><th>Item</th><th>Cost</th><th>% of Budget</th></tr></thead>
+          <tbody id="tx-table-body"><tr><td colspan="4" class="empty-state">No transactions yet this month</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="activity-card">
+        <h3>Tasks Completed</h3>
+        <p class="activity-subtitle" id="tasks-subtitle">Loading...</p>
+        <ul class="activity-list" id="tasks-list">
+          <li class="activity-item">
+            <div class="activity-dot" style="background:var(--border);color:var(--text-secondary)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="activity-info"><h4>Loading tasks...</h4><p></p></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANCIAL TAB -->
+  <div class="tab-content" id="tab-financial">
+    <div class="stat-cards animate-in">
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Monthly Budget</p><h3>$<span id="fin-budget">200</span></h3></div>
+        <div class="stat-card-icon icon-teal"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Food &amp; Supplies</p><h3>$<span id="fin-food">0</span></h3></div>
+        <div class="stat-card-icon icon-green"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M13 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Vet &amp; Health</p><h3>$<span id="fin-vet">0</span></h3></div>
+        <div class="stat-card-icon icon-orange"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-info"><p>Toys &amp; Activities</p><h3>$<span id="fin-toy">0</span></h3></div>
+        <div class="stat-card-icon icon-purple"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.37 8.57 12 12 2.63 8.57"/><path d="M21.37 15.43 12 19l-9.37-3.57"/><path d="m3.49 7.38 8.51 3.87 8.51-3.87A2 2 0 0 0 19 3.62L12 1l-7 2.62a2 2 0 0 0-1.51 3.76Z"/><path d="M12 19v4"/></svg></div>
+      </div>
+    </div>
+    <div class="charts-row" style="margin-top:20px">
+      <div class="chart-card">
+        <div class="chart-area" style="height:280px"><canvas id="chart-budget-donut"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Budget Breakdown <span class="info-tip" data-tip="How your budget is distributed across categories">i</span></h3>
+          <p class="chart-subtitle" id="budget-subtitle">Loading...</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-area" style="height:280px"><canvas id="chart-tx-timeline"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Transaction History <span class="info-tip" data-tip="Cumulative spending over the month">i</span></h3>
+          <p class="chart-subtitle">Running total this month</p>
+        </div>
+      </div>
+    </div>
+    <div class="stat-cards" style="grid-template-columns:1fr;margin-top:20px;">
+      <div class="stat-card" style="flex-direction:column;align-items:stretch;gap:12px;padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h3 style="font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              Monthly Budget Usage
+            </h3>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;" id="budget-usage-label">$0 of $200 spent</p>
+          </div>
+          <span style="font-size:24px;font-weight:800;color:var(--primary);" id="budget-pct">0%</span>
+        </div>
+        <div class="progress-bar-wrap" style="height:10px;border-radius:8px;">
+          <div class="progress-bar-fill" id="budget-bar" style="width:0%;background:linear-gradient(90deg,var(--primary),var(--green));border-radius:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEALTH & MOOD TAB -->
+  <div class="tab-content" id="tab-health">
+    <div class="gauge-grid animate-in">
+      <div class="gauge-card">
+        <div class="gauge-ring" id="gauge-health-ring">
+          <svg width="80" height="80"><circle cx="40" cy="40" r="34" stroke="#EDF2F7" stroke-width="6" fill="none"/><circle id="gauge-health-circle" cx="40" cy="40" r="34" stroke="#48BB78" stroke-width="6" fill="none" stroke-dasharray="213.6" stroke-dashoffset="0" stroke-linecap="round"/></svg>
+          <span class="gauge-val" id="gauge-health-val">—</span>
+        </div>
+        <h4>Health</h4><p id="gauge-health-label">—</p>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-ring">
+          <svg width="80" height="80"><circle cx="40" cy="40" r="34" stroke="#EDF2F7" stroke-width="6" fill="none"/><circle id="gauge-happiness-circle" cx="40" cy="40" r="34" stroke="#F6AD55" stroke-width="6" fill="none" stroke-dasharray="213.6" stroke-dashoffset="27.8" stroke-linecap="round"/></svg>
+          <span class="gauge-val" id="gauge-happiness-val">—</span>
+        </div>
+        <h4>Happiness</h4><p id="gauge-happiness-label">—</p>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-ring">
+          <svg width="80" height="80"><circle cx="40" cy="40" r="34" stroke="#EDF2F7" stroke-width="6" fill="none"/><circle id="gauge-fullness-circle" cx="40" cy="40" r="34" stroke="#4FD1C5" stroke-width="6" fill="none" stroke-dasharray="213.6" stroke-dashoffset="53.4" stroke-linecap="round"/></svg>
+          <span class="gauge-val" id="gauge-fullness-val">—</span>
+        </div>
+        <h4>Fullness</h4><p id="gauge-fullness-label">—</p>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-ring">
+          <svg width="80" height="80"><circle cx="40" cy="40" r="34" stroke="#EDF2F7" stroke-width="6" fill="none"/><circle id="gauge-energy-circle" cx="40" cy="40" r="34" stroke="#9F7AEA" stroke-width="6" fill="none" stroke-dasharray="213.6" stroke-dashoffset="42.7" stroke-linecap="round"/></svg>
+          <span class="gauge-val" id="gauge-energy-val">—</span>
+        </div>
+        <h4>Energy</h4><p id="gauge-energy-label">—</p>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-ring">
+          <svg width="80" height="80"><circle cx="40" cy="40" r="34" stroke="#EDF2F7" stroke-width="6" fill="none"/><circle id="gauge-bond-circle" cx="40" cy="40" r="34" stroke="#FC8181" stroke-width="6" fill="none" stroke-dasharray="213.6" stroke-dashoffset="85.4" stroke-linecap="round"/></svg>
+          <span class="gauge-val" id="gauge-bond-val">—</span>
+        </div>
+        <h4>Bond</h4><p id="gauge-bond-label">—</p>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-area" style="height:260px"><canvas id="chart-stats-bar"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Stats Comparison <span class="info-tip" data-tip="Side by side view of all pet stats">i</span></h3>
+          <p class="chart-subtitle">Current values</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-area" style="height:260px"><canvas id="chart-spending-vs-happiness"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Spending vs Happiness <span class="info-tip" data-tip="Does more spending lead to a happier pet?">i</span></h3>
+          <p class="chart-subtitle">Based on your transactions</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-cards" style="grid-template-columns:repeat(3,1fr);margin-top:20px;">
+      <div class="stat-card" style="flex-direction:column;align-items:center;gap:6px;padding:24px;">
+        <div class="streak-icon" style="background:#FFF5F0;color:var(--orange);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+        </div>
+        <h3 style="font-size:28px;font-weight:800;color:var(--primary);" id="health-streak">—</h3>
+        <p style="font-size:12px;color:var(--text-secondary);font-weight:600;">Tasks Done Today</p>
+      </div>
+      <div class="stat-card" style="flex-direction:column;align-items:center;gap:6px;padding:24px;">
+        <div class="streak-icon" style="background:#FFFFF0;color:var(--orange);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <h3 style="font-size:28px;font-weight:800;color:var(--orange);" id="health-level">—</h3>
+        <p style="font-size:12px;color:var(--text-secondary);font-weight:600;" id="health-xp-label">XP</p>
+      </div>
+      <div class="stat-card" style="flex-direction:column;align-items:center;gap:6px;padding:24px;">
+        <div class="streak-icon" style="background:#F0FFF4;color:var(--green);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        </div>
+        <h3 style="font-size:28px;font-weight:800;color:var(--green);" id="health-days">—</h3>
+        <p style="font-size:12px;color:var(--text-secondary);font-weight:600;">Days Since Adoption</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI INSIGHTS TAB -->
+  <div class="tab-content" id="tab-ai">
+    <div class="banner-row" style="grid-template-columns:1fr;margin-bottom:20px;">
+      <div class="banner-ai" style="min-height:auto;padding:24px 32px;">
+        <h2>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+          AI-Powered Pet Care Analysis
+        </h2>
+        <p>Our AI analyzes your pet's live stats, spending patterns, and care history to give personalized recommendations.</p>
+      </div>
+    </div>
+    <div class="stat-cards" style="grid-template-columns:1fr 1fr;">
+      <div class="table-card" style="border-left:4px solid var(--primary);">
+        <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+          Summary
+        </h3>
+        <div id="ai-summary" style="font-size:13px;line-height:1.7;color:var(--text-light);">Loading AI analysis...</div>
+      </div>
+      <div class="table-card" style="border-left:4px solid var(--orange);">
+        <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Recommendations
+        </h3>
+        <div id="ai-recommendations" style="font-size:13px;line-height:1.9;color:var(--text-light);">Loading recommendations...</div>
+      </div>
+    </div>
+    <div class="stat-cards" style="grid-template-columns:1fr;margin-top:20px;">
+      <div class="table-card" style="border-left:4px solid var(--red);">
+        <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          Alerts &amp; Anomalies
+        </h3>
+        <div id="ai-alerts" style="font-size:13px;line-height:1.9;color:var(--text-light);">Loading alerts...</div>
+      </div>
+    </div>
+    <div class="charts-row" style="margin-top:20px;">
+      <div class="chart-card">
+        <div class="chart-area" style="height:260px"><canvas id="chart-ai-forecast"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Spending Forecast <span class="info-tip" data-tip="Projected spending for the rest of the month">i</span></h3>
+          <p class="chart-subtitle" id="forecast-subtitle">Based on current pace</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-area" style="height:260px"><canvas id="chart-ai-stats"></canvas></div>
+        <div class="chart-card-body">
+          <h3>Stats at a Glance <span class="info-tip" data-tip="Visual overview of all pet stats">i</span></h3>
+          <p class="chart-subtitle">Current pet condition</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- AI Chat FAB -->
+<button class="ai-chat-fab" onclick="toggleChat()" title="Ask AI about your pet">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+</button>
+
+<!-- AI Chat Panel -->
+<div class="ai-chat-panel" id="ai-chat-panel">
+  <div class="ai-chat-header">
+    <div class="ai-chat-header-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+    </div>
+    <div><h4>PetCare AI Assistant</h4><p>Ask about your pet's stats, budget, or care tips</p></div>
+  </div>
+  <div class="ai-chat-messages" id="chat-messages">
+    <div class="chat-msg bot">Hi! I'm your PetCare AI. Ask me anything about your pet's stats, spending, or care routine!</div>
+  </div>
+  <div class="chat-suggestions">
+    <button class="chat-chip" onclick="sendChat('How is my pet doing overall?')">How is my pet doing?</button>
+    <button class="chat-chip" onclick="sendChat('Am I staying on budget?')">Am I on budget?</button>
+    <button class="chat-chip" onclick="sendChat('What should I do for my pet today?')">What to do today?</button>
+    <button class="chat-chip" onclick="sendChat('How can I improve my pet\'s happiness?')">Boost happiness</button>
+  </div>
+  <div class="ai-chat-input">
+    <input type="text" id="chat-input" placeholder="Ask about your pet..." onkeypress="if(event.key==='Enter')sendChat()">
+    <button class="ai-chat-send" onclick="sendChat()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ DOCUMENTATION MODAL ══════════════════════════════════════════════════ -->
+<div class="docs-backdrop" id="docsBackdrop">
+  <div class="docs-modal">
+
+    <div class="docs-modal-header">
+      <div class="docs-modal-header-left">
+        <div class="docs-modal-header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div>
+          <h2>PetCare Documentation</h2>
+          <p>Everything you need to know about caring for your pet and using this dashboard</p>
+        </div>
+      </div>
+      <button class="docs-close" onclick="closeDocs()">✕</button>
+    </div>
+
+    <div class="docs-layout">
+
+      <!-- Docs Sidebar Nav -->
+      <nav class="docs-sidebar">
+        <div class="docs-nav-section">
+          <span class="docs-nav-section-label">Getting Started</span>
+          <button class="docs-nav-btn active" onclick="showDocsPage('intro', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+            Introduction
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('dashboard', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></div>
+            Dashboard Overview
+          </button>
+        </div>
+        <div class="docs-nav-section">
+          <span class="docs-nav-section-label">Pet Care</span>
+          <button class="docs-nav-btn" onclick="showDocsPage('stats', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div>
+            Pet Stats Guide
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('tasks', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div>
+            Daily Tasks
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('leveling', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+            Leveling &amp; XP
+          </button>
+        </div>
+        <div class="docs-nav-section">
+          <span class="docs-nav-section-label">Features</span>
+          <button class="docs-nav-btn" onclick="showDocsPage('budget', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            Budget &amp; Spending
+          </button>
+          <button class="docs-nav-btn" onclick="showDocsPage('ai', this)">
+            <div class="docs-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div>
+            AI Assistant
+          </button>
+        </div>
+      </nav>
+
+      <!-- Docs Content -->
+      <div class="docs-content">
+
+        <!-- INTRO PAGE -->
+        <div class="docs-page active" id="docs-intro">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+            Welcome to PetCare
+          </h3>
+          <p class="docs-page-subtitle">Your all-in-one virtual pet care and tracking platform.</p>
+
+          <div class="docs-section">
+            <p>PetCare is a dashboard that connects to your companion app to give you a real-time view of your virtual pet's health, happiness, and your spending. Everything you do in the app — feeding, playing, visiting the vet — is reflected here instantly.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>What you can do here</h4>
+            <ul>
+              <li>Monitor all five of your pet's vital stats at a glance</li>
+              <li>Track every dollar you spend on your pet, broken down by category</li>
+              <li>See which tasks you've completed today and what still needs doing</li>
+              <li>Get AI-generated care tips and spending analysis personalized to your pet</li>
+              <li>Chat with the AI assistant any time for quick advice</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>How to get the most out of it</h4>
+            <div class="docs-step">
+              <div class="docs-step-num">1</div>
+              <div class="docs-step-body"><h5>Sign in with Google</h5><p>Your pet data is tied to your account. Use the same Google account as your companion app.</p></div>
+            </div>
+            <div class="docs-step">
+              <div class="docs-step-num">2</div>
+              <div class="docs-step-body"><h5>Select your pet</h5><p>Use the dropdown in the sidebar to switch between pets if you have more than one.</p></div>
+            </div>
+            <div class="docs-step">
+              <div class="docs-step-num">3</div>
+              <div class="docs-step-body"><h5>Check in daily</h5><p>Stats decay over time. Reviewing your dashboard each day helps you catch low health or happiness before it becomes a problem.</p></div>
+            </div>
+            <div class="docs-step">
+              <div class="docs-step-num">4</div>
+              <div class="docs-step-body"><h5>Use the AI tab weekly</h5><p>The AI analysis gives a fresh summary of your spending trends and pet condition — great for a quick weekly review.</p></div>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            All data shown here is live from Firebase — there's no manual entry needed. Just use your pet app normally and the dashboard updates automatically.
+          </div>
+        </div>
+
+        <!-- DASHBOARD PAGE -->
+        <div class="docs-page" id="docs-dashboard">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            Dashboard Overview
+          </h3>
+          <p class="docs-page-subtitle">A tour of every section of the dashboard and what it shows you.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>The four tabs</h4>
+            <ul>
+              <li><strong>Overview</strong> — Your home base. Top-level stats, quick AI insights, spending breakdown, and recent transactions all in one place.</li>
+              <li><strong>Financial</strong> — Detailed budget tracking: donut chart, cumulative spending line graph, and how far you are through your monthly budget.</li>
+              <li><strong>Health &amp; Mood</strong> — All five stat gauges, a side-by-side bar chart, and milestone cards for level, XP, and days since adoption.</li>
+              <li><strong>AI Insights</strong> — Full AI-written summary, bullet-point recommendations, alerts, and a spending forecast for the rest of the month.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--green)"></div>The four stat cards (top of Overview)</h4>
+            <div class="docs-stat-grid">
+              <div class="docs-stat-card" style="background:#E6FFFA;">
+                <div class="docs-stat-card-icon" style="background:var(--primary);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div>
+                <div><h5 style="color:var(--primary-dark)">Total Spent</h5><p style="color:var(--text-light)">All spending recorded this calendar month.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#F0FFF4;">
+                <div class="docs-stat-card-icon" style="background:var(--green);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                <div><h5 style="color:#276749">Budget Remaining</h5><p style="color:var(--text-light)">How much of your monthly budget is left.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FFFAF0;">
+                <div class="docs-stat-card-icon" style="background:var(--orange);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></div>
+                <div><h5 style="color:#7B4F00">Pet Happiness</h5><p style="color:var(--text-light)">Current happiness % from the app.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FAF5FF;">
+                <div class="docs-stat-card-icon" style="background:var(--purple);color:white;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M9.5 9.5c0-1.1.9-2 2-2h1a2 2 0 0 1 2 2v.5c0 1-.6 1.5-1.5 2l-1 .5c-.9.5-1.5 1-1.5 2v.5"/></svg></div>
+                <div><h5 style="color:#553C9A">Coins</h5><p style="color:var(--text-light)">In-game coins earned through care tasks.</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--purple)"></div>Switching pets</h4>
+            <p>If you have multiple pets registered in the app, use the <strong>Active Pet</strong> dropdown at the top of the sidebar to switch between them. All charts and stats update instantly.</p>
+          </div>
+
+          <div class="docs-warn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7B5E00" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            The dashboard is read-only. All data is managed through the companion pet app — you can't edit stats or transactions directly here.
+          </div>
+        </div>
+
+        <!-- STATS PAGE -->
+        <div class="docs-page" id="docs-stats">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            Understanding Your Pet's Stats
+          </h3>
+          <p class="docs-page-subtitle">Each stat reflects a different aspect of your pet's wellbeing. Keep them all high!</p>
+
+          <div class="docs-section">
+            <div class="docs-stat-grid">
+              <div class="docs-stat-card" style="background:#F0FFF4;">
+                <div class="docs-stat-card-icon" style="background:#48BB78;color:white;font-size:18px;">💚</div>
+                <div><h5 style="color:#276749">Health (0–100)</h5><p style="color:var(--text-light)">Overall physical condition. Drops if your pet goes unfed, ungroomed, or skips vet visits. Below 30 is critical.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FFFAF0;">
+                <div class="docs-stat-card-icon" style="background:#F6AD55;color:white;font-size:18px;">😊</div>
+                <div><h5 style="color:#7B4F00">Happiness (0–100)</h5><p style="color:var(--text-light)">Emotional state. Boosted by play, toys, and quality time. Falls when your pet is lonely or bored.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#E6FFFA;">
+                <div class="docs-stat-card-icon" style="background:#4FD1C5;color:white;font-size:18px;">🍽️</div>
+                <div><h5 style="color:var(--primary-dark)">Fullness (0–100)</h5><p style="color:var(--text-light)">Hunger level. Drops steadily over time. Feed your pet in the app to keep this above 50.</p></div>
+              </div>
+              <div class="docs-stat-card" style="background:#FAF5FF;">
+                <div class="docs-stat-card-icon" style="background:#9F7AEA;color:white;font-size:18px;">⚡</div>
+                <div><h5 style="color:#553C9A">Energy (0–100)</h5><p style="color:var(--text-light)">Vitality and alertness. Recovers with rest and sleep tasks. Low energy means your pet can't enjoy activities.</p></div>
+              </div>
+            </div>
+            <div class="docs-stat-card" style="background:#FFF5F5;margin-top:12px;">
+              <div class="docs-stat-card-icon" style="background:#FC8181;color:white;font-size:18px;">❤️</div>
+              <div><h5 style="color:#9B2335">Bond (0–100)</h5><p style="color:var(--text-light)">Your relationship strength with your pet. Grows slowly through consistent daily care. The hardest stat to build but the most rewarding.</p></div>
+            </div>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--red)"></div>Stat rating scale</h4>
+            <ul>
+              <li><strong style="color:#48BB78">90–100 — Excellent:</strong> Your pet is thriving. Keep it up!</li>
+              <li><strong style="color:var(--primary)">70–89 — Good:</strong> Everything is comfortable. Minor improvements possible.</li>
+              <li><strong style="color:var(--orange)">50–69 — Fair:</strong> Getting into the yellow zone. Take action soon.</li>
+              <li><strong style="color:#DD6B20">30–49 — Low:</strong> Your pet needs attention. Open the app and complete tasks.</li>
+              <li><strong style="color:var(--red)">0–29 — Critical:</strong> Urgent! Extended neglect here can affect other stats too.</li>
+            </ul>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            Stats decay at different rates. Fullness drops the fastest (check in at least twice a day), while Bond changes the most slowly over weeks of consistent care.
+          </div>
+        </div>
+
+        <!-- TASKS PAGE -->
+        <div class="docs-page" id="docs-tasks">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Daily Care Tasks
+          </h3>
+          <p class="docs-page-subtitle">Complete tasks in the app every day to keep your pet happy and healthy.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>What are tasks?</h4>
+            <p>Tasks are daily activities you perform in the companion app — things like feeding, playing, grooming, and sleeping. Each completed task raises one or more stats and awards XP. The dashboard shows you which tasks were completed today in the <strong>Tasks Completed</strong> card on the Overview tab.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--green)"></div>Common tasks and their effects</h4>
+            <ul>
+              <li><strong>Feed</strong> — Raises Fullness significantly. Also gives a small Health boost.</li>
+              <li><strong>Play</strong> — Raises Happiness and Bond. Costs a little Energy.</li>
+              <li><strong>Groom</strong> — Raises Health and Happiness. Counts as a care interaction for Bond.</li>
+              <li><strong>Sleep / Rest</strong> — Fully restores Energy. Should be done at least once daily.</li>
+              <li><strong>Vet Visit</strong> — Big Health boost. Costs money but prevents serious health drops.</li>
+              <li><strong>Give Treat</strong> — Quick Happiness spike. Best used when happiness is in the Fair range.</li>
+              <li><strong>Train</strong> — Awards bonus XP. Requires decent Energy to perform.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>Why completing tasks every day matters</h4>
+            <p>Stats decay passively over time whether you interact or not. Skipping a full day will noticeably drop Fullness and Happiness. Skipping multiple days can push Health into the critical range. The dashboard's Tasks Completed card is a quick sanity check — if it shows 0, open the app.</p>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            A good daily routine: Feed → Play → Groom → Sleep. This covers all five stats and takes just a few minutes in the app.
+          </div>
+        </div>
+
+        <!-- LEVELING PAGE -->
+        <div class="docs-page" id="docs-leveling">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Leveling Up &amp; XP
+          </h3>
+          <p class="docs-page-subtitle">Your pet earns experience points for every care interaction. Watch them grow!</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>How XP works</h4>
+            <p>Every completed task in the app awards a certain amount of XP (experience points). When your pet's XP reaches the threshold for the next level, they level up automatically. The Health &amp; Mood tab shows your current level, XP progress, and how much XP is needed to level up.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>XP rewards by task type</h4>
+            <ul>
+              <li><strong>Feed</strong> — Small XP reward (routine care)</li>
+              <li><strong>Play</strong> — Medium XP reward (active engagement)</li>
+              <li><strong>Groom</strong> — Small XP reward</li>
+              <li><strong>Sleep</strong> — Minimal XP (recovery task)</li>
+              <li><strong>Vet Visit</strong> — Large XP reward (reflects real cost and effort)</li>
+              <li><strong>Train</strong> — Largest XP reward (dedicated skill-building)</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--purple)"></div>What leveling up does</h4>
+            <p>Higher-level pets unlock new tasks, accessories, and interactions in the companion app. Leveling up also awards Coins, which can be spent on in-app items. The dashboard tracks your level but all rewards are delivered in the app.</p>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            The fastest way to level up is to combine daily tasks with regular Train sessions. Train gives the most XP per interaction but requires your pet to have decent Energy first.
+          </div>
+        </div>
+
+        <!-- BUDGET PAGE -->
+        <div class="docs-page" id="docs-budget">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Budget &amp; Spending Tracking
+          </h3>
+          <p class="docs-page-subtitle">Keep your pet care costs under control with real-time budget monitoring.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>How spending is tracked</h4>
+            <p>Every time you perform an action in the app that has a real-world cost equivalent — buying food, toys, grooming supplies, or scheduling vet visits — a transaction is logged to your account. The dashboard reads these transactions and categorises them automatically.</p>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--green)"></div>The four spending categories</h4>
+            <ul>
+              <li><strong>Food &amp; Supplies</strong> — Kibble, treats, bowls, leashes, and everyday consumables.</li>
+              <li><strong>Vet &amp; Health</strong> — Check-ups, vaccinations, medications, and emergency visits.</li>
+              <li><strong>Toys &amp; Activities</strong> — Toys, training classes, grooming, and entertainment.</li>
+              <li><strong>Other</strong> — Anything that doesn't fit the above categories.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>Reading the Financial tab</h4>
+            <ul>
+              <li>The <strong>donut chart</strong> shows your spending split across categories, plus how much budget is remaining.</li>
+              <li>The <strong>transaction timeline</strong> shows your cumulative spending as a running total — the red dashed line is your monthly budget ceiling.</li>
+              <li>The <strong>budget bar</strong> at the bottom gives an instant percentage view. It turns orange/red when you're over 90%.</li>
+            </ul>
+          </div>
+
+          <div class="docs-warn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7B5E00" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            Transactions reset at the start of each calendar month. Historical data from prior months is not shown in the current view — only the current month's spending is displayed.
+          </div>
+        </div>
+
+        <!-- AI PAGE -->
+        <div class="docs-page" id="docs-ai">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            AI Assistant &amp; Insights
+          </h3>
+          <p class="docs-page-subtitle">Let the AI help you understand your pet's condition and make smarter care decisions.</p>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--primary)"></div>AI Insights tab</h4>
+            <p>The AI Insights tab generates a fresh analysis every time you load it. It reads your pet's live stats, your spending data, and your transaction history, then produces three sections:</p>
+            <ul>
+              <li><strong>Summary</strong> — A plain-English overview of your pet's current condition and your financial position.</li>
+              <li><strong>Recommendations</strong> — Specific, actionable suggestions tailored to what your pet actually needs right now.</li>
+              <li><strong>Alerts &amp; Anomalies</strong> — Flags unusual patterns, like a stat that's been dropping fast or spending in a category that's unusually high.</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--orange)"></div>The AI Chat assistant</h4>
+            <p>Click the teal robot button in the bottom-right corner to open the chat panel. You can ask it anything about your pet — it has full context of your pet's current stats and your spending data, so answers are specific to your situation, not generic.</p>
+            <p>Good questions to try:</p>
+            <ul>
+              <li>"My pet's energy is low — what should I do?"</li>
+              <li>"Am I spending too much on toys?"</li>
+              <li>"What tasks should I prioritize today?"</li>
+              <li>"How long until my pet levels up?"</li>
+            </ul>
+          </div>
+
+          <div class="docs-section">
+            <h4><div class="section-dot" style="background:var(--purple)"></div>Quick insights on the Overview</h4>
+            <p>The three bullet points on the teal banner on the Overview tab are AI-generated at load time. They give you a fast snapshot of the most important things to know right now — budget status, happiness level, and the most pressing health concern — without needing to navigate to the full AI tab.</p>
+          </div>
+
+          <div class="docs-tip">
+            <svg class="docs-tip-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            The AI generates a new analysis each time you visit the AI Insights tab. If stats change significantly after completing tasks in the app, reload the tab to get an updated read.
+          </div>
+        </div>
+
+      </div><!-- /docs-content -->
+    </div><!-- /docs-layout -->
+  </div><!-- /docs-modal -->
+</div><!-- /docs-backdrop -->
+
+<script>
+// ── DOCS MODAL ──────────────────────────────────────────────────────────────
+window.openDocs = function() {
+  document.getElementById('docsBackdrop').classList.add('open');
+};
+window.closeDocs = function() {
+  document.getElementById('docsBackdrop').classList.remove('open');
+};
+document.getElementById('docsBackdrop').addEventListener('click', function(e) {
+  if (e.target === this) closeDocs();
+});
+window.showDocsPage = function(pageId, btn) {
+  document.querySelectorAll('.docs-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.docs-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('docs-' + pageId).classList.add('active');
+  btn.classList.add('active');
+};
+</script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+  authDomain: "helix-fbla.firebaseapp.com",
+  projectId: "helix-fbla",
+  storageBucket: "helix-fbla.firebasestorage.app",
+  messagingSenderId: "154951525413",
+  appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window._auth = auth;
+window._signInWithPopup = signInWithPopup;
+window._GoogleAuthProvider = GoogleAuthProvider;
+
+Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+Chart.defaults.font.weight = 600;
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.scale.grid.display = false;
+
+let allPets = {};
+let currentPetId = null;
+let userData = null;
+let chartInstances = {};
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    document.getElementById('loading-overlay').style.display = 'flex';
+    document.getElementById('login-screen').style.display = 'none';
+    await loadUserData(user.uid);
+    document.getElementById('loading-overlay').style.display = 'none';
+  } else {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+});
+
+window.signInWithGoogle = async () => {
+  const provider = new window._GoogleAuthProvider();
+  try { await window._signInWithPopup(window._auth, provider); }
+  catch(e) { console.error(e); }
+};
+
+async function loadUserData(uid) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (!userDoc.exists()) { showEmpty(); return; }
+    const data = userDoc.data();
+    userData = data.userData || {};
+    currentPetId = data.currentPetId;
+    const petsSnap = await getDocs(collection(db, 'users', uid, 'pets'));
+    allPets = {};
+    petsSnap.forEach(d => { allPets[d.id] = d.data(); });
+    if (!currentPetId || !allPets[currentPetId]) {
+      currentPetId = Object.keys(allPets)[0] || null;
+    }
+    buildPetSelector();
+    renderAll();
+  } catch(e) {
+    console.error('Error loading data:', e);
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
+}
+
+function buildPetSelector() {
+  const sel = document.getElementById('pet-select');
+  sel.innerHTML = '';
+  Object.entries(allPets).forEach(([id, pet]) => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = pet.name || 'Unnamed Pet';
+    if (id === currentPetId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+window.switchPet = (id) => { currentPetId = id; renderAll(); };
+
+function renderAll() {
+  if (!currentPetId || !allPets[currentPetId]) return;
+  const pet = allPets[currentPetId];
+  const ct = userData?.costTracking || {};
+  renderOverview(pet, ct);
+  renderFinancial(ct);
+  renderHealth(pet, ct);
+  renderAI(pet, ct);
+}
+
+function petTypeLabel(t) {
+  if (t === 'a') return 'cat'; if (t === 'b') return 'dog'; if (t === 'c') return 'bird';
+  return 'pet';
+}
+function statLabel(val) {
+  if (val >= 90) return 'Excellent'; if (val >= 70) return 'Good';
+  if (val >= 50) return 'Fair'; if (val >= 30) return 'Low'; return 'Critical';
+}
+function gaugeOffset(val) { return 213.6 * (1 - (val || 0) / 100); }
+function setGauge(circleId, valId, labelId, val, color) {
+  const circle = document.getElementById(circleId);
+  const valEl = document.getElementById(valId);
+  const labelEl = document.getElementById(labelId);
+  if (circle) { circle.style.stroke = color; circle.setAttribute('stroke-dashoffset', gaugeOffset(val)); }
+  if (valEl) valEl.textContent = Math.round(val ?? 0);
+  if (labelEl) labelEl.textContent = statLabel(val ?? 0);
+}
+function daysSince(ts) { if (!ts) return 0; return Math.floor((Date.now() - ts) / 86400000); }
+function thisMonthTx(transactions) {
+  const now = new Date();
+  return (transactions || []).filter(tx => {
+    const d = new Date(tx.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+}
+const catColors = {
+  food: { bg: '#E6FFFA', color: 'var(--primary)' },
+  vet:  { bg: '#FFF5F5', color: 'var(--red)' },
+  toy:  { bg: '#FAF5FF', color: 'var(--purple)' },
+  grooming: { bg: '#FFFFF0', color: 'var(--orange)' },
+  other: { bg: '#EBF8FF', color: 'var(--blue)' }
+};
+function catIcon(cat) {
+  const icons = {
+    food: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M13 9a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,
+    vet:  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+    toy:  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.37 8.57 12 12 2.63 8.57"/><path d="M21.37 15.43 12 19l-9.37-3.57"/><path d="m3.49 7.38 8.51 3.87 8.51-3.87A2 2 0 0 0 19 3.62L12 1l-7 2.62a2 2 0 0 0-1.51 3.76Z"/><path d="M12 19v4"/></svg>`,
+    grooming: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>`,
+    other: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>`
+  };
+  return icons[cat] || icons.other;
+}
+
+function renderOverview(pet, ct) {
+  const totalSpent = ct.totalSpent || 0;
+  const budgetRemaining = ct.budgetRemaining ?? (ct.monthlyBudget || 200) - totalSpent;
+  const coins = userData?.coins || 0;
+  const txList = thisMonthTx(ct.transactions);
+  document.getElementById('stat-total-spent').textContent = totalSpent.toFixed(2);
+  document.getElementById('stat-budget-left').textContent = budgetRemaining.toFixed(2);
+  document.getElementById('stat-happiness').textContent = Math.round(pet.happiness ?? 0);
+  document.getElementById('stat-coins').textContent = coins;
+  document.getElementById('welcome-pet-name').textContent = pet.name || 'Your Pet';
+  document.getElementById('welcome-desc').innerHTML = `Your ${petTypeLabel(pet.type)} <strong>${pet.name}</strong> is ${statLabel(pet.health ?? 100).toLowerCase()} — health at <span style="color:var(--primary)">${Math.round(pet.health ?? 100)}%</span> and happiness at <span style="color:var(--primary)">${Math.round(pet.happiness ?? 100)}%</span>. Level ${pet.level || 1} with ${pet.experience || 0} XP.`;
+  const budgetPct = Math.round((totalSpent / (ct.monthlyBudget || 200)) * 100);
+  const insights = generateInsights(pet, ct, budgetPct);
+  document.getElementById('insight-1').textContent = insights[0] || '';
+  document.getElementById('insight-2').textContent = insights[1] || '';
+  document.getElementById('insight-3').textContent = insights[2] || '';
+  const foodSpent = ct.foodSpent || 0;
+  const vetSpent = ct.vetSpent || 0;
+  const toySpent = ct.toySpent || 0;
+  const otherSpent = totalSpent - foodSpent - vetSpent - toySpent;
+  document.getElementById('mini-food').textContent = '$' + foodSpent.toFixed(0);
+  document.getElementById('mini-vet').textContent = '$' + vetSpent.toFixed(0);
+  document.getElementById('mini-toy').textContent = '$' + toySpent.toFixed(0);
+  destroyChart('spending-cat');
+  const scCtx = document.getElementById('chart-spending-cat').getContext('2d');
+  chartInstances['spending-cat'] = new Chart(scCtx, {
+    type: 'bar',
+    data: { labels: ['Food', 'Vet', 'Toys', 'Other'], datasets: [{ data: [foodSpent, vetSpent, toySpent, Math.max(0, otherSpent)], backgroundColor: ['rgba(79,209,197,0.85)','rgba(252,129,129,0.85)','rgba(159,122,234,0.85)','rgba(99,179,237,0.85)'], borderRadius: 6, borderSkipped: false, barPercentage: 0.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } } } }
+  });
+  destroyChart('stats-radar');
+  const srCtx = document.getElementById('chart-stats-radar').getContext('2d');
+  chartInstances['stats-radar'] = new Chart(srCtx, {
+    type: 'radar',
+    data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: 'rgba(79,209,197,0.2)', borderColor: '#4FD1C5', borderWidth: 2, pointBackgroundColor: '#4FD1C5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { display: true, color: 'rgba(0,0,0,0.05)' }, pointLabels: { font: { size: 11, weight: 700 }, color: '#718096' } } }, plugins: { legend: { display: false } } }
+  });
+  const tbody = document.getElementById('tx-table-body');
+  const budget = ct.monthlyBudget || 200;
+  document.getElementById('tx-count').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> ${txList.length} this month`;
+  if (txList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No transactions yet this month</td></tr>';
+  } else {
+    const recent = [...txList].sort((a,b) => b.date - a.date).slice(0, 8);
+    tbody.innerHTML = recent.map(tx => {
+      const cat = tx.category || 'other';
+      const style = catColors[cat] || catColors.other;
+      const pct = Math.min(100, Math.round((tx.amount / budget) * 100));
+      return `<tr><td><div class="expense-category"><div class="expense-category-icon" style="background:${style.bg};color:${style.color}">${catIcon(cat)}</div>${cat.charAt(0).toUpperCase() + cat.slice(1)}</div></td><td>${tx.item || '—'}</td><td style="font-weight:800">$${(tx.amount||0).toFixed(2)}</td><td><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:var(--primary)"></div></div></td></tr>`;
+    }).join('');
+  }
+  const tasks = pet.tasksCompleted || {};
+  const taskKeys = Object.keys(tasks).filter(k => tasks[k]);
+  const taskColors = ['var(--primary)','var(--orange)','var(--purple)','var(--green)','var(--red)','var(--blue)'];
+  const taskIcons = [`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 9a2 2 0 1 0 4 0"/><path d="M13 9a2 2 0 1 0 4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>`];
+  document.getElementById('tasks-subtitle').textContent = taskKeys.length + ' tasks completed today';
+  const tasksList = document.getElementById('tasks-list');
+  if (taskKeys.length === 0) {
+    tasksList.innerHTML = '<li class="activity-item"><div class="activity-dot" style="background:var(--border);color:var(--text-secondary)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="activity-info"><h4>No tasks completed yet today</h4><p>Head to the app to care for your pet</p></div></li>';
+  } else {
+    tasksList.innerHTML = taskKeys.map((k, i) => `<li class="activity-item"><div class="activity-dot" style="background:${taskColors[i % taskColors.length]};color:white">${taskIcons[i % taskIcons.length]}</div><div class="activity-info"><h4>${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h4><p>Completed today</p></div></li>`).join('');
+  }
+}
+
+function renderFinancial(ct) {
+  const budget = ct.monthlyBudget || 200;
+  const totalSpent = ct.totalSpent || 0;
+  const foodSpent = ct.foodSpent || 0;
+  const vetSpent = ct.vetSpent || 0;
+  const toySpent = ct.toySpent || 0;
+  const remaining = ct.budgetRemaining ?? (budget - totalSpent);
+  const otherSpent = Math.max(0, totalSpent - foodSpent - vetSpent - toySpent);
+  const pct = Math.min(100, Math.round((totalSpent / budget) * 100));
+  const txList = thisMonthTx(ct.transactions);
+  document.getElementById('fin-budget').textContent = budget.toFixed(2);
+  document.getElementById('fin-food').textContent = foodSpent.toFixed(2);
+  document.getElementById('fin-vet').textContent = vetSpent.toFixed(2);
+  document.getElementById('fin-toy').textContent = toySpent.toFixed(2);
+  document.getElementById('budget-subtitle').innerHTML = `$${totalSpent.toFixed(2)} of $${budget.toFixed(2)} spent (<span class="highlight">${pct}%</span>)`;
+  document.getElementById('budget-usage-label').textContent = `$${totalSpent.toFixed(2)} of $${budget.toFixed(2)} spent`;
+  document.getElementById('budget-pct').textContent = pct + '%';
+  document.getElementById('budget-bar').style.width = pct + '%';
+  document.getElementById('budget-bar').style.background = pct > 90 ? 'linear-gradient(90deg,var(--orange),var(--red))' : 'linear-gradient(90deg,var(--primary),var(--green))';
+  destroyChart('budget-donut');
+  const bdCtx = document.getElementById('chart-budget-donut').getContext('2d');
+  chartInstances['budget-donut'] = new Chart(bdCtx, { type: 'doughnut', data: { labels: ['Food', 'Vet & Health', 'Toys', 'Other', 'Remaining'], datasets: [{ data: [foodSpent, vetSpent, toySpent, otherSpent, Math.max(0, remaining)], backgroundColor: ['#4FD1C5','#FC8181','#9F7AEA','#63B3ED','#EDF2F7'], borderWidth: 0, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } } });
+  destroyChart('tx-timeline');
+  const tlCtx = document.getElementById('chart-tx-timeline').getContext('2d');
+  const sorted = [...txList].sort((a,b) => a.date - b.date);
+  let running = 0;
+  const tlData = sorted.map(tx => { running += tx.amount || 0; return { x: new Date(tx.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}), y: parseFloat(running.toFixed(2)) }; });
+  if (tlData.length === 0) tlData.push({ x: 'No data', y: 0 });
+  chartInstances['tx-timeline'] = new Chart(tlCtx, { type: 'line', data: { labels: tlData.map(d => d.x), datasets: [{ data: tlData.map(d => d.y), borderColor: '#4FD1C5', backgroundColor: (ctx) => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,260); g.addColorStop(0,'rgba(79,209,197,0.3)'); g.addColorStop(1,'rgba(79,209,197,0)'); return g; }, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#4FD1C5', pointBorderColor: 'white', pointBorderWidth: 2, borderWidth: 3 }, { data: tlData.map(() => budget), borderColor: '#FC8181', borderDash: [4,4], backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, label: 'Budget' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 10, weight: 600 } } } }, scales: { x: { ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#A0AEC0', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } } } } });
+}
+
+function renderHealth(pet, ct) {
+  setGauge('gauge-health-circle', 'gauge-health-val', 'gauge-health-label', pet.health ?? 100, '#48BB78');
+  setGauge('gauge-happiness-circle', 'gauge-happiness-val', 'gauge-happiness-label', pet.happiness ?? 100, '#F6AD55');
+  setGauge('gauge-fullness-circle', 'gauge-fullness-val', 'gauge-fullness-label', pet.fullness ?? 100, '#4FD1C5');
+  setGauge('gauge-energy-circle', 'gauge-energy-val', 'gauge-energy-label', pet.energy ?? 100, '#9F7AEA');
+  setGauge('gauge-bond-circle', 'gauge-bond-val', 'gauge-bond-label', pet.bond ?? 0, '#FC8181');
+  const tasks = pet.tasksCompleted || {};
+  const tasksDone = Object.values(tasks).filter(Boolean).length;
+  document.getElementById('health-streak').textContent = tasksDone;
+  document.getElementById('health-level').textContent = 'Level ' + (pet.level || 1);
+  document.getElementById('health-xp-label').textContent = `${pet.experience || 0} / ${pet.experienceToNextLevel || 100} XP`;
+  document.getElementById('health-days').textContent = daysSince(pet.adoptionDate);
+  destroyChart('stats-bar');
+  const sbCtx = document.getElementById('chart-stats-bar').getContext('2d');
+  chartInstances['stats-bar'] = new Chart(sbCtx, { type: 'bar', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderRadius: 8, borderSkipped: false, barPercentage: 0.6 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#718096', font: { size: 11, weight: 700 } }, border: { display: false } } } } });
+  const txList = thisMonthTx(ct.transactions);
+  const scatterData = txList.map(tx => ({ x: tx.amount || 0, y: pet.happiness ?? 0 }));
+  if (scatterData.length === 0) scatterData.push({ x: 0, y: pet.happiness ?? 0 });
+  destroyChart('spending-vs-happiness');
+  const svhCtx = document.getElementById('chart-spending-vs-happiness').getContext('2d');
+  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, { type: 'scatter', data: { datasets: [{ data: scatterData, backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5', pointRadius: 7, pointHoverRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } } } } });
+}
+
+async function renderAI(pet, ct) {
+  const totalSpent = ct.totalSpent || 0;
+  const budget = ct.monthlyBudget || 200;
+  const budgetPct = Math.round((totalSpent / budget) * 100);
+  const txList = thisMonthTx(ct.transactions);
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+  const dayOfMonth = new Date().getDate();
+  const projectedTotal = dayOfMonth > 0 ? (totalSpent / dayOfMonth) * daysInMonth : totalSpent;
+  const projectedRemaining = Math.max(0, budget - projectedTotal);
+  destroyChart('ai-forecast');
+  const afCtx = document.getElementById('chart-ai-forecast').getContext('2d');
+  chartInstances['ai-forecast'] = new Chart(afCtx, { type: 'bar', data: { labels: ['Spent So Far', 'Projected Additional', 'Remaining Budget'], datasets: [{ data: [totalSpent, Math.max(0, projectedTotal - totalSpent), projectedRemaining], backgroundColor: ['#4FD1C5', 'rgba(79,209,197,0.4)', '#EDF2F7'], borderRadius: 8, borderSkipped: false, barPercentage: 0.5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#A0AEC0', font: { size: 11 } }, border: { display: false } }, y: { ticks: { color: '#A0AEC0', font: { size: 11 }, callback: v => '$'+v }, border: { display: false } } } } });
+  document.getElementById('forecast-subtitle').innerHTML = projectedTotal <= budget ? `Projected to finish <span class="highlight">$${(budget - projectedTotal).toFixed(0)} under budget</span>` : `Projected to go <span style="color:var(--red);font-weight:700">$${(projectedTotal - budget).toFixed(0)} over budget</span>`;
+  destroyChart('ai-stats');
+  const asCtx = document.getElementById('chart-ai-stats').getContext('2d');
+  chartInstances['ai-stats'] = new Chart(asCtx, { type: 'doughnut', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderWidth: 0, hoverOffset: 6 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } } });
+  await generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget);
+}
+
+async function generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget) {
+  const petData = { name: pet.name, type: petTypeLabel(pet.type), age: pet.age, health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0, experienceToNextLevel: pet.experienceToNextLevel||100, daysSinceAdoption: daysSince(pet.adoptionDate), tasksCompletedToday: Object.values(pet.tasksCompleted||{}).filter(Boolean).length, totalSpent: ct.totalSpent||0, budget, budgetPct, foodSpent: ct.foodSpent||0, vetSpent: ct.vetSpent||0, toySpent: ct.toySpent||0, transactionsThisMonth: txList.length, projectedMonthlyTotal: Math.round(projectedTotal) };
+  document.getElementById('ai-summary').textContent = 'Generating analysis...';
+  document.getElementById('ai-recommendations').textContent = 'Generating recommendations...';
+  document.getElementById('ai-alerts').textContent = 'Checking for alerts...';
+  try {
+    const res = await fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 1000, messages: [{ role: "system", content: `You are a pet care AI analyst. Given real pet data, return ONLY a JSON object (no markdown, no backticks) with these exact keys: {"summary": "2-3 sentence paragraph about the pet's overall condition and spending","recommendations": ["rec1", "rec2", "rec3", "rec4", "rec5"],"alerts": ["alert1", "alert2"],"insights": ["insight1", "insight2", "insight3"]} Be specific using the actual numbers provided. Be concise and actionable.` }, { role: "user", content: `Analyze this pet data: ${JSON.stringify(petData)}` }] }) });
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '{}';
+    let parsed;
+    try { parsed = JSON.parse(text.replace(/```json|```/g,'').trim()); } catch { parsed = null; }
+    if (parsed) {
+      document.getElementById('ai-summary').innerHTML = `<p>${parsed.summary || ''}</p>`;
+      document.getElementById('ai-recommendations').innerHTML = (parsed.recommendations||[]).map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
+      document.getElementById('ai-alerts').innerHTML = (parsed.alerts||[]).map(a => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>${a}</p>`).join('');
+      if (parsed.insights) { document.getElementById('insight-1').textContent = parsed.insights[0] || ''; document.getElementById('insight-2').textContent = parsed.insights[1] || ''; document.getElementById('insight-3').textContent = parsed.insights[2] || ''; }
+    } else { fallbackAIText(petData); }
+  } catch(e) { fallbackAIText(petData); }
+}
+
+function fallbackAIText(d) {
+  document.getElementById('ai-summary').innerHTML = `<p>${d.name} is at ${d.health}% health and ${d.happiness}% happiness. You've spent $${d.totalSpent.toFixed(2)} of your $${d.budget} budget (${d.budgetPct}%) this month across ${d.transactionsThisMonth} transactions.</p>`;
+  document.getElementById('ai-recommendations').innerHTML = [d.fullness < 60 ? `Feed ${d.name} soon — fullness is at ${d.fullness}%` : `${d.name}'s fullness looks good at ${d.fullness}%`, d.energy < 50 ? `Let ${d.name} rest — energy is low at ${d.energy}%` : `Keep up the activity — energy at ${d.energy}%`, d.bond < 50 ? `Spend more quality time to build the bond (currently ${d.bond}%)` : `Bond is growing well at ${d.bond}%`, d.budgetPct > 80 ? `Watch spending — ${d.budgetPct}% of budget used` : `Budget on track at ${d.budgetPct}% used`, `${d.name} is Level ${d.level} with ${d.experience}/${d.experienceToNextLevel} XP`].map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
+  document.getElementById('ai-alerts').innerHTML = `<p>No connection to AI — showing basic stats for ${d.name}.</p>`;
+}
+
+function generateInsights(pet, ct, budgetPct) {
+  const insights = [];
+  const budgetRemaining = ct.budgetRemaining ?? ((ct.monthlyBudget||200) - (ct.totalSpent||0));
+  if (budgetPct < 80) insights.push(`Spending is ${100-budgetPct}% under budget — $${budgetRemaining.toFixed(2)} remaining`);
+  else if (budgetPct >= 100) insights.push(`Budget exceeded — $${Math.abs(budgetRemaining).toFixed(2)} over limit`);
+  else insights.push(`${budgetPct}% of budget used — $${budgetRemaining.toFixed(2)} remaining`);
+  if (pet.happiness < 70) insights.push(`${pet.name}'s happiness is low (${Math.round(pet.happiness)}%) — try more play sessions`);
+  else insights.push(`${pet.name} is happy at ${Math.round(pet.happiness ?? 100)}% happiness`);
+  if (pet.fullness < 50) insights.push(`${pet.name} is getting hungry — fullness at ${Math.round(pet.fullness)}%`);
+  else if (pet.energy < 50) insights.push(`${pet.name} is low energy — consider rest or a lighter activity`);
+  else insights.push(`Health looking great at ${Math.round(pet.health ?? 100)}%`);
+  return insights;
+}
+
+function showEmpty() {
+  document.getElementById('welcome-pet-name').textContent = 'No data found';
+  document.getElementById('welcome-desc').textContent = 'No pets or user data found in Firebase for this account.';
+}
+
+window.switchTab = (tabId, e) => {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sidebar-nav li a').forEach(a => a.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  if (e && e.target) {
+    e.target.classList.add('active');
+    document.querySelectorAll('.sidebar-nav li a').forEach(a => { if (a.getAttribute('onclick') && a.getAttribute('onclick').includes(tabId)) a.classList.add('active'); });
+  }
+};
+
+window.toggleChat = () => document.getElementById('ai-chat-panel').classList.toggle('open');
+
+window.sendChat = async (presetMsg) => {
+  const input = document.getElementById('chat-input');
+  const msg = presetMsg || input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const messagesDiv = document.getElementById('chat-messages');
+  messagesDiv.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+  messagesDiv.innerHTML += `<div class="chat-msg loading" id="loading-msg">Thinking...</div>`;
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  const pet = currentPetId ? allPets[currentPetId] : null;
+  const ct = userData?.costTracking || {};
+  const context = pet ? { name: pet.name, type: petTypeLabel(pet.type), health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0, totalSpent: ct.totalSpent||0, budget: ct.monthlyBudget||200, budgetRemaining: ct.budgetRemaining??((ct.monthlyBudget||200)-(ct.totalSpent||0)), coins: userData?.coins||0, transactionsThisMonth: thisMonthTx(ct.transactions).length } : {};
+  try {
+    const res = await fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 1000, messages: [{ role: "system", content: `You are a helpful PetCare AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}` }, { role: "user", content: msg }] }) });
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't process that.";
+    document.getElementById('loading-msg')?.remove();
+    messagesDiv.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
+  } catch {
+    document.getElementById('loading-msg')?.remove();
+    if (pet) messagesDiv.innerHTML += `<div class="chat-msg bot">${pet.name} is at ${Math.round(pet.health??100)}% health and ${Math.round(pet.happiness??100)}% happiness. Keep up the care routine!</div>`;
+  }
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+};
+</script>
+</body>
+</html>
+
+
