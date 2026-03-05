@@ -90,9 +90,9 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
         showNotification(`Welcome back, ${user.displayName || user.email}!`, 'success');
         closeAuthModal();
         // Keep loading while redirecting
-        showLoading('Loading your dashboard...');
+        showLoading('Loading your homepage...');
         setTimeout(() => {
-            window.location.href = 'home.html';
+            window.location.href = 'homepage.html';
         }, 1000);
     } catch (error) {
         console.error('Login error:', error);
@@ -132,9 +132,9 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
         showNotification(`Welcome, ${name}!`, 'success');
         closeAuthModal();
         // Keep loading while redirecting
-        showLoading('Setting up your dashboard...');
+        showLoading('Setting up your homepage...');
         setTimeout(() => {
-            window.location.href = 'home.html';
+            window.location.href = 'homepage.html';
         }, 1000);
     } catch (error) {
         console.error('Signup error:', error);
@@ -167,9 +167,9 @@ async function handleGoogleAuth(type) {
         showNotification(`Welcome, ${user.displayName}!`, 'success');
         closeAuthModal();
         // Keep loading while redirecting
-        showLoading('Loading your dashboard...');
+        showLoading('Loading your homepage...');
         setTimeout(() => {
-            window.location.href = 'home.html';
+            window.location.href = 'homepage.html';
         }, 1000);
     } catch (error) {
         console.error('Google auth error:', error);
@@ -200,7 +200,7 @@ function updateUIForAuthenticatedUser(user) {
     const authButtons = document.querySelector('.nav-auth-buttons');
     if (authButtons) {
         authButtons.innerHTML = `
-            <button class="btn-login" onclick="window.location.href='home.html'">Dashboard</button>
+            <button class="btn-login" onclick="window.location.href='homepage.html'">Homepage</button>
             <button class="btn-signup" onclick="handleLogout()">Logout</button>
         `;
     }

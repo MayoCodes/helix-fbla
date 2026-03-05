@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Scroll Parallax</title>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #060b0b;
+    --bg-card: rgba(73, 166, 166, 0.04);
+    --bg-card-border: rgba(73, 166, 166, 0.12);
+    --text: #e8eeee;
+    --text-dim: #8fa8a8;
+    --accent: #49a6a6;
+    --accent-glow: #6fcfcf;
+    --accent-dark: #2d7a7a;
+  }
+
+  html { scroll-behavior: auto; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #renderCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 1;
+    outline: none;
+    touch-action: none;
+  }
+
+  .scroll-container a, .scroll-container button { pointer-events: auto; }
+
+  .navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 48px;
+    pointer-events: auto;
+    background: linear-gradient(to bottom, rgba(6,11,11,0.9) 0%, transparent 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .navbar .logo { font-weight: 800; font-size: 20px; letter-spacing: 1px; color: var(--accent); }
+  .navbar .logo span { color: var(--text); font-weight: 400; }
+
+  .nav-links { display: flex; gap: 8px; list-style: none; }
+  .nav-links a {
+    font-family: inherit; font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text-dim); text-decoration: none;
+    padding: 8px 16px; border-radius: 6px; border: 1px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .nav-links a:hover { color: var(--accent); border-color: var(--bg-card-border); background: var(--bg-card); }
+  .nav-links a.active { color: var(--accent); border-color: var(--accent); background: rgba(73, 166, 166, 0.08); }
+
+  .vignette {
+    position: fixed; inset: 0; pointer-events: none; z-index: 3;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(6,11,11,0.7) 100%);
+  }
+
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+    z-index: 200; transform-origin: left; transform: scaleX(0);
+    width: 100%; pointer-events: none;
+  }
+
+  .section-indicator {
+    position: fixed; right: 40px; top: 50%; transform: translateY(-50%);
+    z-index: 100; display: flex; flex-direction: column;
+    align-items: flex-end; gap: 24px; pointer-events: none;
+  }
+
+  .dot-group { display: flex; align-items: center; gap: 12px; }
+  .dot-label {
+    font-family: inherit; font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase; color: transparent;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); white-space: nowrap;
+  }
+  .dot-group.active .dot-label { color: var(--accent); }
+  .section-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(73, 166, 166, 0.15); border: 1px solid rgba(73, 166, 166, 0.2);
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); flex-shrink: 0;
+  }
+  .dot-group.active .section-dot {
+    background: var(--accent); box-shadow: 0 0 16px rgba(73, 166, 166, 0.5);
+    transform: scale(1.5); border-color: var(--accent);
+  }
+
+  .hero-spacer {
+    height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end; padding-bottom: 60px;
+  }
+
+  .scroll-hint {
+    font-family: inherit; font-size: 10px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--text-dim);
+    animation: pulse 2.5s ease-in-out infinite;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .scroll-hint .arrow {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: arrowBounce 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+  @keyframes arrowBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+
+  .section { min-height: 100vh; display: flex; align-items: center; padding: 100px 80px; position: relative; }
+
+  .scroll-container {
+    position: relative; z-index: 2; pointer-events: none;
+    transition: transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform;
+  }
+
+  .section.align-left { justify-content: flex-start; }
+  .section.align-right { justify-content: flex-end; }
+
+  .section-content {
+    max-width: 480px; opacity: 0; transform: translateY(70px);
+    transition: none; pointer-events: auto;
+  }
+  .section-content.visible { opacity: 1; transform: translateY(0); }
+
+  .section-card {
+    background: var(--bg-card); border: 1px solid var(--bg-card-border);
+    border-radius: 16px; padding: 36px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+
+  .section-label {
+    font-family: inherit; font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::before { content: ''; display: block; width: 32px; height: 1px; background: var(--accent); }
+
+  .section-title { font-size: clamp(28px, 3.5vw, 48px); font-weight: 700; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.5px; }
+  .section-title em { font-style: italic; color: var(--accent-glow); }
+  .section-subtitle { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 12px; line-height: 1.5; }
+  .section-body { font-size: 11px; line-height: 1.8; color: var(--text-dim); margin-bottom: 24px; }
+
+  .feature-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    font-family: inherit; font-size: 10px; letter-spacing: 1px;
+    padding: 6px 14px; border-radius: 100px; border: 1px solid var(--bg-card-border);
+    color: var(--text-dim); background: rgba(73, 166, 166, 0.03);
+    text-transform: uppercase; transition: all 0.3s ease;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); background: rgba(73, 166, 166, 0.08); }
+
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit; font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--bg); background: var(--accent);
+    padding: 12px 28px; border-radius: 8px; text-decoration: none;
+    border: none; cursor: pointer; transition: all 0.3s ease; margin-top: 18px;
+  }
+  .cta-btn:hover { background: var(--accent-glow); box-shadow: 0 0 30px rgba(73, 166, 166, 0.3); transform: translateY(-1px); }
+  .cta-btn .arrow-icon { transition: transform 0.3s ease; }
+  .cta-btn:hover .arrow-icon { transform: translateX(4px); }
+
+  .loading-overlay {
+    position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 24px;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; visibility: hidden; }
+
+  .loader-ring {
+    width: 40px; height: 40px;
+    border: 2px solid rgba(73, 166, 166, 0.15);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  .loader-text { font-family: inherit; font-size: 10px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    .section { padding: 80px 20px; justify-content: flex-start !important; }
+    .section-card { padding: 32px 24px; }
+    .navbar { padding: 16px 20px; }
+    .section-indicator { right: 12px; }
+    .dot-label { display: none; }
+    .nav-links a { padding: 6px 10px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Loading Model</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+<div class="vignette"></div>
+<canvas id="renderCanvas"></canvas>
+
+<div class="section-indicator" id="sectionIndicator">
+  <div class="dot-group" data-index="0">
+    <span class="dot-label">Home</span>
+    <div class="section-dot"></div>
+  </div>
+  <div class="dot-group" data-index="1">
+    <span class="dot-label">Dashboard</span>
+    <div class="section-dot"></div>
+  </div>
+  <div class="dot-group" data-index="2">
+    <span class="dot-label">Care</span>
+    <div class="section-dot"></div>
+  </div>
+  <div class="dot-group" data-index="3">
+    <span class="dot-label">Shop</span>
+    <div class="section-dot"></div>
+  </div>
+</div>
+
+<nav class="navbar">
+  <div class="logo">Helix<span>Navbar</span></div>
+  <ul class="nav-links">
+    <li><a href="#section1">Dashboard</a></li>
+    <li><a href="#section2">Care</a></li>
+    <li><a href="#section3">Shop</a></li>
+  </ul>
+</nav>
+
+<div class="scroll-container" id="scrollContainer">
+
+  <div class="hero-spacer">
+    <div class="scroll-hint">
+      <span>Scroll to explore</span>
+      <div class="arrow"></div>
+    </div>
+  </div>
+
+  <section class="section align-right" id="section1">
+    <div class="section-content" data-section="1">
+      <div class="section-card">
+        <div class="section-label">01 — Dashboard</div>
+        <h2 class="section-title"><em>Dashboard</em></h2>
+        <p class="section-subtitle">Everything about your pet — at a glance.</p>
+        <p class="section-body">Track health vitals, activity levels, nutrition intake, and vet appointments all in one unified view. Real-time insights powered by smart monitoring give you peace of mind.</p>
+        <div class="feature-pills">
+          <span class="pill">Health Vitals</span>
+          <span class="pill">Activity Tracking</span>
+          <span class="pill">Vet Records</span>
+          <span class="pill">Nutrition Log</span>
+          <span class="pill">Smart Alerts</span>
+        </div>
+       <a href="dashboard.html"><button class="cta-btn">Open Dashboard <span class="arrow-icon">→</span></button></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section align-left" id="section2">
+    <div class="section-content" data-section="2">
+      <div class="section-card">
+        <div class="section-label">02 — Care</div>
+        <h2 class="section-title"><em>Care</em></h2>
+        <p class="section-subtitle">Personalized care plans for every stage of life.</p>
+        <p class="section-body">AI-driven recommendations tailored to your pet's breed, age, and health profile. From grooming schedules to exercise routines — we've got it covered.</p>
+        <div class="feature-pills">
+          <span class="pill">Care Plans</span>
+          <span class="pill">Grooming</span>
+          <span class="pill">Exercise</span>
+          <span class="pill">Medication</span>
+          <span class="pill">AI Insights</span>
+        </div>
+        <a href="homepage.html"><button class="cta-btn">Explore Care <span class="arrow-icon">→</span></button></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section align-left" id="section3">
+    <div class="section-content" data-section="3">
+      <div class="section-card">
+        <div class="section-label">03 — Shop</div>
+        <h2 class="section-title"><em>Shop</em></h2>
+        <p class="section-subtitle">Curated products your pet will love.</p>
+        <p class="section-body">Premium food, toys, supplements, and gear — hand-picked based on your pet's profile and preferences. Subscribe for auto-delivery or browse on demand.</p>
+        <div class="feature-pills">
+          <span class="pill">Premium Food</span>
+          <span class="pill">Supplements</span>
+          <span class="pill">Toys & Gear</span>
+          <span class="pill">Auto-Delivery</span>
+        </div>
+        <a href="shop.html"><button class="cta-btn">Browse Shop <span class="arrow-icon">→</span></button></a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const CONFIG = {
+    glbUrl: './idle01.glb',
+    useFallback: true,
+    wireColor: { r: 0.286, g: 0.651, b: 0.651 },
+    totalRotationY: 12.5,
+    totalRotationX: 1.1,
+    zWobbleAmount: 0.12,
+    initialRotationY: 5.75,
+    modelScale: 3.8,
+    positionOffset: { x: -1.8, y: 0, z: 0 },
+    cameraDistStart: 2.9,
+    cameraBetaStart: 1.3,
+    cameraAlphaStart: 0.46,
+    cameraTargetXStart: -1.4,
+    cameraTargetY: 0.2,
+    cameraDistEnd: 3.5,
+    cameraBetaEnd: 1.0,
+    cameraAlphaEnd: -3.14,
+    cameraTargetXEnd: -3.7,
+    glowIntensity: 0,
+  };
+
+  const canvas = document.getElementById('renderCanvas');
+  const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, antialias: true });
+
+  let scrollProgress = 0;
+  let currentMesh = null;
+  let smoothScroll = 0;
+
+  const createScene = async () => {
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.024, 0.043, 0.043, 1);
+    scene.ambientColor = new BABYLON.Color3(0.05, 0.1, 0.1);
+
+    const camera = new BABYLON.ArcRotateCamera('camera', CONFIG.cameraAlphaStart, CONFIG.cameraBetaStart,
+      CONFIG.cameraDistStart, new BABYLON.Vector3(CONFIG.cameraTargetXStart, CONFIG.cameraTargetY, 0), scene);
+    camera.inputs.clear();
+    camera.minZ = 0.01;
+
+    const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
+    hemi.intensity = 0.2; hemi.diffuse = new BABYLON.Color3(0.3, 0.6, 0.6);
+
+    const keyLight = new BABYLON.PointLight('key', new BABYLON.Vector3(2, 3, -1), scene);
+    keyLight.intensity = 1.5;
+    keyLight.diffuse = new BABYLON.Color3(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b);
+
+    const rimLight = new BABYLON.PointLight('rim', new BABYLON.Vector3(-3, 0, 3), scene);
+    rimLight.intensity = 0.8; rimLight.diffuse = new BABYLON.Color3(0.15, 0.35, 0.35);
+
+    const bottomLight = new BABYLON.PointLight('bot', new BABYLON.Vector3(0, -3, 0), scene);
+    bottomLight.intensity = 0.4;
+    bottomLight.diffuse = new BABYLON.Color3(CONFIG.wireColor.r * 0.5, CONFIG.wireColor.g * 0.5, CONFIG.wireColor.b * 0.5);
+
+    const wireMat = new BABYLON.StandardMaterial('wire', scene);
+    wireMat.wireframe = true;
+    wireMat.emissiveColor = new BABYLON.Color3(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b);
+    wireMat.diffuseColor = new BABYLON.Color3(CONFIG.wireColor.r * 0.4, CONFIG.wireColor.g * 0.4, CONFIG.wireColor.b * 0.4);
+    wireMat.alpha = 0.9; wireMat.backFaceCulling = false;
+
+    const glow = new BABYLON.GlowLayer('glow', scene, { mainTextureFixedSize: 512, blurKernelSize: 64 });
+    glow.intensity = CONFIG.glowIntensity;
+
+    let rootMesh;
+    try {
+      const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', CONFIG.glbUrl, scene);
+      rootMesh = result.meshes[0];
+      scene.stopAllAnimations();
+      result.meshes.forEach(m => { if (m.getTotalVertices && m.getTotalVertices() > 0) m.material = wireMat; });
+      rootMesh.computeWorldMatrix(true);
+      let bounds = rootMesh.getHierarchyBoundingVectors(true);
+      const size = bounds.max.subtract(bounds.min);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scaleFactor = CONFIG.modelScale / maxDim;
+      rootMesh.scaling = new BABYLON.Vector3(scaleFactor, scaleFactor, scaleFactor);
+      rootMesh.computeWorldMatrix(true);
+      bounds = rootMesh.getHierarchyBoundingVectors(true);
+      const center = bounds.min.add(bounds.max).scale(0.5);
+      rootMesh.position.x = -center.x + CONFIG.positionOffset.x;
+      rootMesh.position.y = -center.y + CONFIG.positionOffset.y;
+      rootMesh.position.z = -center.z + CONFIG.positionOffset.z;
+      rootMesh.rotation.y = CONFIG.initialRotationY;
+      camera.target = new BABYLON.Vector3(CONFIG.cameraTargetXStart, CONFIG.cameraTargetY, 0);
+    } catch (err) {
+      console.warn('GLB load failed, using fallback:', err.message);
+      if (!CONFIG.useFallback) return;
+      rootMesh = new BABYLON.TransformNode('root', scene);
+      const head = BABYLON.MeshBuilder.CreateSphere('head', { diameterX: 2, diameterY: 2.6, diameterZ: 2.2, segments: 28 }, scene);
+      head.material = wireMat; head.position.y = 0.8; head.parent = rootMesh;
+      const neck = BABYLON.MeshBuilder.CreateCylinder('neck', { height: 0.8, diameterTop: 0.9, diameterBottom: 1.1, tessellation: 18 }, scene);
+      neck.material = wireMat; neck.position.y = -0.7; neck.parent = rootMesh;
+      const torso = BABYLON.MeshBuilder.CreateSphere('torso', { diameterX: 3.5, diameterY: 2.0, diameterZ: 2.0, segments: 22 }, scene);
+      torso.material = wireMat; torso.position.y = -1.8; torso.parent = rootMesh;
+      const nose = BABYLON.MeshBuilder.CreateCylinder('nose', { height: 0.6, diameterTop: 0.15, diameterBottom: 0.35, tessellation: 10 }, scene);
+      nose.material = wireMat; nose.position = new BABYLON.Vector3(0, 0.7, 1.0); nose.rotation.x = Math.PI / 2.5; nose.parent = rootMesh;
+      const brow = BABYLON.MeshBuilder.CreateTorus('brow', { diameter: 1.4, thickness: 0.15, tessellation: 22 }, scene);
+      brow.material = wireMat; brow.position = new BABYLON.Vector3(0, 1.3, 0.4); brow.rotation.x = Math.PI / 3;
+      brow.scaling = new BABYLON.Vector3(1, 0.3, 1); brow.parent = rootMesh;
+      [-0.45, 0.45].forEach((x, i) => { const e = BABYLON.MeshBuilder.CreateSphere(`eye${i}`, { diameter: 0.45, segments: 14 }, scene); e.material = wireMat; e.position = new BABYLON.Vector3(x, 1.0, 0.7); e.parent = rootMesh; });
+      [-0.85, 0.85].forEach((x, i) => { const c = BABYLON.MeshBuilder.CreateSphere(`cheek${i}`, { diameterX: 0.5, diameterY: 0.4, diameterZ: 0.5, segments: 12 }, scene); c.material = wireMat; c.position = new BABYLON.Vector3(x, 0.5, 0.6); c.parent = rootMesh; });
+      const jaw = BABYLON.MeshBuilder.CreateSphere('jaw', { diameterX: 1.5, diameterY: 0.8, diameterZ: 1.3, segments: 16 }, scene);
+      jaw.material = wireMat; jaw.position = new BABYLON.Vector3(0, -0.1, 0.2); jaw.parent = rootMesh;
+      const skull = BABYLON.MeshBuilder.CreateSphere('skull', { diameterX: 2.2, diameterY: 2.4, diameterZ: 1.6, segments: 20 }, scene);
+      skull.material = wireMat; skull.position = new BABYLON.Vector3(0, 1.0, -0.4); skull.parent = rootMesh;
+      [-1.05, 1.05].forEach((x, i) => { const ear = BABYLON.MeshBuilder.CreateTorus(`ear${i}`, { diameter: 0.4, thickness: 0.08, tessellation: 14 }, scene); ear.material = wireMat; ear.position = new BABYLON.Vector3(x, 0.7, -0.1); ear.rotation.y = Math.PI / 2; ear.parent = rootMesh; });
+      camera.target = new BABYLON.Vector3(CONFIG.cameraTargetXStart, CONFIG.cameraTargetY, 0);
+    }
+
+    currentMesh = rootMesh;
+    currentMesh.rotation.y = CONFIG.initialRotationY;
+
+    const ps = new BABYLON.ParticleSystem('dust', 200, scene);
+    ps.createPointEmitter(new BABYLON.Vector3(-4, -3, -4), new BABYLON.Vector3(4, 4, 4));
+    ps.emitRate = 10; ps.minLifeTime = 5; ps.maxLifeTime = 10;
+    ps.minSize = 0.008; ps.maxSize = 0.025;
+    ps.color1 = new BABYLON.Color4(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b, 0.35);
+    ps.color2 = new BABYLON.Color4(1, 1, 1, 0.08);
+    ps.minEmitPower = 0.005; ps.maxEmitPower = 0.03;
+    ps.start();
+
+    scene.registerBeforeRender(() => {
+      if (!currentMesh) return;
+      smoothScroll += (scrollProgress - smoothScroll) * 0.06;
+      const t = smoothScroll;
+      const targetRotY = CONFIG.initialRotationY + t * CONFIG.totalRotationY;
+      const targetRotX = Math.sin(t * Math.PI) * CONFIG.totalRotationX;
+      currentMesh.rotation.y += (targetRotY - currentMesh.rotation.y) * 0.07;
+      currentMesh.rotation.x += (targetRotX - currentMesh.rotation.x) * 0.07;
+      const targetRotZ = Math.sin(t * Math.PI * 2) * CONFIG.zWobbleAmount;
+      currentMesh.rotation.z += (targetRotZ - currentMesh.rotation.z) * 0.05;
+      const targetR = CONFIG.cameraDistStart + t * (CONFIG.cameraDistEnd - CONFIG.cameraDistStart);
+      camera.radius += (targetR - camera.radius) * 0.05;
+      const targetBeta = CONFIG.cameraBetaStart + t * (CONFIG.cameraBetaEnd - CONFIG.cameraBetaStart);
+      camera.beta += (targetBeta - camera.beta) * 0.05;
+      const targetAlpha = CONFIG.cameraAlphaStart + t * (CONFIG.cameraAlphaEnd - CONFIG.cameraAlphaStart);
+      camera.alpha += (targetAlpha - camera.alpha) * 0.04;
+      const targetX = CONFIG.cameraTargetXStart + t * (CONFIG.cameraTargetXEnd - CONFIG.cameraTargetXStart);
+      camera.target.x += (targetX - camera.target.x) * 0.05;
+      const r = CONFIG.wireColor.r + t * (0.75 - CONFIG.wireColor.r);
+      const g = CONFIG.wireColor.g + t * (0.88 - CONFIG.wireColor.g);
+      const b = CONFIG.wireColor.b + t * (0.88 - CONFIG.wireColor.b);
+      wireMat.emissiveColor = new BABYLON.Color3(r, g, b);
+      keyLight.diffuse = new BABYLON.Color3(r, g, b);
+      glow.intensity = CONFIG.glowIntensity + t * 0.4;
+    });
+
+    return scene;
+  };
+
+  // ═══════════════════════════════════════════════════════
+  //  FULLPAGE SCROLL CONTROLLER
+  // ═══════════════════════════════════════════════════════
+  const navLinksEls = document.querySelectorAll('.nav-links a');
+  const container = document.getElementById('scrollContainer');
+  const pages = container.querySelectorAll('.hero-spacer, .section');
+  const totalPages = pages.length;
+
+  // ── DEFAULT TO DASHBOARD (page 1) ──
+  let currentPage = 1;
+  let isAnimating = false;
+  const COOLDOWN = 1000;
+
+  function goToPage(index) {
+    if (index < 0 || index >= totalPages || isAnimating) return;
+    isAnimating = true;
+    currentPage = index;
+    const offset = -currentPage * window.innerHeight;
+    container.style.transform = `translateY(${offset}px)`;
+    scrollProgress = currentPage / (totalPages - 1);
+    updateUI();
+    setTimeout(() => { isAnimating = false; }, COOLDOWN);
+  }
+
+  function updateUI() {
+    pages.forEach((page, i) => {
+      const content = page.querySelector('.section-content');
+      if (!content) return;
+      if (i === currentPage) {
+        content.classList.add('visible');
+        content.style.transition = 'opacity 0.9s cubic-bezier(0.23,1,0.32,1), transform 0.9s cubic-bezier(0.23,1,0.32,1)';
+      } else {
+        content.classList.remove('visible');
+        content.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+      }
+    });
+
+    const progress = currentPage / (totalPages - 1);
+    document.getElementById('progressBar').style.transform = `scaleX(${progress})`;
+
+    document.querySelectorAll('.dot-group').forEach((dg, i) => dg.classList.toggle('active', i === currentPage));
+    navLinksEls.forEach((a, i) => a.classList.toggle('active', i === currentPage - 1));
+
+    const hint = document.querySelector('.scroll-hint');
+    if (hint) hint.style.opacity = currentPage === 0 ? '1' : '0';
+  }
+
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (isAnimating) return;
+    if (e.deltaY > 20) goToPage(currentPage + 1);
+    else if (e.deltaY < -20) goToPage(currentPage - 1);
+  }, { passive: false });
+
+  let touchStartY = 0;
+  window.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener('touchend', (e) => {
+    if (isAnimating) return;
+    const deltaY = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(deltaY) < 40) return;
+    if (deltaY > 0) goToPage(currentPage + 1);
+    else goToPage(currentPage - 1);
+  }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (isAnimating) return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); goToPage(currentPage + 1); }
+    else if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); goToPage(currentPage - 1); }
+  });
+
+  document.querySelectorAll('.nav-links a').forEach((a, i) => {
+    a.addEventListener('click', e => { e.preventDefault(); goToPage(i + 1); });
+  });
+
+  window.addEventListener('resize', () => {
+    const offset = -currentPage * window.innerHeight;
+    container.style.transition = 'none';
+    container.style.transform = `translateY(${offset}px)`;
+    requestAnimationFrame(() => { container.style.transition = 'transform 0.9s cubic-bezier(0.23, 1, 0.32, 1)'; });
+  });
+
+  // ═══════════════════════════════════════════════════════
+  //  INIT — snap to Dashboard instantly on load
+  // ═══════════════════════════════════════════════════════
+  (async () => {
+    const scene = await createScene();
+    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 800);
+    engine.runRenderLoop(() => scene.render());
+    window.addEventListener('resize', () => engine.resize());
+
+    // Snap to page 1 (Dashboard) without transition animation
+    container.style.transition = 'none';
+    container.style.transform = `translateY(${-1 * window.innerHeight}px)`;
+    scrollProgress = 1 / (totalPages - 1);
+
+    // Re-enable transition after first frame
+    requestAnimationFrame(() => {
+      container.style.transition = 'transform 0.9s cubic-bezier(0.23, 1, 0.32, 1)';
+    });
+
+    updateUI();
+  })();
+</script>
+</body>
+</html>

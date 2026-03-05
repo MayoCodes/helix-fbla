@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELIX</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="loading.js"></script>
+    <style>
+        :root {
+            --teal:#49a6a6; --teal-dk:#2d7a7a; --teal-lt:#7fcece;
+            --white:#fff; --glass:rgba(8,28,28,.65); --glass-h:rgba(73,166,166,.22);
+            --yellow:#f4c430; --red:#e05252; --green:#4caf50;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        html,body{width:100vw;height:100vh;overflow:hidden;font-family:'Nunito',sans-serif;background:#071818;user-select:none;}
+        .ico{display:block;flex-shrink:0;}
+        #renderCanvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;outline:none;cursor:default;z-index:0;}
+
+        /* ── TOP-LEFT PILL ── */
+        .top-left{position:fixed;top:14px;left:14px;z-index:100;}
+        .player-pill{display:flex;align-items:center;gap:8px;background:var(--glass);backdrop-filter:blur(16px);border-radius:30px;padding:5px 16px 5px 5px;cursor:pointer;transition:transform .25s,box-shadow .25s;overflow:hidden;position:relative;}
+        .player-pill::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(73,166,166,.35),transparent 65%);opacity:0;transition:opacity .3s;pointer-events:none;}
+        .player-pill:hover::after{opacity:1;}
+        .player-pill:hover{transform:scale(1.05);box-shadow:0 6px 24px rgba(73,166,166,.35);}
+        .player-pill:hover .p-avatar{transform:rotate(8deg) scale(1.1);}
+        .p-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--teal-dk),var(--teal-lt));display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .3s;}
+        .p-info{display:flex;flex-direction:column;line-height:1.2;}
+        .p-name{font-family:'Lilita One',cursive;font-size:.84rem;color:var(--white);}
+        .p-sub{font-size:.65rem;font-weight:800;color:var(--yellow);display:flex;align-items:center;gap:3px;}
+
+        /* ── LEFT SIDEBAR ── */
+        .sidebar{position:fixed;left:0;top:0;bottom:0;width:82px;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:linear-gradient(90deg,rgba(5,18,18,.75),transparent);padding-top:80px;}
+        .nav-item{width:66px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 5px;border-radius:16px;cursor:pointer;transition:transform .28s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;}
+        .nav-item::before{content:'';position:absolute;inset:0;border-radius:16px;background:radial-gradient(ellipse at 50% 130%,rgba(73,166,166,.55),transparent 65%);transform:translateY(100%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);}
+        .nav-item:hover::before,.nav-item.active::before{transform:translateY(0);}
+        .nav-item:hover,.nav-item.active{transform:translateX(6px);}
+        .nav-item:hover .n-wrap{background:rgba(73,166,166,.22);box-shadow:0 0 14px rgba(73,166,166,.45);}
+        .nav-item.active .n-wrap{background:var(--teal);box-shadow:0 0 18px rgba(73,166,166,.6);}
+        .nav-item:hover .n-wrap svg{transform:scale(1.2) rotate(-6deg);filter:drop-shadow(0 0 7px rgba(73,166,166,.9));}
+        .nav-item.active .n-wrap svg{filter:drop-shadow(0 0 6px rgba(255,255,255,.7));}
+        .nav-item:hover .n-lbl,.nav-item.active .n-lbl{color:var(--teal-lt);}
+        .n-wrap{width:46px;height:46px;border-radius:14px;background:var(--glass);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;transition:all .28s;position:relative;z-index:1;}
+        .n-wrap svg{transition:all .28s;}
+        .n-lbl{font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.42);transition:color .28s;position:relative;z-index:1;}
+        .n-badge{position:absolute;top:5px;right:5px;background:var(--red);color:#fff;font-size:.45rem;font-weight:900;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;z-index:2;animation:pdot 2s ease-in-out infinite;}
+        @keyframes pdot{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+        .nav-div{width:38px;height:1px;background:rgba(73,166,166,.15);margin:4px 0;}
+
+        /* ── SPEECH BUBBLE ── */
+        .speech-bubble{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-radius:22px;padding:8px 22px;font-size:.84rem;font-weight:800;color:#0d2a2a;box-shadow:0 6px 28px rgba(0,0,0,.28);pointer-events:none;white-space:nowrap;z-index:100;animation:bob 3.5s ease-in-out infinite;}
+        .speech-bubble::after{content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:rgba(255,255,255,.96);}
+        @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+
+        /* ── TOP-RIGHT STAT BOARD ── */
+        .stat-board{position:fixed;top:14px;right:14px;z-index:100;background:var(--glass);backdrop-filter:blur(22px);border-radius:18px;padding:12px 16px;min-width:240px;border:1px solid rgba(73,166,166,.25);box-shadow:0 8px 32px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:7px;}
+        .sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+        .sb-name{font-family:'Lilita One',cursive;font-size:1rem;color:var(--teal-lt);text-shadow:1px 1px 0 var(--teal-dk);}
+        .sb-coins{display:flex;align-items:center;gap:4px;background:rgba(244,196,48,.15);border-radius:10px;padding:3px 8px;font-size:.7rem;font-weight:800;color:var(--yellow);}
+        .sb-mood{font-size:1rem;line-height:1;}
+        /* level row */
+        .sb-lv-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+        .sb-lv-lbl{font-size:.6rem;font-weight:800;color:var(--teal-lt);text-transform:uppercase;letter-spacing:.5px;}
+        .sb-lv-xp{font-size:.58rem;font-weight:700;color:rgba(255,255,255,.38);}
+        /* bars */
+        .sb-bar-wrap{width:100%;height:5px;background:rgba(73,166,166,.12);border-radius:4px;overflow:hidden;}
+        .sb-bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+        .sb-bar-fill.lv{background:linear-gradient(90deg,var(--teal-dk),var(--teal-lt));}
+        .sb-bar-fill.col{background:var(--teal);}
+        /* stat rows */
+        .sb-stat{display:flex;align-items:center;gap:7px;}
+        .sb-icon{width:22px;height:22px;border-radius:7px;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .sb-icon svg{width:13px;height:13px;color:#fff;}
+        .sb-si{flex:1;display:flex;flex-direction:column;gap:2px;}
+        .sb-sr{display:flex;justify-content:space-between;align-items:center;}
+        .sb-sl{font-size:.57rem;font-weight:700;color:rgba(255,255,255,.42);text-transform:uppercase;}
+        .sb-sv{font-size:.62rem;font-weight:800;color:var(--white);}
+        /* expenses mini row */
+        .sb-exp{display:flex;justify-content:space-between;align-items:center;padding-top:5px;border-top:1px solid rgba(73,166,166,.12);font-size:.57rem;font-weight:700;color:rgba(255,255,255,.38);}
+        .sb-exp span{color:var(--teal-lt);font-weight:800;}
+
+        /* ── BOTTOM-LEFT PET CARD ── */
+        .pet-card{position:fixed;left:96px;bottom:110px;z-index:100;display:flex;flex-direction:column;gap:5px;animation:slideUp .5s cubic-bezier(.34,1.56,.64,1) both;}
+        @keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+        .pet-stat-row{display:flex;align-items:center;gap:5px;background:var(--glass);backdrop-filter:blur(12px);border-radius:10px;padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--yellow);}
+        .pet-nameplate{background:var(--glass);backdrop-filter:blur(18px);border-radius:26px;padding:7px 24px;font-family:'Lilita One',cursive;font-size:1.08rem;color:var(--teal-lt);text-shadow:1px 1px 0 var(--teal-dk);white-space:nowrap;box-shadow:0 0 22px rgba(73,166,166,.18);transition:all .28s cubic-bezier(.34,1.56,.64,1);cursor:default;}
+        .pet-nameplate:hover{background:var(--glass-h);box-shadow:0 0 32px rgba(73,166,166,.45);transform:scale(1.05) translateY(-2px);}
+
+        /* ── BOTTOM-CENTER PET SLOTS (bubble canvases) ── */
+        .pet-slots{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:14px;z-index:100;}
+        .slot-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+        .slot{width:62px;height:62px;border-radius:50%;background:var(--glass);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;transition:all .32s cubic-bezier(.34,1.56,.64,1);position:relative;overflow:hidden;border:2px solid rgba(73,166,166,.2);}
+        .slot canvas{width:100%;height:100%;border-radius:50%;display:block;}
+        .slot::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(73,166,166,0);transition:border-color .3s;}
+        .slot-wrap:hover .slot::after{border-color:rgba(73,166,166,.6);animation:orbit 1.2s linear infinite;}
+        @keyframes orbit{to{transform:rotate(360deg)}}
+        .slot-wrap:hover .slot{transform:scale(1.15) translateY(-5px);box-shadow:0 10px 28px rgba(73,166,166,.5);}
+        .slot.active{border-color:var(--teal);box-shadow:0 0 22px rgba(73,166,166,.65),inset 0 0 14px rgba(73,166,166,.2);}
+        .slot-lbl{font-size:.54rem;font-weight:900;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.5px;transition:color .25s;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
+        .slot-wrap:hover .slot-lbl,.slot.active~.slot-lbl{color:var(--teal-lt);}
+
+        /* ── OVERLAY PANELS ── */
+        .overlay-panel{position:fixed;z-index:200;background:rgba(4,16,16,.97);backdrop-filter:blur(26px);border:1px solid rgba(73,166,166,.3);border-radius:20px;box-shadow:0 16px 48px rgba(0,0,0,.65);overflow:hidden;display:none;flex-direction:column;}
+        .overlay-panel.open{display:flex;}
+        .panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(73,166,166,.14);}
+        .panel-title{font-family:'Lilita One',cursive;font-size:1rem;color:var(--teal-lt);}
+        .panel-close{width:28px;height:28px;border-radius:8px;border:none;background:rgba(73,166,166,.15);color:var(--teal-lt);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+        .panel-close:hover{background:var(--red);color:#fff;}
+        .panel-body{padding:14px 18px;overflow-y:auto;flex:1;}
+
+        /* CARE PANEL */
+        #carePanel{left:96px;bottom:118px;width:310px;max-height:510px;}
+        .care-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+        .care-btn{background:rgba(73,166,166,.1);border:1.5px solid rgba(73,166,166,.25);border-radius:14px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .25s cubic-bezier(.34,1.56,.64,1);}
+        .care-btn:hover{background:rgba(73,166,166,.28);border-color:var(--teal);transform:translateY(-3px);box-shadow:0 6px 18px rgba(73,166,166,.35);}
+        .care-btn:hover .cb-lbl{color:var(--teal-lt);}
+        .cb-icon{width:34px;height:34px;border-radius:10px;background:var(--teal);display:flex;align-items:center;justify-content:center;}
+        .cb-icon svg{width:18px;height:18px;color:#fff;}
+        .cb-lbl{font-size:.72rem;font-weight:800;color:rgba(255,255,255,.7);text-align:center;transition:color .2s;}
+        .cb-cost{font-size:.6rem;font-weight:700;color:var(--yellow);}
+        /* budget block */
+        .budget-box{background:rgba(73,166,166,.07);border:1px solid rgba(73,166,166,.2);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+        .bdg-row{display:flex;justify-content:space-between;align-items:center;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);}
+        .bdg-row .val{color:var(--teal-lt);font-weight:800;font-size:.72rem;}
+        .bdg-row .val.low{color:var(--red);}
+        .bdg-bar-wrap{width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+        .bdg-bar-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .4s;}
+        .bdg-bar-fill.low{background:var(--red);}
+        .bdg-cats{display:flex;flex-direction:column;gap:3px;padding-top:4px;border-top:1px solid rgba(73,166,166,.1);}
+        .bdg-cat{display:flex;justify-content:space-between;font-size:.6rem;color:rgba(255,255,255,.35);font-weight:600;}
+        .bdg-cat span{color:rgba(127,206,206,.65);}
+
+        /* TASKS PANEL */
+        #tasksPanel{left:96px;bottom:118px;width:316px;max-height:530px;}
+        .ai-gen-btn{width:100%;padding:9px;border:none;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,var(--teal-dk),var(--teal));font-family:'Lilita One',cursive;font-size:.82rem;color:#fff;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;}
+        .ai-gen-btn:hover{transform:scale(1.02);box-shadow:0 4px 14px rgba(73,166,166,.45);}
+        .ai-gen-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+        .ai-gen-btn svg{width:14px;height:14px;}
+        /* task items */
+        .task-item{background:rgba(73,166,166,.08);border:1.5px solid rgba(73,166,166,.2);border-radius:14px;padding:12px;cursor:pointer;margin-bottom:10px;transition:all .25s cubic-bezier(.34,1.56,.64,1);position:relative;display:flex;flex-direction:column;gap:5px;}
+        .task-item:hover{background:rgba(73,166,166,.22);border-color:var(--teal);transform:translateY(-2px);box-shadow:0 6px 16px rgba(73,166,166,.35);}
+        .task-item.completed{opacity:.65;cursor:not-allowed;background:rgba(76,175,80,.1);border-color:rgba(76,175,80,.3);}
+        .task-item.completed:hover{transform:none;box-shadow:none;}
+        .task-item.in-progress{background:rgba(73,166,166,.15);border-color:var(--teal);pointer-events:none;}
+        .task-hdr{display:flex;align-items:flex-start;gap:8px;}
+        .task-icon{width:26px;height:26px;color:var(--teal-lt);flex-shrink:0;}
+        .task-icon svg{width:100%;height:100%;}
+        .task-name{font-size:.82rem;font-weight:700;color:var(--white);flex:1;line-height:1.3;word-wrap:break-word;}
+        .task-dur{font-size:.62rem;color:rgba(255,255,255,.38);margin-left:34px;display:flex;align-items:center;gap:3px;}
+        .task-rewards{display:flex;gap:10px;margin-left:34px;}
+        .task-coins{font-size:.65rem;font-weight:800;color:var(--yellow);display:flex;align-items:center;gap:3px;}
+        .task-bond{font-size:.65rem;font-weight:800;color:#ff9dbf;display:flex;align-items:center;gap:3px;}
+        .task-check{position:absolute;top:10px;right:10px;width:20px;height:20px;color:var(--green);}
+        .task-check svg{width:100%;height:100%;}
+        .task-ai-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(73,166,166,.2);border:1px solid rgba(73,166,166,.3);border-radius:6px;padding:2px 6px;font-size:.55rem;font-weight:800;color:var(--teal-lt);text-transform:uppercase;letter-spacing:.5px;margin-left:34px;width:fit-content;}
+        /* circular timer */
+        .task-timer-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;}
+        .task-timer-wrap svg{transform:rotate(-90deg);}
+        .t-bg{fill:none;stroke:rgba(73,166,166,.15);stroke-width:7;}
+        .t-prog{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1s linear;}
+        .t-txt{font-size:1rem;font-weight:800;color:var(--teal-lt);}
+
+        /* ── ALERT ── */
+        .alert-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:20000;align-items:center;justify-content:center;}
+        .alert-ov.on{display:flex;}
+        .alert-box{background:#0b2020;border:2px solid rgba(73,166,166,.4);border-radius:22px;padding:28px 34px;max-width:360px;width:90%;text-align:center;box-shadow:0 0 60px rgba(73,166,166,.3);animation:pop .28s cubic-bezier(.34,1.56,.64,1);}
+        @keyframes pop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+        .a-em{font-size:2.8rem;margin-bottom:10px;}
+        .a-msg{font-size:.95rem;font-weight:700;line-height:1.55;margin-bottom:20px;color:#dff5f5;white-space:pre-line;}
+        .a-ok{background:linear-gradient(135deg,var(--teal-dk),var(--teal));border:none;border-radius:12px;padding:10px 34px;font-family:'Lilita One',cursive;font-size:1.05rem;letter-spacing:1px;color:#fff;cursor:pointer;transition:all .2s;}
+        .a-ok:hover{transform:scale(1.06);box-shadow:0 4px 16px rgba(73,166,166,.5);}
+
+        /* ── SETUP MODAL (Choose Pet screen) ── */
+        .setup-modal{display:none;position:fixed;inset:0;background:#071818;z-index:15000;overflow-y:auto;}
+        .setup-modal.open{display:flex;align-items:center;justify-content:center;}
+        .setup-inner{display:flex;flex-direction:column;align-items:center;padding:3rem 2rem;width:100%;max-width:1100px;gap:2rem;}
+        .setup-title{font-family:'Lilita One',cursive;font-size:2.6rem;color:var(--teal-lt);text-shadow:2px 2px 0 var(--teal-dk);text-align:center;}
+        .pet-carousel{display:flex;align-items:center;gap:2rem;width:100%;}
+        .carousel-arrow{width:54px;height:54px;border-radius:50%;background:var(--glass);border:1px solid rgba(73,166,166,.3);font-size:2.2rem;color:var(--teal-lt);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .3s;font-family:sans-serif;}
+        .carousel-arrow:hover{background:var(--teal);color:#fff;transform:scale(1.1);}
+        .pet-bubbles-scroll{display:flex;gap:2.5rem;overflow-x:auto;scroll-behavior:smooth;padding:1.2rem;flex:1;justify-content:center;}
+        .pet-bubbles-scroll::-webkit-scrollbar{height:6px;}
+        .pet-bubbles-scroll::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px;}
+        .pet-bubble-opt{min-width:220px;display:flex;flex-direction:column;align-items:center;gap:1rem;cursor:pointer;transition:all .3s;}
+        .pet-bubble-opt:hover{transform:translateY(-10px);}
+        .bubble-wrap{width:220px;height:220px;border-radius:50%;border:5px solid rgba(73,166,166,.3);overflow:hidden;background:rgba(8,28,28,.85);box-shadow:0 10px 30px rgba(0,0,0,.4);transition:all .3s;}
+        .pet-bubble-opt.selected .bubble-wrap{border-color:var(--teal);box-shadow:0 16px 44px rgba(73,166,166,.5);transform:scale(1.05);}
+        .bubble-wrap canvas{width:100%;height:100%;display:block;}
+        .bubble-lbl{font-family:'Lilita One',cursive;font-size:1.3rem;color:rgba(255,255,255,.65);transition:color .3s;}
+        .pet-bubble-opt.selected .bubble-lbl{color:var(--teal-lt);}
+        .name-section{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:440px;}
+        .name-section input{width:100%;padding:1rem 1.5rem;font-size:1.2rem;font-family:'Nunito',sans-serif;border:2px solid rgba(73,166,166,.3);border-radius:50px;outline:none;background:var(--glass);color:#fff;text-align:center;transition:all .3s;}
+        .name-section input::placeholder{color:rgba(255,255,255,.28);}
+        .name-section input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(73,166,166,.15);}
+        .start-btn{width:100%;padding:1.1rem;font-family:'Lilita One',cursive;font-size:1.15rem;background:linear-gradient(135deg,var(--teal-dk),var(--teal));border:none;border-radius:50px;color:#fff;cursor:pointer;transition:all .3s;box-shadow:0 5px 20px rgba(73,166,166,.35);letter-spacing:.5px;}
+        .start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(73,166,166,.5);}
+        .start-btn:disabled{background:rgba(73,166,166,.2);cursor:not-allowed;box-shadow:none;transform:none;}
+    </style>
+</head>
+<body>
+
+<!-- ALERT -->
+<div class="alert-ov" id="alertOv">
+    <div class="alert-box">
+        <div class="a-em" id="aEm">ℹ️</div>
+        <div class="a-msg" id="aMsg"></div>
+        <button class="a-ok" onclick="closeAlert()">OK!</button>
+    </div>
+</div>
+
+<!-- SETUP MODAL (Choose New Pet) -->
+<div class="setup-modal" id="setupModal">
+    <div class="setup-inner">
+        <h1 class="setup-title">Choose Your New Pet!</h1>
+        <div class="pet-carousel">
+            <button class="carousel-arrow" onclick="scrollPets(-1)">‹</button>
+            <div class="pet-bubbles-scroll" id="petBubblesScroll">
+                <div class="pet-bubble-opt" data-type="a" onclick="selectPetBubble('a')">
+                    <div class="bubble-wrap"><canvas id="bCanvas_a"></canvas></div>
+                    <p class="bubble-lbl">Cat</p>
+                </div>
+                <div class="pet-bubble-opt" data-type="b" onclick="selectPetBubble('b')">
+                    <div class="bubble-wrap"><canvas id="bCanvas_b"></canvas></div>
+                    <p class="bubble-lbl">Dog</p>
+                </div>
+                <div class="pet-bubble-opt" data-type="c" onclick="selectPetBubble('c')">
+                    <div class="bubble-wrap"><canvas id="bCanvas_c"></canvas></div>
+                    <p class="bubble-lbl">Bird</p>
+                </div>
+            </div>
+            <button class="carousel-arrow" onclick="scrollPets(1)">›</button>
+        </div>
+        <div class="name-section">
+            <input type="text" id="petNameInput" placeholder="Name your pet…" maxlength="20">
+            <button class="start-btn" onclick="savePetSetup()">Start Your Journey!</button>
+        </div>
+    </div>
+</div>
+
+<!-- CANVAS -->
+<canvas id="renderCanvas"></canvas>
+
+<!-- TOP-LEFT PLAYER PILL -->
+<div class="top-left">
+    <div class="player-pill">
+        <div class="p-avatar">
+            <svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div class="p-info">
+            <span class="p-name" id="trainerName">Trainer</span>
+            <div class="p-sub">
+                <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="#f4c430" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
+                <span id="trainerCoins">0</span> coins
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOP-RIGHT STAT BOARD -->
+<div class="stat-board" id="statBoard">
+    <div class="sb-head">
+        <span class="sb-name" id="sbName">—</span>
+        <span class="sb-coins"><svg width="11" height="11" viewBox="0 0 24 24" fill="#f4c430" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg><span id="sbCoins">0</span></span>
+        <span class="sb-mood" id="sbMood">😊</span>
+    </div>
+    <!-- Level -->
+    <div>
+        <div class="sb-lv-row"><span class="sb-lv-lbl">Level <span id="sbLv">1</span></span><span class="sb-lv-xp"><span id="sbXP">0</span>/<span id="sbXPMax">100</span> XP</span></div>
+        <div class="sb-bar-wrap"><div class="sb-bar-fill lv" id="sbLvBar" style="width:0%"></div></div>
+    </div>
+    <!-- Health -->
+    <div class="sb-stat">
+        <div class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+        <div class="sb-si"><div class="sb-sr"><span class="sb-sl">Health</span><span class="sb-sv"><span id="sbHealth">100</span>%</span></div><div class="sb-bar-wrap"><div class="sb-bar-fill col" id="sbHealthBar" style="width:100%"></div></div></div>
+    </div>
+    <!-- Happiness -->
+    <div class="sb-stat">
+        <div class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+        <div class="sb-si"><div class="sb-sr"><span class="sb-sl">Happiness</span><span class="sb-sv"><span id="sbHappy">100</span>%</span></div><div class="sb-bar-wrap"><div class="sb-bar-fill col" id="sbHappyBar" style="width:100%"></div></div></div>
+    </div>
+    <!-- Fullness -->
+    <div class="sb-stat">
+        <div class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+        <div class="sb-si"><div class="sb-sr"><span class="sb-sl">Fullness</span><span class="sb-sv"><span id="sbFull">100</span>%</span></div><div class="sb-bar-wrap"><div class="sb-bar-fill col" id="sbFullBar" style="width:100%"></div></div></div>
+    </div>
+    <!-- Energy -->
+    <div class="sb-stat">
+        <div class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <div class="sb-si"><div class="sb-sr"><span class="sb-sl">Energy</span><span class="sb-sv"><span id="sbEnergy">100</span>%</span></div><div class="sb-bar-wrap"><div class="sb-bar-fill col" id="sbEnergyBar" style="width:100%"></div></div></div>
+    </div>
+    <!-- Expenses -->
+    <div class="sb-exp"><span>EXPENSES</span><span>$<span id="sbSpent">0</span> / $<span id="sbBudget">200</span></span></div>
+</div>
+
+<!-- LEFT SIDEBAR -->
+<nav class="sidebar">
+    <!-- Home -->
+    <div class="nav-item active" id="navHome" onclick="setNav(this,'home')">
+        <div class="n-wrap"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <span class="n-lbl">Home</span>
+    </div>
+    <!-- Shop -->
+    <div class="nav-item" id="navShop" onclick="setNav(this,'shop')">
+        <div class="n-wrap"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+        <span class="n-lbl">Shop</span>
+    </div>
+    <!-- Care -->
+    <div class="nav-item" id="navCare" onclick="togglePanel('carePanel');setNav(this,'care')">
+        <div class="n-wrap"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+        <span class="n-lbl">Care</span>
+    </div>
+    <!-- Tasks -->
+    <div class="nav-item" id="navTasks" onclick="togglePanel('tasksPanel');setNav(this,'tasks')">
+        <div class="n-wrap"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <span class="n-lbl">Tasks</span>
+        <span class="n-badge" id="tasksBadge" style="display:none">!</span>
+    </div>
+    <div class="nav-div"></div>
+    <!-- Add Pet -->
+    <div class="nav-item" id="navAdd" onclick="openSetupModal()">
+        <div class="n-wrap"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal-lt)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <span class="n-lbl">Add Pet</span>
+    </div>
+    <!-- Info -->
+    <div class="nav-item" id="navInfo" onclick="setNav(this,'info')">
+        <div class="n-wrap"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <span class="n-lbl">Info</span>
+    </div>
+</nav>
+
+<!-- SPEECH BUBBLE -->
+<div class="speech-bubble" id="speechBubble">Feeling great today!</div>
+
+<!-- BOTTOM-LEFT PET CARD -->
+<div class="pet-card">
+    <div class="pet-stat-row">
+        <svg class="ico" width="11" height="11" viewBox="0 0 24 24" fill="#f4c430" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
+        Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
+    </div>
+    <div class="pet-nameplate" id="petName">—</div>
+</div>
+
+<!-- BOTTOM-CENTER PET SLOTS -->
+<div class="pet-slots" id="petSlots"></div>
+
+<!-- CARE PANEL -->
+<div class="overlay-panel" id="carePanel">
+    <div class="panel-hdr">
+        <span class="panel-title">🐾 Pet Care</span>
+        <button class="panel-close" onclick="closePanel('carePanel')">✕</button>
+    </div>
+    <div class="panel-body">
+        <div class="care-grid">
+            <button class="care-btn" onclick="feedPet()">
+                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+                <span class="cb-lbl">Feed</span><span class="cb-cost">$10</span>
+            </button>
+            <button class="care-btn" onclick="playWithPet()">
+                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/></svg></div>
+                <span class="cb-lbl">Play (Toy)</span><span class="cb-cost">$15</span>
+            </button>
+            <button class="care-btn" onclick="restPet()">
+                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 12l8-8m-8 8l8 8"/></svg></div>
+                <span class="cb-lbl">Rest</span><span class="cb-cost">Free</span>
+            </button>
+            <button class="care-btn" onclick="healthCheck()">
+                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                <span class="cb-lbl">Health Check</span><span class="cb-cost">$50</span>
+            </button>
+        </div>
+        <!-- Monthly Budget embedded in Care -->
+        <div class="budget-box">
+            <div class="bdg-row"><span>Monthly Budget</span><span class="val">$<span id="cpBudget">200</span></span></div>
+            <div class="bdg-row"><span>Remaining</span><span class="val" id="cpRemaining">$200</span></div>
+            <div class="bdg-bar-wrap"><div class="bdg-bar-fill" id="cpBudgetBar" style="width:100%"></div></div>
+            <div class="bdg-cats">
+                <div class="bdg-cat"><span>Food / Supplies:</span><span>$<span id="cpFood">0</span></span></div>
+                <div class="bdg-cat"><span>Health Care:</span><span>$<span id="cpVet">0</span></span></div>
+                <div class="bdg-cat"><span>Toys / Activities:</span><span>$<span id="cpToy">0</span></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TASKS PANEL -->
+<div class="overlay-panel" id="tasksPanel">
+    <div class="panel-hdr">
+        <span class="panel-title">📋 Daily Tasks</span>
+        <button class="panel-close" onclick="closePanel('tasksPanel')">✕</button>
+    </div>
+    <div class="panel-body">
+        <button class="ai-gen-btn" id="aiBtn" onclick="refreshAITasks(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            Generate AI Tasks
+        </button>
+        <p style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:10px;font-style:italic;">Complete tasks to earn coins and increase bond!</p>
+        <div id="taskList"></div>
+    </div>
+</div>
+<script src="overlay.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════
+const firebaseConfig = {
+    apiKey:"AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+    authDomain:"helix-fbla.firebaseapp.com",
+    projectId:"helix-fbla",
+    storageBucket:"helix-fbla.firebasestorage.app",
+    messagingSenderId:"154951525413",
+    appId:"1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+};
+let db, auth, currentUser;
+try { firebase.initializeApp(firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); } catch(e){ console.error(e); }
+
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const MODELS = { a:"Leopard_Hyrbrid_A2.glb", b:"idle02.glb", c:"Parrot_A4.glb" };
+
+const PET_TRAITS = {
+    a:{ name:"Cat",  traits:["Independent","Playful","Curious"],
+        tasks:[{id:"playtime",name:"Play with toys",coins:5,bond:10,duration:"5 min"},
+               {id:"socialize",name:"Pet and cuddle",coins:8,bond:15,duration:"10 min"},
+               {id:"explore",name:"Let explore around house",coins:10,bond:20,duration:"15 min"}] },
+    b:{ name:"Dog",  traits:["Loyal","Energetic","Social"],
+        tasks:[{id:"run",name:"Go for a run",coins:10,bond:20,duration:"20 min"},
+               {id:"fetch",name:"Play fetch",coins:8,bond:15,duration:"15 min"},
+               {id:"train",name:"Practice commands",coins:12,bond:25,duration:"10 min"}] },
+    c:{ name:"Bird", traits:["Social","Intelligent","Vocal"],
+        tasks:[{id:"socialize",name:"Talk and interact",coins:10,bond:20,duration:"15 min"},
+               {id:"work",name:"Teach new words",coins:15,bond:30,duration:"20 min"},
+               {id:"play",name:"Play with toys",coins:8,bond:15,duration:"10 min"}] }
+};
+
+const AGE_STAGES = {
+    baby:  {minBond:0,  label:"Baby"},
+    young: {minBond:25, label:"Young"},
+    adult: {minBond:50, label:"Adult"},
+    senior:{minBond:75, label:"Senior"}
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let userData = {
+    coins:500,
+    costTracking:{totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,
+                  monthlyBudget:200,budgetRemaining:200,transactions:[],lastMonthReset:Date.now()}
+};
+let petData = {
+    name:"Pet",type:"b",age:"baby",level:1,experience:0,experienceToNextLevel:100,
+    health:100,happiness:100,fullness:100,energy:100,bond:0,
+    tasksCompleted:{},aiTasks:[],usingAITasks:false,lastTaskReset:Date.now(),lastUpdated:Date.now()
+};
+let userPets={}, currentPetId=null;
+
+// ═══════════════════════════════════════════
+// BABYLON — MAIN SCENE
+// ═══════════════════════════════════════════
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true);
+let scene, camera, model, anims={}, curAnim=null, skyMesh=null;
+// slot / bubble preview engines
+let slotEng={}, slotSc={};
+let bEng={}, bSc={};   // setup modal bubble engines
+
+function createScene() {
+    scene = new BABYLON.Scene(engine);
+    camera = new BABYLON.ArcRotateCamera("cam",-1.5708,1.0472,9.08,new BABYLON.Vector3(0,1,0),scene);
+    camera.attachControl(canvas,true);
+    camera.lowerAlphaLimit=-1.5708; camera.upperAlphaLimit=-1.5708;
+    camera.lowerBetaLimit=1.0472;   camera.upperBetaLimit=1.0472;
+    camera.lowerRadiusLimit=9.08;   camera.upperRadiusLimit=9.08;
+    camera.panningSensibility=0; camera.inputs.clear();
+
+    const h=new BABYLON.HemisphericLight("h",new BABYLON.Vector3(0,1,0),scene); h.intensity=0.6;
+    const d=new BABYLON.DirectionalLight("d",new BABYLON.Vector3(-1,-2,-1),scene);
+    d.position=new BABYLON.Vector3(5,10,5); d.intensity=0.8;
+
+    const g=BABYLON.MeshBuilder.CreateGround("g",{width:30,height:30},scene);
+    const gm=new BABYLON.StandardMaterial("gm",scene); gm.alpha=0; gm.backFaceCulling=false; g.material=gm;
+
+    const pano=new BABYLON.Texture("bg2.jpg",scene);
+    pano.onLoadObservable.addOnce(()=>{
+        skyMesh=BABYLON.MeshBuilder.CreateSphere("sky",{diameter:5000},scene);
+        skyMesh.infiniteDistance=true; skyMesh.rotation.y=3.19;
+        const sm=new BABYLON.StandardMaterial("sm",scene);
+        sm.backFaceCulling=false; sm.emissiveTexture=pano;
+        sm.emissiveTexture.coordinatesMode=BABYLON.Texture.FIXED_EQUIRECTANGULAR_MODE;
+        sm.emissiveTexture.vScale=-1; sm.disableLighting=true; skyMesh.material=sm;
+    });
+}
+
+function fixMats(root) {
+    root.getChildMeshes().forEach(mesh=>{
+        if(!mesh.material) return;
+        const mat=mesh.material;
+        if(mat.getClassName()==="PBRMaterial"){
+            if(mat.albedoTexture){
+                if(mat.albedoTexture.hasAlpha){mat.transparencyMode=BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;mat.alphaCutOff=0.5;mat.useAlphaFromAlbedoTexture=true;}
+                else{mat.transparencyMode=BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;mat.useAlphaFromAlbedoTexture=false;}
+            }
+            if(!mat.metallicTexture){mat.metallic=0;mat.roughness=1;}
+            mat.backFaceCulling=true; mat.twoSidedLighting=false;
+        }
+    });
+}
+function centerM(m, scale) {
+    const b=m.getHierarchyBoundingVectors(), sz=b.max.subtract(b.min);
+    m.scaling.setAll(scale/Math.max(sz.x,sz.y,sz.z));
+    m.computeWorldMatrix(true);
+    const b2=m.getHierarchyBoundingVectors(), ctr=BABYLON.Vector3.Center(b2.min,b2.max);
+    m.position=new BABYLON.Vector3(-ctr.x,-b2.min.y,-ctr.z);
+}
+
+function loadModel(file) {
+    if(model){try{model.getChildMeshes().forEach(m=>{m.material?.dispose();m.dispose();});model.dispose();}catch(e){} model=null;}
+    if(curAnim){curAnim.stop();curAnim=null;}
+    scene.animationGroups.forEach(ag=>ag.dispose()); anims={};
+    BABYLON.SceneLoader.ImportMesh("","",file,scene,(meshes,_,__,ags)=>{
+        model=meshes[0]; fixMats(model); centerM(model,3);
+        ags.forEach(ag=>{anims[(ag.name.split('|')[1]||ag.name).toLowerCase()]=ag;});
+        const first=Object.keys(anims)[0]; if(first){anims[first].start(true);curAnim=anims[first];}
+        hideLoading();
+    },null,(_,msg)=>{console.error(msg);hideLoading();});
+}
+
+// Shared bubble preview loader (used for both setup modal and slot buttons)
+function loadBubblePreview(petType, cvs, onLoad) {
+    const eng=new BABYLON.Engine(cvs,true,{preserveDrawingBuffer:true,stencil:true});
+    const sc=new BABYLON.Scene(eng);
+    sc.clearColor=new BABYLON.Color4(0.03,0.1,0.1,1);
+    new BABYLON.ArcRotateCamera("c",-Math.PI/2,Math.PI/2.5,4,BABYLON.Vector3.Zero(),sc);
+    const l1=new BABYLON.HemisphericLight("l1",new BABYLON.Vector3(0,1,0),sc); l1.intensity=0.7;
+    const l2=new BABYLON.DirectionalLight("l2",new BABYLON.Vector3(-1,-2,-1),sc); l2.intensity=0.5;
+    BABYLON.SceneLoader.ImportMesh("","",MODELS[petType],sc,(meshes)=>{
+        const m=meshes[0]; fixMats(m);
+        const b=m.getHierarchyBoundingVectors(), sz=b.max.subtract(b.min);
+        m.scaling.setAll(2/Math.max(sz.x,sz.y,sz.z)); m.computeWorldMatrix(true);
+        const b2=m.getHierarchyBoundingVectors(), ctr=BABYLON.Vector3.Center(b2.min,b2.max);
+        m.position=new BABYLON.Vector3(-ctr.x,-b2.min.y-0.3,-ctr.z);
+        sc.registerBeforeRender(()=>{m.rotation.y+=0.006;});
+        if(onLoad) onLoad();
+    },null,()=>{if(onLoad) onLoad();});
+    eng.runRenderLoop(()=>sc.render());
+    return {eng,sc};
+}
+
+engine.runRenderLoop(()=>scene&&scene.render());
+window.addEventListener('resize',()=>engine.resize());
+
+// ═══════════════════════════════════════════
+// FIREBASE LOAD / SAVE
+// ═══════════════════════════════════════════
+async function loadPetData() {
+    showLoading('Loading your pets…');
+    if(!currentUser){hideLoading();return;}
+    try {
+        const userDoc=await db.collection('users').doc(currentUser.uid).get();
+        const petsSnap=await db.collection('users').doc(currentUser.uid).collection('pets').get();
+        if(userDoc.exists&&userDoc.data().userData) userData=userDoc.data().userData;
+
+        if(!petsSnap.empty){
+            userPets={};
+            petsSnap.forEach(doc=>{
+                const p=doc.data();
+                if(p.hunger!==undefined&&p.fullness===undefined){p.fullness=100-p.hunger;delete p.hunger;}
+                userPets[doc.id]=p;
+            });
+            let active=userDoc.exists&&userDoc.data().currentPetId?userDoc.data().currentPetId:null;
+            if(!active||!userPets[active]) active=Object.keys(userPets)[0];
+            currentPetId=active; petData=userPets[currentPetId];
+            updateUI(); buildPetSlots(); loadModel(MODELS[petData.type]);
+            setTimeout(()=>hideLoading(),500);
+        } else {
+            hideLoading();
+            openSetupModal(true); // first login → choose pet
+        }
+    } catch(e){console.error(e);showAlert("Error loading data: "+e.message,'error');hideLoading();}
+}
+
+async function savePetData() {
+    petData.lastUpdated=Date.now();
+    if(userData.coins<0) userData.coins=0;
+    if(currentPetId) userPets[currentPetId]=petData;
+    if(!currentUser) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('pets').doc(currentPetId).set(petData);
+        await db.collection('users').doc(currentUser.uid).set({currentPetId,userData},{merge:true});
+    } catch(e){console.error("Save error:",e);}
+}
+
+// ═══════════════════════════════════════════
+// UI — STAT BOARD & GENERAL
+// ═══════════════════════════════════════════
+function updateUI() {
+    // Trainer pill
+    document.getElementById('trainerName').textContent=currentUser?.displayName||currentUser?.email?.split('@')[0]||'Trainer';
+    document.getElementById('trainerCoins').textContent=Math.max(0,userData.coins||0);
+
+    // Stat board
+    document.getElementById('sbName').textContent=petData.name;
+    document.getElementById('sbCoins').textContent=Math.max(0,userData.coins||0);
+    document.getElementById('sbLv').textContent=petData.level||1;
+    document.getElementById('sbXP').textContent=petData.experience||0;
+    document.getElementById('sbXPMax').textContent=petData.experienceToNextLevel||100;
+    document.getElementById('sbLvBar').style.width=((petData.experience||0)/(petData.experienceToNextLevel||100)*100)+'%';
+    document.getElementById('sbHealth').textContent=Math.round(petData.health);
+    document.getElementById('sbHappy').textContent=Math.round(petData.happiness);
+    document.getElementById('sbFull').textContent=Math.round(petData.fullness);
+    document.getElementById('sbEnergy').textContent=Math.round(petData.energy);
+    document.getElementById('sbHealthBar').style.width=petData.health+'%';
+    document.getElementById('sbHappyBar').style.width=petData.happiness+'%';
+    document.getElementById('sbFullBar').style.width=petData.fullness+'%';
+    document.getElementById('sbEnergyBar').style.width=petData.energy+'%';
+
+    // Mood — each condition is checked independently against its own stat
+    let mood='😊';
+    if(petData.health<30) mood='🤒';
+    else if(petData.energy<25) mood='😴';
+    else if(petData.fullness<25) mood='🍽️';
+    else if(petData.happiness<35) mood='😢';
+    else if(petData.energy>80&&petData.happiness>80&&petData.fullness>70) mood='🤩';
+    else if(petData.happiness>=70&&petData.fullness>=60&&petData.energy>=50) mood='😊';
+    else mood='😐';
+    document.getElementById('sbMood').textContent=mood;
+
+    // Expenses
+    const ct=userData.costTracking||{};
+    document.getElementById('sbSpent').textContent=ct.totalSpent||0;
+    document.getElementById('sbBudget').textContent=ct.monthlyBudget||200;
+
+    // Bottom card
+    document.getElementById('petName').textContent=petData.name;
+    document.getElementById('petBond').textContent=petData.bond||0;
+    document.getElementById('petLv').textContent=petData.level||1;
+
+    // Speech bubble — pick randomly from a pool matching the current mood
+    const bubblePools={
+        '🤒':["I don't feel good… can we visit the vet?","My tummy hurts… 🤒","I need a health check soon!","Not feeling my best today…"],
+        '😴':["So sleepy… I need a nap 😴","Can we rest for a bit?","Running on empty… zzz","I'm exhausted, let me sleep!"],
+        '🍽️':["I'm hungry! Feed me please 🍽️","My tummy is growling…","Can I have a snack?","So hungry I could eat anything!"],
+        '😢':["I'm feeling a little lonely…","Play with me? I'm bored 😢","I could use some cuddles right now","Missing you! Come hang out with me"],
+        '🤩':["Best day EVER! Let's do something! 🤩","I feel amazing right now!","Full of energy — let's play!","On top of the world today! ⭐"],
+        '😊':["Feeling great today! 😊","Life is good when I'm with you!","Happy and healthy — thanks to you!","Today's a good day 🌟","I love spending time with you!"],
+        '😐':["Just hanging around…","Could be better, could be worse!","Feeling pretty okay today","Nothing exciting going on…"]
+    };
+    const pool=bubblePools[mood]||bubblePools['😊'];
+    document.getElementById('speechBubble').textContent=pool[Math.floor(Math.random()*pool.length)];
+
+    updateBudgetUI();
+    loadPetTasks();
+    updateSlotHighlight();
+}
+
+function updateBudgetUI() {
+    const ct=userData.costTracking||{};
+    const budg=ct.monthlyBudget||200, rem=Math.max(0,ct.budgetRemaining||budg);
+    const pct=(rem/budg)*100, low=pct<20;
+    // stat board
+    document.getElementById('sbSpent').textContent=ct.totalSpent||0;
+    document.getElementById('sbBudget').textContent=budg;
+    // care panel
+    const cpB=document.getElementById('cpBudget'); if(!cpB) return;
+    cpB.textContent=budg;
+    document.getElementById('cpRemaining').textContent='$'+rem;
+    document.getElementById('cpRemaining').classList.toggle('low',low);
+    document.getElementById('cpBudgetBar').style.width=pct+'%';
+    document.getElementById('cpBudgetBar').classList.toggle('low',low);
+    document.getElementById('cpFood').textContent=ct.foodSpent||0;
+    document.getElementById('cpVet').textContent=ct.vetSpent||0;
+    document.getElementById('cpToy').textContent=ct.toySpent||0;
+}
+
+// ═══════════════════════════════════════════
+// PET SLOTS (bubble canvas buttons)
+// ═══════════════════════════════════════════
+function buildPetSlots() {
+    Object.values(slotEng).forEach(e=>{try{e.stopRenderLoop();e.dispose();}catch(err){}});
+    slotEng={}; slotSc={};
+    const container=document.getElementById('petSlots');
+    container.innerHTML='';
+    Object.keys(userPets).forEach(pid=>{
+        const pet=userPets[pid];
+        const wrap=document.createElement('div'); wrap.className='slot-wrap'; wrap.onclick=()=>selectPet(pid);
+        const slot=document.createElement('div'); slot.className='slot'+(pid===currentPetId?' active':''); slot.id='slot_'+pid;
+        const cvs=document.createElement('canvas'); cvs.id='slotCvs_'+pid;
+        slot.appendChild(cvs);
+        const lbl=document.createElement('div'); lbl.className='slot-lbl'; lbl.textContent=pet.name;
+        wrap.appendChild(slot); wrap.appendChild(lbl); container.appendChild(wrap);
+        setTimeout(()=>{
+            const res=loadBubblePreview(pet.type,cvs,null);
+            slotEng[pid]=res.eng; slotSc[pid]=res.sc;
+        },80);
+    });
+}
+function updateSlotHighlight() {
+    document.querySelectorAll('.slot').forEach(s=>s.classList.remove('active'));
+    const a=document.getElementById('slot_'+currentPetId); if(a) a.classList.add('active');
+    Object.keys(userPets).forEach(pid=>{
+        const lbl=document.querySelector(`#slot_${pid}~.slot-lbl`);
+        if(lbl) lbl.textContent=userPets[pid].name;
+    });
+}
+function selectPet(pid) {
+    if(pid===currentPetId) return;
+    showLoading('Loading '+userPets[pid].name+'…');
+    currentPetId=pid; petData=userPets[pid];
+    updateUI(); savePetData(); loadModel(MODELS[petData.type]); updateSlotHighlight();
+}
+
+// ═══════════════════════════════════════════
+// PANELS
+// ═══════════════════════════════════════════
+function togglePanel(id) {
+    const p=document.getElementById(id), open=p.classList.contains('open');
+    document.querySelectorAll('.overlay-panel').forEach(x=>x.classList.remove('open'));
+    if(!open) p.classList.add('open');
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+function setNav(el,key) {
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    if(['home','shop','info'].includes(key)) document.querySelectorAll('.overlay-panel').forEach(p=>p.classList.remove('open'));
+}
+
+// ═══════════════════════════════════════════
+// SETUP MODAL
+// ═══════════════════════════════════════════
+let selectedPetType=null, bLoaded=0;
+
+function openSetupModal(firstTime=false) {
+    document.getElementById('setupModal').classList.add('open');
+    document.getElementById('petNameInput').value=''; selectedPetType=null;
+    document.querySelectorAll('.pet-bubble-opt').forEach(b=>b.classList.remove('selected'));
+    Object.values(bEng).forEach(e=>{try{e.stopRenderLoop();e.dispose();}catch(err){}});
+    bEng={}; bSc={};
+    if(!firstTime) showLoading('Loading pet options…');
+    bLoaded=0;
+    const onLoad=()=>{ bLoaded++; if(bLoaded>=3) hideLoading(); };
+    setTimeout(()=>{
+        ['a','b','c'].forEach(type=>{
+            const cvs=document.getElementById('bCanvas_'+type); if(!cvs){onLoad();return;}
+            const res=loadBubblePreview(type,cvs,onLoad);
+            bEng[type]=res.eng; bSc[type]=res.sc;
+        });
+    },120);
+}
+function selectPetBubble(type) {
+    selectedPetType=type;
+    document.querySelectorAll('.pet-bubble-opt').forEach(b=>b.classList.remove('selected'));
+    document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+    Object.keys(bSc).forEach(t=>{
+        bSc[t].clearColor = t===type
+            ? new BABYLON.Color4(0.18,0.45,0.45,1)
+            : new BABYLON.Color4(0.03,0.1,0.1,1);
+    });
+}
+function scrollPets(dir) { document.getElementById('petBubblesScroll').scrollLeft+=dir*260; }
+
+async function savePetSetup() {
+    const name=document.getElementById('petNameInput').value.trim();
+    if(!name){showAlert('Please enter a pet name!','warning');return;}
+    if(!selectedPetType){showAlert('Please select a pet!','warning');return;}
+    if(!currentUser){showAlert('Not logged in!','error');return;}
+    showLoading('Creating '+name+'…');
+    const nid=Date.now().toString();
+    const np={name,type:selectedPetType,age:"baby",level:1,experience:0,experienceToNextLevel:100,
+              health:100,happiness:100,fullness:100,energy:100,bond:0,
+              tasksCompleted:{},aiTasks:[],usingAITasks:false,
+              lastTaskReset:Date.now(),adoptionDate:Date.now(),lastUpdated:Date.now()};
+    userPets[nid]=np; currentPetId=nid; petData=np;
+    Object.values(bEng).forEach(e=>{try{e.stopRenderLoop();e.dispose();}catch(err){}});
+    bEng={}; bSc={};
+    document.getElementById('setupModal').classList.remove('open');
+    await savePetData(); updateUI(); buildPetSlots(); loadModel(MODELS[selectedPetType]);
+    setTimeout(()=>hideLoading(),800);
+}
+
+// ═══════════════════════════════════════════
+// TASKS
+// ═══════════════════════════════════════════
+const activeTimers={};
+
+function loadPetTasks() {
+    const traits=PET_TRAITS[petData.type]; if(!traits) return;
+    if(!petData.tasksCompleted) petData.tasksCompleted={};
+    // daily reset
+    const hrs=(Date.now()-(petData.lastTaskReset||0))/3600000;
+    if(hrs>=24){petData.tasksCompleted={};petData.lastTaskReset=Date.now();petData.usingAITasks=false;savePetData();}
+    const tasks=(petData.usingAITasks&&petData.aiTasks?.length)?petData.aiTasks:traits.tasks;
+    renderTasks(tasks);
+    // badge
+    const rem=tasks.filter(t=>!petData.tasksCompleted[t.id]).length;
+    const badge=document.getElementById('tasksBadge');
+    badge.style.display=rem>0?'flex':'none'; badge.textContent=rem;
+}
+
+function renderTasks(tasks) {
+    const c=document.getElementById('taskList'); c.innerHTML='';
+    const isAI=petData.usingAITasks&&petData.aiTasks?.length>0;
+    tasks.forEach(task=>{
+        const div=document.createElement('div');
+        div.className='task-item'+(petData.tasksCompleted[task.id]?' completed':'');
+        div.innerHTML=`
+            <div class="task-hdr">
+                <span class="task-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h6M9 15h6"/></svg></span>
+                <span class="task-name">${task.name}</span>
+            </div>
+            <div class="task-dur">⏱ ${task.duration}</div>
+            ${isAI?'<div class="task-ai-badge">✨ AI Task</div>':''}
+            <div class="task-rewards">
+                <span class="task-coins">★ +${task.coins} coins</span>
+                <span class="task-bond">♥ +${task.bond} bond</span>
+            </div>
+            ${petData.tasksCompleted[task.id]?'<span class="task-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>':''}
+        `;
+        if(!petData.tasksCompleted[task.id]) div.onclick=()=>startTask(task,div);
+        c.appendChild(div);
+    });
+}
+
+function startTask(task, el) {
+    const mins=parseInt(task.duration.match(/(\d+)/)?.[1]||1), total=mins*60;
+    if(activeTimers[task.id]) clearInterval(activeTimers[task.id]);
+    const orig=el.innerHTML; el.classList.add('in-progress');
+    const R=38, C=2*Math.PI*R;
+    el.innerHTML=`<div class="task-timer-wrap">
+        <svg width="88" height="88" viewBox="0 0 88 88">
+            <circle class="t-bg" cx="44" cy="44" r="${R}"/>
+            <circle class="t-prog" id="tp_${task.id}" cx="44" cy="44" r="${R}" style="stroke-dasharray:${C};stroke-dashoffset:0"/>
+        </svg>
+        <span class="t-txt" id="tt_${task.id}">${mins}:00</span>
+    </div>`;
+    let rem=total;
+    const iv=setInterval(()=>{
+        rem--;
+        const tEl=document.getElementById('tt_'+task.id), pEl=document.getElementById('tp_'+task.id);
+        if(tEl) tEl.textContent=`${Math.floor(rem/60)}:${String(rem%60).padStart(2,'0')}`;
+        if(pEl) pEl.style.strokeDashoffset=C*(rem/total);
+        if(rem<=0){clearInterval(iv);delete activeTimers[task.id];completeTask(task,el,orig);}
+    },1000);
+    activeTimers[task.id]=iv;
+}
+
+function completeTask(task,el,orig) {
+    if(!petData.tasksCompleted) petData.tasksCompleted={};
+    petData.tasksCompleted[task.id]=true;
+    userData.coins=(userData.coins||0)+task.coins;
+    petData.bond=Math.min(100,(petData.bond||0)+task.bond);
+    petData.happiness=Math.min(100,petData.happiness+10);
+    gainXP(task.bond); checkAge();
+    el.classList.remove('in-progress'); el.classList.add('completed'); el.onclick=null;
+    el.innerHTML=orig+'<span class="task-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>';
+    updateUI(); savePetData();
+    showAlert(`Task done! +${task.coins} coins, +${task.bond} bond! 🎉`,'success');
+}
+
+async function refreshAITasks(btn) {
+    const orig=btn?.innerHTML||''; if(btn){btn.innerHTML='⏳ Generating…';btn.disabled=true;}
+    const traits=PET_TRAITS[petData.type];
+    const prompt=`You are ${petData.name}, a ${traits.name}. Generate 3 unique personalized daily tasks.
+Return ONLY a JSON array, no markdown, no backticks:
+[{"id":"ai_0","name":"task name","duration":"X min","coins":N,"bond":N},{"id":"ai_1",...},{"id":"ai_2",...}]
+Coins 5-15, Bond 10-30, Duration 5-30 min. Make them specific to a ${traits.name}.`;
+    try {
+        const r=await fetch("/api/groq",{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:[{role:"user",content:prompt}],temperature:0.7,max_tokens:400})});
+        if(r.ok){
+            const d=await r.json();
+            const text=(d.choices?.[0]?.message?.content||'').trim().replace(/```json\n?/g,'').replace(/```\n?/g,'');
+            const tasks=JSON.parse(text);
+            petData.aiTasks=tasks; petData.usingAITasks=true;
+            renderTasks(tasks); savePetData();
+        } else { showAlert('AI unavailable. Using default tasks.','warning'); }
+    } catch(e){ showAlert('AI error — using default tasks.','warning'); }
+    if(btn){btn.innerHTML=orig;btn.disabled=false;}
+}
+
+// ═══════════════════════════════════════════
+// CARE ACTIONS
+// ═══════════════════════════════════════════
+function ensureCT(){if(!userData.costTracking)userData.costTracking={totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:200,budgetRemaining:200,transactions:[],lastMonthReset:Date.now()};}
+function spend(amt,cat){
+    const ct=userData.costTracking;
+    userData.coins-=amt; ct.totalSpent+=amt; ct.budgetRemaining-=amt;
+    if(cat==='food') ct.foodSpent+=amt;
+    else if(cat==='vet') ct.vetSpent+=amt;
+    else if(cat==='toy') ct.toySpent+=amt;
+    ct.transactions.push({id:Date.now().toString(),category:cat,amount:amt,date:Date.now()});
+}
+function feedPet(){
+    const C=10; ensureCT();
+    if(userData.coins<C){showAlert('Not enough coins!','error');return;}
+    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
+    if(petData.fullness>80){showAlert('Your pet is already full!','warning');return;}
+    spend(C,'food');
+    petData.fullness=Math.min(100,petData.fullness+30);
+    petData.health=Math.min(100,petData.health+5);
+    petData.happiness=Math.min(100,petData.happiness+10);
+    gainXP(10); updateUI(); savePetData();
+}
+function playWithPet(){
+    const C=15; ensureCT();
+    if(userData.coins<C){showAlert('Not enough coins!','error');return;}
+    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
+    if(petData.energy<20){showAlert('Your pet is too tired to play!','warning');return;}
+    spend(C,'toy');
+    petData.happiness=Math.min(100,petData.happiness+20);
+    petData.energy=Math.max(0,petData.energy-15);
+    petData.fullness=Math.max(0,petData.fullness-10);
+    gainXP(15); updateUI(); savePetData();
+}
+function restPet(){
+    if(petData.energy>80){showAlert('Not tired right now!','warning');return;}
+    petData.energy=Math.min(100,petData.energy+40);
+    petData.health=Math.min(100,petData.health+5);
+    gainXP(5); updateUI(); savePetData();
+}
+function healthCheck(){
+    const C=50; ensureCT();
+    if(userData.coins<C){showAlert('Need $50 for a vet visit!','error');return;}
+    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
+    spend(C,'vet');
+    petData.health=100; gainXP(20); updateUI(); savePetData();
+    let msg="Vet check complete! ✅ Your pet is healthy!";
+    if(petData.fullness<30) msg+="\nBut feed them soon!";
+    showAlert(msg,'success');
+}
+
+// ═══════════════════════════════════════════
+// XP & AGE
+// ═══════════════════════════════════════════
+function gainXP(amt){
+    petData.experience=(petData.experience||0)+amt;
+    if(petData.experience>=(petData.experienceToNextLevel||100)){
+        petData.level=(petData.level||1)+1;
+        petData.experience-=petData.experienceToNextLevel;
+        petData.experienceToNextLevel=Math.floor((petData.experienceToNextLevel||100)*1.5);
+        userData.coins=(userData.coins||0)+50;
+        showAlert(`⭐ Level Up! Now Level ${petData.level}! +50 coins!`,'success');
+    }
+    updateUI();
+}
+function checkAge(){
+    const bond=petData.bond||0;
+    let na='baby';
+    if(bond>=75) na='senior'; else if(bond>=50) na='adult'; else if(bond>=25) na='young';
+    if(na!==(petData.age||'baby')){petData.age=na;showAlert(`🌱 Your pet grew into a ${AGE_STAGES[na].label}!`,'success');}
+}
+
+// ═══════════════════════════════════════════
+// STAT DECAY (time-based)
+// ═══════════════════════════════════════════
+function updateStatsOverTime(){
+    const hrs=(Date.now()-(petData.lastUpdated||Date.now()))/3600000;
+    if(hrs<0.1) return;
+    petData.fullness =Math.max(0,petData.fullness -hrs*3);
+    petData.energy   =Math.max(0,petData.energy   -hrs*1.5);
+    petData.happiness=Math.max(0,petData.happiness-hrs*1);
+    if(petData.fullness<10) petData.health=Math.max(0,petData.health-hrs*5);
+    else if(petData.fullness<30) petData.health=Math.max(0,petData.health-hrs*0.5);
+    if(petData.energy<10) petData.health=Math.max(0,petData.health-hrs*2);
+    if(petData.happiness<20) petData.health=Math.max(0,petData.health-hrs*0.3);
+    petData.lastUpdated=Date.now(); savePetData();
+}
+setInterval(()=>{updateStatsOverTime();updateUI();},60000);
+
+// ═══════════════════════════════════════════
+// ALERT HELPERS
+// ═══════════════════════════════════════════
+function showAlert(msg,type='info'){
+    const ic={info:'ℹ️',success:'🎉',error:'❌',warning:'⚠️'};
+    document.getElementById('aEm').textContent=ic[type]||'ℹ️';
+    document.getElementById('aMsg').textContent=msg;
+    document.getElementById('alertOv').classList.add('on');
+}
+function closeAlert(){document.getElementById('alertOv').classList.remove('on');}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+createScene();
+showLoading('Entering arena…');
+auth.onAuthStateChanged(user=>{
+    if(user){
+        currentUser=user;
+        console.log("✅ Auth:",user.email);
+        loadPetData();
+    } else {
+        console.log("Not logged in → redirect");
+        window.location.href='index.html';
+    }
+});
+</script>
+</body>
+</html>
