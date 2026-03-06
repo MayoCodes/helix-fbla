@@ -1,46 +1,34 @@
 /**
  * ar.js — HELIX AR Mode
  * Powered by <model-viewer> (Google / Polymer Labs)
- *
- * Why model-viewer:
- *  - Official Google web component, used in Google Search AR
- *  - Built-in GLB / GLTF loading with Draco + KTX2 support
- *  - Native WebXR AR on Android Chrome (ARCore hit-test + anchors)
- *  - Native Quick Look AR on iOS Safari (USDZ auto-convert)
- *  - Zero manual WebXR plumbing — AR just works
- *  - World-anchoring is handled internally by the component
- *  - CDN: unpkg.com/@google/model-viewer (actively maintained)
  */
 
 (function () {
   'use strict';
 
-  const MV_SRC    = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
-  const MODELS    = { a: 'Leopard_Hybrid_A2.glb', b: 'idle02.glb', c: 'Parrot_A4.glb' };
-  // iOS Quick Look requires USDZ — map pet types to USDZ files
-  // If you don't have .usdz files yet, model-viewer will attempt GLB fallback in 3D preview mode
+  const MV_SRC     = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
+  const MODELS     = { a: 'Leopard_Hybrid_A2.glb', b: 'idle02.glb', c: 'Parrot_A4.glb' };
   const MODELS_USDZ = { a: 'Leopard_Hybrid_A2.usdz', b: 'idle02.usdz', c: 'Parrot_A4.usdz' };
   const PET_LABELS = { a: 'Cat', b: 'Dog', c: 'Bird' };
   const AR_BTN_ID  = 'arLaunchBtn';
   const AR_OV_ID   = 'arOverlay';
   const MV_ID      = 'arModelViewer';
 
-  // Detect iOS Safari
   const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   // ─────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────
-  let mvLoaded    = false;
-  let lastPetType = null;
-  let autoRotate  = false;
+  let mvScriptReady = false;  // script tag injected & loaded
+  let mvDefined     = false;  // custom element actually defined
+  let lastPetType   = null;
+  let autoRotate    = false;
 
   // ─────────────────────────────────────────────────────────────────
   // CSS
   // ─────────────────────────────────────────────────────────────────
   const CSS = `
-    /* ── AR Launch Button ── */
     #${AR_BTN_ID} {
       position: fixed; left: 96px; bottom: 22px; z-index: 150;
       display: flex; align-items: center; gap: 8px;
@@ -53,7 +41,7 @@
       transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .28s, border-color .28s;
       user-select: none; letter-spacing: .3px; -webkit-tap-highlight-color: transparent;
     }
-    #${AR_BTN_ID}:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 28px rgba(73,166,166,.5); border-color: #49a6a6; color: #fff; }
+    #${AR_BTN_ID}:hover  { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 28px rgba(73,166,166,.5); border-color: #49a6a6; color: #fff; }
     #${AR_BTN_ID}:hover .arb-icon { transform: scale(1.15) rotate(-8deg); filter: drop-shadow(0 0 6px rgba(73,166,166,.9)); }
     #${AR_BTN_ID}:active { transform: scale(.97); }
     #${AR_BTN_ID}.ar-active { background: rgba(73,166,166,.25); border-color: #49a6a6; color: #fff; box-shadow: 0 0 22px rgba(73,166,166,.6); animation: arPulse 2s ease-in-out infinite; }
@@ -62,30 +50,44 @@
     .arb-dot  { width: 6px; height: 6px; border-radius: 50%; background: #49a6a6; animation: arbBlink 2s ease-in-out infinite; flex-shrink: 0; }
     @keyframes arbBlink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
-    /* ── Overlay wrapper ── */
     #${AR_OV_ID} {
       display: none; position: fixed; inset: 0; z-index: 10000;
       background: #081c1c; overflow: hidden;
     }
     #${AR_OV_ID}.open { display: block; }
 
-    /* ── model-viewer fills the overlay ── */
+    /* model-viewer must be display:block and have explicit dimensions */
     #${MV_ID} {
+      display: block;
       width: 100%; height: 100%;
       background-color: #081c1c;
       --poster-color: #081c1c;
       --progress-bar-color: #49a6a6;
-      --progress-mask: #081c1c;
     }
 
-    /* ── HUD on top of model-viewer ── */
+    /* Loading spinner shown while model-viewer initialises */
+    .ar-loading-screen {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #081c1c; gap: 18px; transition: opacity .4s;
+    }
+    .ar-loading-screen.hidden { opacity: 0; pointer-events: none; }
+    .ar-spinner {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 3px solid rgba(73,166,166,.2);
+      border-top-color: #49a6a6;
+      animation: arSpin 0.9s linear infinite;
+    }
+    @keyframes arSpin { to { transform: rotate(360deg); } }
+    .ar-loading-txt { font-family: 'Nunito',sans-serif; font-size: .8rem; font-weight: 800; color: #7fcece; letter-spacing: .5px; }
+
     .ar-hud { position: absolute; z-index: 10; pointer-events: none; }
 
     .ar-top-bar {
       top: 0; left: 0; right: 0;
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 18px;
-      background: linear-gradient(180deg, rgba(0,0,0,.65), transparent);
+      background: linear-gradient(180deg,rgba(0,0,0,.65),transparent);
       pointer-events: auto;
     }
     .ar-pet-pill { display: flex; align-items: center; gap: 8px; background: rgba(8,28,28,.75); backdrop-filter: blur(14px); border: 1px solid rgba(73,166,166,.35); border-radius: 20px; padding: 6px 14px 6px 8px; }
@@ -113,7 +115,6 @@
     }
     .ar-mode-badge .ar-rec { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #49a6a6; margin-right: 5px; vertical-align: middle; animation: arbBlink 1.2s ease-in-out infinite; }
 
-    /* Tap hint */
     .ar-tap-hint {
       position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -129,20 +130,18 @@
     .ar-tap-ring svg { width: 24px; height: 24px; color: #7fcece; }
     .ar-tap-txt { font-family: 'Nunito',sans-serif; font-size: .72rem; font-weight: 800; color: rgba(255,255,255,.8); text-align: center; white-space: nowrap; }
 
-    /* Scan reticle */
     .ar-reticle-wrap { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); pointer-events: none; z-index: 5; transition: opacity .3s; }
-    .ar-reticle { width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(73,166,166,.7); position: relative; animation: arSpin 3s linear infinite; }
-    @keyframes arSpin { to { transform: rotate(360deg); } }
+    .ar-reticle { width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(73,166,166,.7); position: relative; animation: arSpinR 3s linear infinite; }
+    @keyframes arSpinR { to { transform: rotate(360deg); } }
     .ar-reticle::before, .ar-reticle::after { content: ''; position: absolute; background: #49a6a6; border-radius: 2px; }
     .ar-reticle::before { width: 2px; height: 14px; top: -7px; left: calc(50% - 1px); }
     .ar-reticle::after  { width: 14px; height: 2px; left: -7px; top: calc(50% - 1px); }
 
-    /* Bottom controls */
     .ar-bottom-bar {
       position: absolute; bottom: 0; left: 0; right: 0;
       display: flex; align-items: center; justify-content: center; gap: 14px;
       padding: 16px 20px 30px;
-      background: linear-gradient(0deg, rgba(0,0,0,.65), transparent);
+      background: linear-gradient(0deg,rgba(0,0,0,.65),transparent);
       pointer-events: auto;
     }
     .ar-ctrl-btn {
@@ -157,7 +156,6 @@
     .ar-ctrl-btn.active { background: rgba(73,166,166,.25); border-color: #49a6a6; box-shadow: 0 0 16px rgba(73,166,166,.4); }
     .ar-ctrl-btn.active .ar-ctrl-lbl { color: #7fcece; }
 
-    /* Scale slider */
     .ar-scale-wrap {
       position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -170,18 +168,6 @@
       cursor: pointer; accent-color: #49a6a6;
     }
 
-    /* iOS notice banner */
-    .ar-ios-notice {
-      position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
-      background: rgba(8,28,28,.9); border: 1px solid rgba(73,166,166,.5);
-      border-radius: 14px; padding: 10px 16px;
-      font-family: 'Nunito',sans-serif; font-size: .7rem; font-weight: 700; color: #7fcece;
-      text-align: center; white-space: nowrap; z-index: 30; pointer-events: none;
-      display: none;
-    }
-    .ar-ios-notice.visible { display: block; }
-
-    /* Toast */
     .ar-toast {
       position: absolute; bottom: 110px; left: 50%;
       transform: translateX(-50%) translateY(10px);
@@ -193,17 +179,16 @@
     }
     .ar-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* model-viewer slot overrides — hide its default AR button (we use our own) */
-    #${MV_ID}::part(default-ar-button) { display: none !important; }
+    #${MV_ID}::part(default-ar-button)    { display: none !important; }
     #${MV_ID}::part(default-progress-bar) { background: #49a6a6; }
   `;
 
   // ─────────────────────────────────────────────────────────────────
   // HELPERS
   // ─────────────────────────────────────────────────────────────────
-  function getPetEmoji (t) { return { a:'🐱', b:'🐶', c:'🦜' }[t] || '🐾'; }
+  function getPetEmoji(t) { return { a:'🐱', b:'🐶', c:'🦜' }[t] || '🐾'; }
 
-  function toast (msg) {
+  function toast(msg) {
     const el = document.getElementById('arToastEl');
     if (!el) return;
     el.textContent = msg;
@@ -212,41 +197,72 @@
     el._t = setTimeout(() => el.classList.remove('show'), 2500);
   }
 
-  function setHint (msg, show) {
+  function setHint(msg, show) {
     const wrap = document.getElementById('arTapHint');
     const txt  = document.getElementById('arHintTxt');
     if (txt)  txt.textContent = msg;
     if (wrap) wrap.style.opacity = show ? '1' : '0';
   }
 
+  function hideLoadingScreen() {
+    const ls = document.getElementById('arLoadingScreen');
+    if (ls) ls.classList.add('hidden');
+  }
+
   // ─────────────────────────────────────────────────────────────────
-  // LOAD model-viewer SCRIPT (once)
+  // LOAD model-viewer — inject early, wait for custom element define
   // ─────────────────────────────────────────────────────────────────
-  function loadModelViewer () {
-    if (mvLoaded || document.querySelector(`script[src="${MV_SRC}"]`)) {
-      mvLoaded = true; return Promise.resolve();
-    }
+  function loadModelViewer() {
     return new Promise((resolve, reject) => {
+      // If already defined, resolve immediately
+      if (customElements.get('model-viewer')) {
+        mvScriptReady = true; mvDefined = true;
+        resolve(); return;
+      }
+
+      // If script already injected, just wait for define
+      if (mvScriptReady) {
+        waitForDefine(resolve, reject); return;
+      }
+
       const s = document.createElement('script');
-      s.type  = 'module';
-      s.src   = MV_SRC;
-      s.onload  = () => { mvLoaded = true; resolve(); };
-      s.onerror = reject;
+      s.type        = 'module';
+      s.src         = MV_SRC;
+      s.crossOrigin = 'anonymous';
+      s.onload      = () => { mvScriptReady = true; waitForDefine(resolve, reject); };
+      s.onerror     = () => reject(new Error('model-viewer script failed to load'));
       document.head.appendChild(s);
     });
   }
 
+  function waitForDefine(resolve, reject) {
+    // customElements.whenDefined guarantees the element is registered
+    customElements.whenDefined('model-viewer')
+      .then(() => { mvDefined = true; resolve(); })
+      .catch(reject);
+
+    // Safety timeout — 15s
+    const t = setTimeout(() => {
+      if (!mvDefined) reject(new Error('model-viewer define timeout'));
+    }, 15000);
+
+    customElements.whenDefined('model-viewer').then(() => clearTimeout(t)).catch(() => {});
+  }
+
   // ─────────────────────────────────────────────────────────────────
-  // DOM
+  // INJECT STYLES
   // ─────────────────────────────────────────────────────────────────
-  function injectStyles () {
+  function injectStyles() {
     if (document.getElementById('arCSS')) return;
     const s = document.createElement('style');
     s.id = 'arCSS'; s.textContent = CSS;
     document.head.appendChild(s);
   }
 
-  function buildButton () {
+  // ─────────────────────────────────────────────────────────────────
+  // BUILD BUTTON
+  // ─────────────────────────────────────────────────────────────────
+  function buildButton() {
     if (document.getElementById(AR_BTN_ID)) return;
     const btn = document.createElement('button');
     btn.id = AR_BTN_ID; btn.title = 'View pet in AR';
@@ -261,40 +277,25 @@
     document.body.appendChild(btn);
   }
 
-  function buildOverlay () {
+  // ─────────────────────────────────────────────────────────────────
+  // BUILD OVERLAY SHELL (no model-viewer yet — injected after script)
+  // ─────────────────────────────────────────────────────────────────
+  function buildOverlay() {
     if (document.getElementById(AR_OV_ID)) return;
-
-    const petType = getCurrentPetType();
-    const usdzSrc = MODELS_USDZ[petType] || '';
 
     const ov = document.createElement('div');
     ov.id = AR_OV_ID;
-
-    // Key iOS fixes:
-    // 1. Remove environment-image="neutral" — causes black on iOS WebKit
-    // 2. Set explicit background via style + --poster-color
-    // 3. Add ios-src for Quick Look USDZ (required for real AR on iOS)
-    // 4. skybox-image removed — not supported on iOS and causes black
-    // 5. tone-mapping="commerce" works best cross-platform
     ov.innerHTML = `
-      <model-viewer
-        id="${MV_ID}"
-        src="${MODELS[petType]}"
-        ${usdzSrc ? `ios-src="${usdzSrc}"` : ''}
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        ar-scale="fixed"
-        ar-placement="floor"
-        camera-controls
-        shadow-intensity="0.5"
-        exposure="1"
-        tone-mapping="commerce"
-        loading="eager"
-        reveal="auto"
-        style="background-color: #081c1c;"
-      ></model-viewer>
+      <!-- Loading screen shown until model-viewer is ready -->
+      <div id="arLoadingScreen" class="ar-loading-screen">
+        <div class="ar-spinner"></div>
+        <span class="ar-loading-txt" id="arLoadingTxt">Initialising AR…</span>
+      </div>
 
-      <!-- HUD overlaid on top -->
+      <!-- model-viewer injected here programmatically after script loads -->
+      <div id="arMvSlot" style="position:absolute;inset:0;z-index:1;"></div>
+
+      <!-- HUD — always on top -->
       <div class="ar-hud ar-top-bar">
         <div class="ar-pet-pill">
           <div class="ar-pet-emo" id="arPetEmoji">🐾</div>
@@ -306,11 +307,10 @@
         <button class="ar-close-btn" id="arCloseBtn">✕</button>
       </div>
 
-      <div class="ar-hud ar-mode-badge"><span class="ar-rec"></span><span id="arModeLbl">Loading…</span></div>
+      <div class="ar-hud ar-mode-badge" id="arModeBadge" style="display:none">
+        <span class="ar-rec"></span><span id="arModeLbl">Loading…</span>
+      </div>
 
-      ${IS_IOS ? `<div class="ar-ios-notice visible" id="arIosNotice">📱 iOS: Tap "Enter AR" for Quick Look AR</div>` : ''}
-
-      <!-- Tap hint (shown before AR placement) -->
       <div class="ar-tap-hint" id="arTapHint" style="opacity:0">
         <div class="ar-tap-ring">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -320,19 +320,16 @@
         <span class="ar-tap-txt" id="arHintTxt">Point at floor, then tap</span>
       </div>
 
-      <!-- Scan reticle (shown while model-viewer is scanning) -->
       <div class="ar-reticle-wrap" id="arReticleWrap" style="opacity:0">
         <div class="ar-reticle"></div>
       </div>
 
-      <!-- Scale slider -->
       <div class="ar-scale-wrap">
         <span class="ar-scale-label">Size</span>
         <input type="range" id="arScaleSlider" min="0.2" max="3" step="0.05" value="1" orient="vertical">
         <span class="ar-scale-label" id="arScaleVal">1×</span>
       </div>
 
-      <!-- Bottom controls -->
       <div class="ar-bottom-bar">
         <div class="ar-ctrl-btn" id="arRotBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -357,127 +354,181 @@
 
     document.body.appendChild(ov);
 
-    // Wire controls
     document.getElementById('arCloseBtn').addEventListener('click', closeAR);
     document.getElementById('arRotBtn').addEventListener('click', toggleRotate);
     document.getElementById('arResetBtn').addEventListener('click', resetView);
     document.getElementById('arFlipBtn').addEventListener('click', flipModel);
     document.getElementById('arLaunchARBtn').addEventListener('click', enterAR);
     document.getElementById('arScaleSlider').addEventListener('input', onScale);
+  }
 
-    // model-viewer events
-    const mv = document.getElementById(MV_ID);
+  // ─────────────────────────────────────────────────────────────────
+  // INJECT <model-viewer> — only AFTER customElements.whenDefined resolves
+  // This is the critical fix: on iOS Safari, writing innerHTML with
+  // an unknown custom element tag before it's registered produces
+  // an HTMLUnknownElement that never renders.
+  // ─────────────────────────────────────────────────────────────────
+  function injectModelViewer(petType) {
+    const slot = document.getElementById('arMvSlot');
+    if (!slot) return;
 
-    mv.addEventListener('load', () => {
-      document.getElementById('arModeLbl').textContent = IS_IOS ? '3D Preview (iOS)' : '3D Preview';
-      setHint('Tap "Enter AR" to place in real world', true);
-      setTimeout(() => setHint('', false), 4000);
-      toast(IS_IOS ? 'Model loaded — tap Enter AR for Quick Look 🐾' : 'Model loaded — tap Enter AR to place 🐾');
+    // Remove any existing instance
+    const existing = document.getElementById(MV_ID);
+    if (existing) existing.remove();
 
-      // Hide iOS notice after model loads
-      const iosNotice = document.getElementById('arIosNotice');
-      if (iosNotice) setTimeout(() => { iosNotice.style.opacity = '0'; }, 3000);
-    });
+    const glbSrc  = MODELS[petType]      || MODELS['b'];
+    const usdzSrc = MODELS_USDZ[petType] || '';
 
-    mv.addEventListener('error', (e) => {
-      console.error('[AR] model-viewer error:', e);
-      document.getElementById('arModeLbl').textContent = 'Load Error';
-      toast('Error loading model — check file path');
-    });
+    const mv = document.createElement('model-viewer');
+    mv.id = MV_ID;
 
-    mv.addEventListener('ar-status', (e) => {
-      const status = e.detail.status;
-      if (status === 'session-started') {
-        document.getElementById('arModeLbl').textContent = IS_IOS ? 'Quick Look AR' : 'WebXR AR';
-        document.getElementById('arReticleWrap').style.opacity = '1';
-        setHint('Point at floor, then tap to place', true);
-        toast('AR started — scan the floor 🌟');
-      }
-      if (status === 'object-placed') {
-        document.getElementById('arReticleWrap').style.opacity = '0';
-        setHint('', false);
-        toast('Anchored! Walk around freely 📍');
-      }
-      if (status === 'failed') {
-        document.getElementById('arModeLbl').textContent = '3D Preview';
-        toast(IS_IOS ? 'AR needs a .usdz file on iOS' : 'AR not available on this device');
-      }
-    });
+    // Set all attributes via setAttribute (not innerHTML) so iOS registers them correctly
+    mv.setAttribute('src', glbSrc);
+    if (usdzSrc) mv.setAttribute('ios-src', usdzSrc);
+    mv.setAttribute('ar', '');
+    mv.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
+    mv.setAttribute('ar-scale', 'fixed');
+    mv.setAttribute('ar-placement', 'floor');
+    mv.setAttribute('camera-controls', '');
+    mv.setAttribute('shadow-intensity', '0.5');
+    mv.setAttribute('exposure', '1');
+    mv.setAttribute('tone-mapping', 'commerce');
+    mv.setAttribute('loading', 'eager');
+    mv.setAttribute('reveal', 'auto');
 
-    mv.addEventListener('ar-tracking', (e) => {
-      if (e.detail.status === 'tracking') {
-        document.getElementById('arReticleWrap').style.opacity = '0';
-      }
-    });
+    // Inline style for guaranteed dimensions — critical for iOS WebKit
+    mv.style.cssText = [
+      'display:block',
+      'width:100%',
+      'height:100%',
+      'position:absolute',
+      'inset:0',
+      'background-color:#081c1c',
+      '--poster-color:#081c1c',
+      '--progress-bar-color:#49a6a6',
+    ].join(';');
+
+    mv.addEventListener('load', onMvLoad);
+    mv.addEventListener('error', onMvError);
+    mv.addEventListener('ar-status', onArStatus);
+    mv.addEventListener('ar-tracking', onArTracking);
+
+    slot.appendChild(mv);
+    lastPetType = petType;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // model-viewer EVENT HANDLERS
+  // ─────────────────────────────────────────────────────────────────
+  function onMvLoad() {
+    hideLoadingScreen();
+    const badge = document.getElementById('arModeBadge');
+    if (badge) badge.style.display = '';
+    document.getElementById('arModeLbl').textContent = IS_IOS ? '3D Preview (iOS)' : '3D Preview';
+    setHint('Tap "Enter AR" to place in real world', true);
+    setTimeout(() => setHint('', false), 4000);
+    toast(IS_IOS ? 'Model loaded 🐾  Tap Enter AR for Quick Look' : 'Model loaded — tap Enter AR to place 🐾');
+  }
+
+  function onMvError(e) {
+    console.error('[AR] model-viewer load error:', e);
+    const ltxt = document.getElementById('arLoadingTxt');
+    if (ltxt) ltxt.textContent = '⚠️ Model failed to load';
+    toast('Error loading 3D model — check file path');
+  }
+
+  function onArStatus(e) {
+    const s = e.detail.status;
+    if (s === 'session-started') {
+      document.getElementById('arModeLbl').textContent = IS_IOS ? 'Quick Look AR' : 'WebXR AR';
+      document.getElementById('arReticleWrap').style.opacity = '1';
+      setHint('Point at floor, then tap to place', true);
+      toast('AR started — scan the floor 🌟');
+    }
+    if (s === 'object-placed') {
+      document.getElementById('arReticleWrap').style.opacity = '0';
+      setHint('', false);
+      toast('Anchored! Walk around freely 📍');
+    }
+    if (s === 'failed') {
+      document.getElementById('arModeLbl').textContent = '3D Preview';
+      toast(IS_IOS ? 'AR needs a .usdz file on iOS' : 'AR not available on this device');
+    }
+  }
+
+  function onArTracking(e) {
+    if (e.detail.status === 'tracking') {
+      document.getElementById('arReticleWrap').style.opacity = '0';
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────
   // OPEN / CLOSE
   // ─────────────────────────────────────────────────────────────────
-  async function openAR () {
+  async function openAR() {
     buildOverlay();
     syncPetTag();
 
     document.getElementById(AR_OV_ID).classList.add('open');
     document.getElementById(AR_BTN_ID).classList.add('ar-active');
 
-    // Load model-viewer script if not already loaded
+    const ltxt = document.getElementById('arLoadingTxt');
+
     try {
+      if (ltxt) ltxt.textContent = 'Loading AR library…';
       await loadModelViewer();
-    } catch (e) {
-      toast('Failed to load AR library');
+    } catch (err) {
+      console.error('[AR]', err);
+      if (ltxt) ltxt.textContent = '⚠️ AR library failed to load';
+      toast('Failed to load AR — check connection');
       return;
     }
 
-    // Update model src to current pet
-    updateModelSrc();
+    if (ltxt) ltxt.textContent = 'Loading 3D model…';
+    const petType = getCurrentPetType();
+    injectModelViewer(petType);
   }
 
-  function closeAR () {
-    // Exit any active AR session
+  function closeAR() {
     const mv = document.getElementById(MV_ID);
-    if (mv) {
-      try { mv.exitFullscreen(); } catch (_) {}
-      // Reset viewer state
-      mv.setAttribute('auto-rotate', '');
-      autoRotate = false;
-    }
+    if (mv) { try { mv.exitFullscreen(); } catch (_) {} }
 
     document.getElementById(AR_OV_ID).classList.remove('open');
     document.getElementById(AR_BTN_ID).classList.remove('ar-active');
 
-    // Reset controls
+    // Re-show loading screen for next open
+    const ls = document.getElementById('arLoadingScreen');
+    if (ls) ls.classList.remove('hidden');
+    const badge = document.getElementById('arModeBadge');
+    if (badge) badge.style.display = 'none';
+
     const sl  = document.getElementById('arScaleSlider');
     const lbl = document.getElementById('arScaleVal');
     if (sl)  sl.value = 1;
     if (lbl) lbl.textContent = '1×';
     document.getElementById('arRotBtn')?.classList.remove('active');
+    autoRotate = false;
     setHint('', false);
     document.getElementById('arReticleWrap').style.opacity = '0';
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // ENTER AR (triggers model-viewer's built-in AR flow)
+  // ENTER AR
   // ─────────────────────────────────────────────────────────────────
-  function enterAR () {
+  function enterAR() {
     const mv = document.getElementById(MV_ID);
-    if (!mv) return;
+    if (!mv) { toast('Model not ready yet'); return; }
 
     if (IS_IOS) {
-      // On iOS, activateAR() triggers Quick Look (requires ios-src USDZ)
-      // If no USDZ is present, inform the user clearly
       const petType = getCurrentPetType();
       if (!MODELS_USDZ[petType]) {
-        toast('iOS AR needs a .usdz file 🍎');
-        return;
+        toast('iOS AR needs a .usdz file 🍎'); return;
       }
     }
 
-    // model-viewer exposes activateAR() which starts the WebXR / SceneViewer / QuickLook flow
     if (typeof mv.activateAR === 'function') {
       mv.activateAR();
     } else {
-      // Fallback: click the hidden default AR button
       const arBtn = mv.shadowRoot?.querySelector('[slot="ar-button"], .ar-button');
       if (arBtn) arBtn.click();
       else toast('AR not supported on this device');
@@ -485,33 +536,28 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // MODEL SRC — swap GLB when pet changes
+  // MODEL SRC — swap GLB when pet changes while overlay is open
   // ─────────────────────────────────────────────────────────────────
-  function updateModelSrc () {
+  function updateModelSrc() {
     const petType = getCurrentPetType();
     if (petType === lastPetType) return;
-    lastPetType = petType;
 
     const mv = document.getElementById(MV_ID);
     if (!mv) return;
 
     mv.setAttribute('src', MODELS[petType]);
-
-    // Update ios-src for Quick Look
     const usdzSrc = MODELS_USDZ[petType];
-    if (usdzSrc) {
-      mv.setAttribute('ios-src', usdzSrc);
-    } else {
-      mv.removeAttribute('ios-src');
-    }
+    if (usdzSrc) mv.setAttribute('ios-src', usdzSrc);
+    else         mv.removeAttribute('ios-src');
 
+    lastPetType = petType;
     document.getElementById('arModeLbl').textContent = 'Loading…';
   }
 
   // ─────────────────────────────────────────────────────────────────
   // CONTROLS
   // ─────────────────────────────────────────────────────────────────
-  function toggleRotate () {
+  function toggleRotate() {
     autoRotate = !autoRotate;
     const mv = document.getElementById(MV_ID);
     if (mv) {
@@ -522,7 +568,7 @@
     toast(autoRotate ? 'Auto-rotate on 🔄' : 'Auto-rotate off');
   }
 
-  function resetView () {
+  function resetView() {
     const mv = document.getElementById(MV_ID);
     if (mv) {
       mv.cameraOrbit  = 'auto auto auto';
@@ -537,22 +583,19 @@
     toast('Reset ✅');
   }
 
-  function flipModel () {
+  function flipModel() {
     const mv = document.getElementById(MV_ID);
     if (!mv) return;
-    // Toggle mirror by flipping scale x
-    const cur = mv.scale || '1 1 1';
-    const parts = cur.split(' ').map(Number);
+    const parts = (mv.scale || '1 1 1').split(' ').map(Number);
     parts[0] *= -1;
     mv.scale = parts.join(' ');
     toast('Mirrored 🔄');
   }
 
-  function onScale (e) {
+  function onScale(e) {
     const val = parseFloat(e.target.value);
     const lbl = document.getElementById('arScaleVal');
     if (lbl) lbl.textContent = val.toFixed(1) + '×';
-
     const mv = document.getElementById(MV_ID);
     if (mv) mv.scale = `${val} ${val} ${val}`;
   }
@@ -560,12 +603,12 @@
   // ─────────────────────────────────────────────────────────────────
   // PET SYNC
   // ─────────────────────────────────────────────────────────────────
-  function getCurrentPetType () {
+  function getCurrentPetType() {
     try { if (typeof petData !== 'undefined' && petData.type) return petData.type; } catch (_) {}
     return 'b';
   }
 
-  function syncPetTag () {
+  function syncPetTag() {
     const type = getCurrentPetType();
     const name = (() => { try { return petData?.name || 'Pet'; } catch (_) { return 'Pet'; } })();
     const emo  = document.getElementById('arPetEmoji');
@@ -574,7 +617,7 @@
     if (nm)  nm.textContent  = name;
   }
 
-  function watchPetChange () {
+  function watchPetChange() {
     setInterval(() => {
       if (!document.getElementById(AR_OV_ID)?.classList.contains('open')) return;
       const type = getCurrentPetType();
@@ -587,14 +630,20 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // BOOTSTRAP
+  // BOOTSTRAP — preload script in background so it's ready on first tap
   // ─────────────────────────────────────────────────────────────────
-  function init () {
+  function init() {
     injectStyles();
     buildButton();
     buildOverlay();
     watchPetChange();
-    console.log('[AR] HELIX model-viewer AR module loaded ✅', IS_IOS ? '(iOS Safari detected)' : '');
+
+    // Kick off script load immediately in background
+    loadModelViewer().catch(() => {
+      console.warn('[AR] Background preload failed — will retry on open');
+    });
+
+    console.log('[AR] HELIX AR module loaded ✅', IS_IOS ? '(iOS Safari)' : '(non-iOS)');
   }
 
   if (document.readyState === 'loading') {
