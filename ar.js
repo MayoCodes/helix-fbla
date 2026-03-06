@@ -17,10 +17,17 @@
 
   const MV_SRC    = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
   const MODELS    = { a: 'Leopard_Hybrid_A2.glb', b: 'idle02.glb', c: 'Parrot_A4.glb' };
+  // iOS Quick Look requires USDZ — map pet types to USDZ files
+  // If you don't have .usdz files yet, model-viewer will attempt GLB fallback in 3D preview mode
+  const MODELS_USDZ = { a: 'Leopard_Hybrid_A2.usdz', b: 'idle02.usdz', c: 'Parrot_A4.usdz' };
   const PET_LABELS = { a: 'Cat', b: 'Dog', c: 'Bird' };
   const AR_BTN_ID  = 'arLaunchBtn';
   const AR_OV_ID   = 'arOverlay';
   const MV_ID      = 'arModelViewer';
+
+  // Detect iOS Safari
+  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   // ─────────────────────────────────────────────────────────────────
   // STATE
@@ -58,13 +65,14 @@
     /* ── Overlay wrapper ── */
     #${AR_OV_ID} {
       display: none; position: fixed; inset: 0; z-index: 10000;
-      background: #000; overflow: hidden;
+      background: #081c1c; overflow: hidden;
     }
     #${AR_OV_ID}.open { display: block; }
 
     /* ── model-viewer fills the overlay ── */
     #${MV_ID} {
       width: 100%; height: 100%;
+      background-color: #081c1c;
       --poster-color: #081c1c;
       --progress-bar-color: #49a6a6;
       --progress-mask: #081c1c;
@@ -162,6 +170,17 @@
       cursor: pointer; accent-color: #49a6a6;
     }
 
+    /* iOS notice banner */
+    .ar-ios-notice {
+      position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+      background: rgba(8,28,28,.9); border: 1px solid rgba(73,166,166,.5);
+      border-radius: 14px; padding: 10px 16px;
+      font-family: 'Nunito',sans-serif; font-size: .7rem; font-weight: 700; color: #7fcece;
+      text-align: center; white-space: nowrap; z-index: 30; pointer-events: none;
+      display: none;
+    }
+    .ar-ios-notice.visible { display: block; }
+
     /* Toast */
     .ar-toast {
       position: absolute; bottom: 110px; left: 50%;
@@ -246,24 +265,33 @@
     if (document.getElementById(AR_OV_ID)) return;
 
     const petType = getCurrentPetType();
+    const usdzSrc = MODELS_USDZ[petType] || '';
+
     const ov = document.createElement('div');
     ov.id = AR_OV_ID;
+
+    // Key iOS fixes:
+    // 1. Remove environment-image="neutral" — causes black on iOS WebKit
+    // 2. Set explicit background via style + --poster-color
+    // 3. Add ios-src for Quick Look USDZ (required for real AR on iOS)
+    // 4. skybox-image removed — not supported on iOS and causes black
+    // 5. tone-mapping="commerce" works best cross-platform
     ov.innerHTML = `
-      <!-- model-viewer: handles camera feed, hit-test, GLB, AR session internally -->
       <model-viewer
         id="${MV_ID}"
         src="${MODELS[petType]}"
+        ${usdzSrc ? `ios-src="${usdzSrc}"` : ''}
         ar
         ar-modes="webxr scene-viewer quick-look"
         ar-scale="fixed"
         ar-placement="floor"
         camera-controls
-        auto-rotate
-        shadow-intensity="0"
+        shadow-intensity="0.5"
         exposure="1"
-        environment-image="neutral"
+        tone-mapping="commerce"
         loading="eager"
         reveal="auto"
+        style="background-color: #081c1c;"
       ></model-viewer>
 
       <!-- HUD overlaid on top -->
@@ -279,6 +307,8 @@
       </div>
 
       <div class="ar-hud ar-mode-badge"><span class="ar-rec"></span><span id="arModeLbl">Loading…</span></div>
+
+      ${IS_IOS ? `<div class="ar-ios-notice visible" id="arIosNotice">📱 iOS: Tap "Enter AR" for Quick Look AR</div>` : ''}
 
       <!-- Tap hint (shown before AR placement) -->
       <div class="ar-tap-hint" id="arTapHint" style="opacity:0">
@@ -339,16 +369,26 @@
     const mv = document.getElementById(MV_ID);
 
     mv.addEventListener('load', () => {
-      document.getElementById('arModeLbl').textContent = '3D Preview';
+      document.getElementById('arModeLbl').textContent = IS_IOS ? '3D Preview (iOS)' : '3D Preview';
       setHint('Tap "Enter AR" to place in real world', true);
       setTimeout(() => setHint('', false), 4000);
-      toast('Model loaded — tap Enter AR to place 🐾');
+      toast(IS_IOS ? 'Model loaded — tap Enter AR for Quick Look 🐾' : 'Model loaded — tap Enter AR to place 🐾');
+
+      // Hide iOS notice after model loads
+      const iosNotice = document.getElementById('arIosNotice');
+      if (iosNotice) setTimeout(() => { iosNotice.style.opacity = '0'; }, 3000);
+    });
+
+    mv.addEventListener('error', (e) => {
+      console.error('[AR] model-viewer error:', e);
+      document.getElementById('arModeLbl').textContent = 'Load Error';
+      toast('Error loading model — check file path');
     });
 
     mv.addEventListener('ar-status', (e) => {
       const status = e.detail.status;
       if (status === 'session-started') {
-        document.getElementById('arModeLbl').textContent = 'WebXR AR';
+        document.getElementById('arModeLbl').textContent = IS_IOS ? 'Quick Look AR' : 'WebXR AR';
         document.getElementById('arReticleWrap').style.opacity = '1';
         setHint('Point at floor, then tap to place', true);
         toast('AR started — scan the floor 🌟');
@@ -360,7 +400,7 @@
       }
       if (status === 'failed') {
         document.getElementById('arModeLbl').textContent = '3D Preview';
-        toast('AR not available on this device');
+        toast(IS_IOS ? 'AR needs a .usdz file on iOS' : 'AR not available on this device');
       }
     });
 
@@ -423,6 +463,16 @@
     const mv = document.getElementById(MV_ID);
     if (!mv) return;
 
+    if (IS_IOS) {
+      // On iOS, activateAR() triggers Quick Look (requires ios-src USDZ)
+      // If no USDZ is present, inform the user clearly
+      const petType = getCurrentPetType();
+      if (!MODELS_USDZ[petType]) {
+        toast('iOS AR needs a .usdz file 🍎');
+        return;
+      }
+    }
+
     // model-viewer exposes activateAR() which starts the WebXR / SceneViewer / QuickLook flow
     if (typeof mv.activateAR === 'function') {
       mv.activateAR();
@@ -444,7 +494,17 @@
 
     const mv = document.getElementById(MV_ID);
     if (!mv) return;
+
     mv.setAttribute('src', MODELS[petType]);
+
+    // Update ios-src for Quick Look
+    const usdzSrc = MODELS_USDZ[petType];
+    if (usdzSrc) {
+      mv.setAttribute('ios-src', usdzSrc);
+    } else {
+      mv.removeAttribute('ios-src');
+    }
+
     document.getElementById('arModeLbl').textContent = 'Loading…';
   }
 
@@ -534,7 +594,7 @@
     buildButton();
     buildOverlay();
     watchPetChange();
-    console.log('[AR] HELIX model-viewer AR module loaded ✅');
+    console.log('[AR] HELIX model-viewer AR module loaded ✅', IS_IOS ? '(iOS Safari detected)' : '');
   }
 
   if (document.readyState === 'loading') {
