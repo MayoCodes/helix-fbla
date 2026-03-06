@@ -2,11 +2,16 @@
  * HELIX LOADING OVERLAY - All-in-one Script
  * Just include this file: <script src="loading.js"></script>
  * Auto-injects HTML and CSS, provides global functions
+ * Mobile: loading overlay is bypassed (no-op) for snappier feel.
  */
 
 (function() {
     'use strict';
-    
+
+    // ── Detect mobile/tablet ──────────────────────────────────────────────────
+    const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+        || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+
     // Inject CSS
     const styles = `
         .loading-overlay {
@@ -118,16 +123,12 @@
     
     // Initialize when DOM is ready
     function init() {
-        // Inject CSS
         const styleEl = document.createElement('style');
         styleEl.textContent = styles;
         document.head.appendChild(styleEl);
-        
-        // Inject HTML
         document.body.insertAdjacentHTML('beforeend', html);
     }
     
-    // Run on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
@@ -137,53 +138,46 @@
     // ========================================
     // GLOBAL API FUNCTIONS
     // ========================================
-    
+
     /**
      * Show loading overlay
+     * On mobile this is a no-op — overlay is skipped entirely.
      * @param {string} message - Optional custom loading message (default: "Loading...")
-     * @example showLoading('Loading your pets...')
      */
     window.showLoading = function(message = 'Loading...') {
+        if (isMobile) return;   // ← bypass on mobile
         const overlay = document.getElementById('loadingOverlay');
         const text = overlay ? overlay.querySelector('.loading-text') : null;
-        
-        if (text && message) {
-            text.textContent = message;
-        }
-        
-        if (overlay) {
-            overlay.classList.add('active');
-        }
+        if (text && message) text.textContent = message;
+        if (overlay) overlay.classList.add('active');
     };
-    
+
     /**
      * Hide loading overlay
-     * @param {number} delay - Optional delay in milliseconds before hiding (default: 0)
-     * @example hideLoading(1000) // Hide after 1 second
+     * On mobile this is a no-op.
+     * @param {number} delay - Optional delay in ms before hiding (default: 0)
      */
     window.hideLoading = function(delay = 0) {
+        if (isMobile) return;   // ← bypass on mobile
         const overlay = document.getElementById('loadingOverlay');
-        
         if (!overlay) return;
-        
         if (delay > 0) {
-            setTimeout(() => {
-                overlay.classList.remove('active');
-            }, delay);
+            setTimeout(() => overlay.classList.remove('active'), delay);
         } else {
             overlay.classList.remove('active');
         }
     };
-    
+
     /**
-     * Show loading for a specific duration then auto-hide
+     * Show loading for a specific duration then auto-hide.
+     * On mobile this is a no-op.
      * @param {number} duration - Duration in milliseconds
      * @param {string} message - Optional custom loading message
-     * @example showLoadingFor(2000, 'Loading data...') // Show for 2 seconds
      */
     window.showLoadingFor = function(duration, message = 'Loading...') {
+        if (isMobile) return;   // ← bypass on mobile
         window.showLoading(message);
         window.hideLoading(duration);
     };
-    
+
 })();
