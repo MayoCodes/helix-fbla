@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix — Pet Health Platform</title>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { overflow-x: hidden; }
+body {
+  background: #000;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────
+   NAVBAR
+───────────────────────────────────────── */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 24px 40px;
+  transition: color 0.5s;
+}
+.navbar.on-white { color: #000; }
+
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 600; letter-spacing: -0.2px;
+  color: inherit; text-decoration: none;
+}
+.logo-icon {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1.5px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.nav-right { display: flex; align-items: center; gap: 4px; }
+.nav-link {
+  font-size: 14px; color: rgba(255,255,255,0.7);
+  text-decoration: none; padding: 8px 18px;
+  transition: color 0.3s;
+}
+.navbar.on-white .nav-link { color: rgba(0,0,0,0.6); }
+.nav-link:hover { color: #fff; }
+.navbar.on-white .nav-link:hover { color: #000; }
+
+.nav-btn {
+  font-size: 14px; font-weight: 500;
+  background: #fff; color: #000;
+  padding: 10px 22px; border-radius: 6px;
+  text-decoration: none; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all 0.3s;
+}
+.navbar.on-white .nav-btn { background: #000; color: #fff; }
+.nav-btn:hover { opacity: 0.85; }
+
+/* ─────────────────────────────────────────
+   HERO — SCROLL JACKED
+   The hero is position:sticky, 100vh tall.
+   Below it we put a tall scroll-driver div.
+   As user scrolls, JS reads progress and
+   drives the BabylonJS camera zoom.
+───────────────────────────────────────── */
+.hero-sticky-wrapper {
+  position: relative;
+  height: 600vh; /* driver height — lots of scroll room */
+}
+.hero-sticky {
+  position: sticky;
+  top: 0; left: 0;
+  width: 100%; height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+#renderCanvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1; outline: none; touch-action: none;
+}
+
+/* White fade overlay — driven by JS */
+.hero-fade {
+  position: absolute; inset: 0;
+  background: #fff;
+  opacity: 0;
+  z-index: 5;
+  pointer-events: none;
+  transition: none; /* JS handles this */
+}
+
+/* Floating orbiting letters */
+.orbit-letter {
+  position: absolute; z-index: 3;
+  font-weight: 700;
+  color: rgba(73,166,166,0.28);
+  pointer-events: none; user-select: none;
+  will-change: transform;
+  transition: opacity 0.3s;
+}
+
+/* Hero text — bottom left, fades out as zoom progresses */
+.hero-text {
+  position: absolute; bottom: 56px; left: 48px;
+  z-index: 4; will-change: opacity, transform;
+}
+.hero-eyebrow {
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,0.45); margin-bottom: 12px;
+}
+.hero-title {
+  font-size: clamp(54px, 7.5vw, 108px);
+  font-weight: 700; line-height: 0.93;
+  letter-spacing: -3px; color: #fff;
+  margin-bottom: 28px;
+}
+.hero-title em {
+  font-style: italic; font-weight: 300;
+  color: rgba(255,255,255,0.6);
+}
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #fff; color: #000;
+  font-size: 15px; font-weight: 500;
+  padding: 14px 26px; border-radius: 6px;
+  text-decoration: none; transition: opacity 0.3s;
+}
+.hero-cta:hover { opacity: 0.88; }
+.cta-arrow {
+  width: 22px; height: 22px; background: #000; color: #fff;
+  border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 13px;
+}
+
+/* ─────────────────────────────────────────
+   LOADER
+───────────────────────────────────────── */
+#loader {
+  position: fixed; inset: 0; background: #000; z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+  transition: opacity 0.8s, visibility 0.8s;
+}
+#loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.loader-ring {
+  width: 32px; height: 32px;
+  border: 1.5px solid rgba(73,166,166,0.15);
+  border-top-color: #49a6a6; border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+.loader-text { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─────────────────────────────────────────
+   CONTENT SECTIONS (below sticky hero)
+───────────────────────────────────────── */
+
+/* Section 1: white intro */
+.s-intro {
+  background: #fff; color: #000;
+  padding: 120px 60px 80px;
+  text-align: center;
+}
+.s-intro h2 {
+  font-size: clamp(36px, 5vw, 68px);
+  font-weight: 600; line-height: 1.08;
+  letter-spacing: -2px; margin-bottom: 24px;
+}
+.s-intro h2 em {
+  font-style: italic; font-weight: 400;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.s-intro p {
+  font-size: 16px; line-height: 1.75; color: #555;
+  max-width: 660px; margin: 0 auto 60px;
+}
+/* Founders image placeholder */
+.founders-img {
+  width: 100%; max-width: 1100px; margin: 0 auto;
+  height: 480px; background: #1a1a1a;
+  border-radius: 12px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.founders-img-inner {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1a1010 0%, #2a1a2a 50%, #0a0a1a 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.15); font-size: 14px; letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Section 2: 2-col feature cards */
+.s-cards {
+  background: #fff;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background-color: #d8d8d8;
+  border-top: 1px solid #d8d8d8;
+}
+.feat-card { background: #f2f2f2; overflow: hidden; }
+.feat-preview {
+  height: 300px; background: #161616;
+  display: flex; align-items: center; justify-content: center;
+}
+.chat-mock-wrap {
+  width: 76%; max-width: 400px;
+  background: #1c1c1c; border-radius: 12px;
+  padding: 20px 22px; border: 1px solid #282828;
+}
+.chat-input-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #222; border: 1px solid #303030;
+  border-radius: 100px; padding: 10px 14px;
+}
+.chat-input-row span { font-size: 13px; color: rgba(255,255,255,0.38); flex: 1; }
+.ci-badge {
+  font-size: 10px; background: #2a2a2a; color: rgba(255,255,255,0.3);
+  padding: 4px 10px; border-radius: 100px;
+  display: flex; align-items: center; gap: 4px; white-space: nowrap;
+}
+.ci-send {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #fff; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #000;
+}
+.dash-mock-wrap {
+  width: 76%; max-width: 380px;
+  background: #fff; border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.dm-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #aaa; margin-bottom: 14px; }
+.dm-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid #f0f0f0;
+  font-size: 12px; color: #333;
+}
+.dm-row:last-child { border-bottom: none; }
+.dm-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot-g { background: #22c55e; }
+.dot-b { background: #3b82f6; }
+.dot-a { background: #f59e0b; }
+
+.feat-info { padding: 28px 36px 36px; }
+.feat-info h3 { font-size: 24px; font-weight: 600; color: #000; margin-bottom: 10px; }
+.feat-info p { font-size: 14px; line-height: 1.65; color: #666; }
+
+/* Section 3: dark chat — wireframe ghost behind messages */
+.s-chat {
+  background: #000; color: #fff;
+  padding: 100px 60px;
+  display: flex; flex-direction: column;
+  align-items: center; position: relative; overflow: hidden;
+}
+.chat-glow {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 700px; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(73,166,166,0.06) 0%, transparent 65%);
+  pointer-events: none;
+}
+.chat-msgs-wrap { width: 100%; max-width: 660px; z-index: 2; }
+.cmsg {
+  border-radius: 14px; padding: 20px 24px;
+  font-size: 15px; line-height: 1.65; margin-bottom: 14px;
+}
+.cmsg.user {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+}
+.cmsg.ai {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+}
+.ai-av {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(73,166,166,0.15);
+  border: 1px solid rgba(73,166,166,0.6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #6fcfcf;
+  overflow: hidden;
+}
+.ai-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.cmsg .tick { color: #22c55e; margin-left: 6px; }
+.cmsg .task-done {
+  margin-left: auto; font-size: 12px; color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+}
+
+/* Section 4: gray — proactive section */
+.s-proactive {
+  background: #e8e8e8; color: #000;
+  padding: 120px 60px 80px;
+}
+.s-proactive h3 {
+  font-size: clamp(32px, 4.5vw, 58px);
+  font-weight: 600; letter-spacing: -1.5px;
+  line-height: 1.1; margin-bottom: 14px;
+}
+.s-proactive h3 em {
+  font-style: italic; font-weight: 400;
+  font-family: Georgia, serif;
+}
+.s-proactive p { font-size: 15px; color: #666; margin-bottom: 60px; }
+
+/* horizontal scroll cards */
+.hscroll-track {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1px; background: #ccc;
+  border: 1px solid #ccc; border-radius: 2px;
+  overflow: hidden;
+}
+.hcard {
+  background: #fff; padding: 0;
+  min-height: 200px;
+}
+.hcard-top {
+  height: 130px; background: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.hcard-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #000; position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+}
+.hcard-line {
+  position: absolute; top: 20px; height: 1px; background: #ccc;
+  left: 50%; right: -50%;
+}
+.hcard-line.first { left: -50%; right: 0; }
+.hcard-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid #ccc; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.hcard-info { padding: 20px; }
+.hcard-info h4 { font-size: 14px; font-weight: 600; color: #000; margin-bottom: 6px; }
+.hcard-info p { font-size: 12px; color: #888; line-height: 1.5; }
+
+/* Section 5: split learn */
+.s-learn {
+  display: grid; grid-template-columns: 1fr 1fr;
+  min-height: 560px;
+}
+.s-learn-left {
+  background: #1a1a1a; padding: 60px 56px;
+  display: flex; flex-direction: column; justify-content: center;
+  border-right: 1px solid #262626;
+}
+.s-learn-right {
+  background: #fff; color: #000; padding: 60px 56px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.lc { display: flex; flex-direction: column; gap: 12px; }
+.lc-msg {
+  border-radius: 10px; padding: 14px 18px;
+  font-size: 14px; line-height: 1.5;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.lc-msg.u { background: #232323; color: rgba(255,255,255,0.72); border: 1px solid #2e2e2e; }
+.lc-msg.a { background: #1a1a1a; color: rgba(255,255,255,0.62); border: 1px solid rgba(73,166,166,0.25); }
+.lc-av { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; background: #383838; }
+.lc-av.ai {
+  background: rgba(73,166,166,0.12); border: 1px solid rgba(73,166,166,0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #49a6a6;
+}
+.s-learn-right h3 {
+  font-size: clamp(26px, 3.5vw, 42px);
+  font-weight: 600; letter-spacing: -1px; line-height: 1.1;
+  color: #000; margin-bottom: 16px;
+}
+.s-learn-right p { font-size: 14px; line-height: 1.75; color: #666; }
+
+/* Section 6: trust pillars */
+.s-trust {
+  background: #000; color: #fff;
+  display: grid; grid-template-columns: repeat(3,1fr);
+  padding: 110px 80px; gap: 48px;
+  border-top: 1px solid #1a1a1a;
+}
+.trust-col { display: flex; flex-direction: column; gap: 20px; }
+.trust-ico {
+  width: 62px; height: 62px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.14);
+  display: flex; align-items: center; justify-content: center;
+}
+.trust-ico svg { width: 22px; height: 22px; stroke: rgba(255,255,255,0.55); fill: none; stroke-width: 1.5; }
+.trust-col h4 { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.trust-col p { font-size: 14px; color: rgba(255,255,255,0.38); line-height: 1.5; }
+
+/* Section 7: media */
+.s-media {
+  background: #fff; padding: 60px 80px;
+  border-top: 1px solid #e0e0e0;
+}
+.s-media-label { text-align: center; font-size: 12px; color: #bbb; margin-bottom: 36px; letter-spacing: 0.5px; }
+.media-logos {
+  display: flex; justify-content: center;
+  align-items: center; gap: 52px; flex-wrap: wrap;
+}
+.ml { font-size: 16px; font-weight: 700; letter-spacing: -0.5px; color: #bbb; text-transform: uppercase; }
+.ml.serif { font-family: Georgia, serif; font-style: italic; font-size: 20px; letter-spacing: 0; }
+.ml.boxed { border: 1.5px solid #bbb; padding: 3px 8px; font-size: 12px; font-weight: 400; letter-spacing: 0; }
+
+/* Section 8: news — black bg, left text + right image */
+.s-news {
+  background: #000; color: #fff;
+  display: grid; grid-template-columns: 1fr 1fr;
+  min-height: 500px;
+}
+.s-news-left {
+  padding: 80px 60px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.s-news-eyebrow {
+  display: flex; align-items: center; gap: 16px;
+  font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.4); margin-bottom: 24px;
+}
+.s-news-eyebrow::before { content:''; width: 40px; height: 1px; background: rgba(255,255,255,0.3); }
+.s-news-left h3 {
+  font-size: clamp(34px, 4.5vw, 58px);
+  font-weight: 600; letter-spacing: -1.5px;
+  line-height: 1.05; margin-bottom: 32px;
+}
+.s-news-left h3 em { font-style: italic; font-weight: 300; font-family: Georgia, serif; }
+.news-btn {
+  display: inline-block;
+  font-size: 14px; font-weight: 500; color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 12px 24px; border-radius: 4px;
+  text-decoration: none; width: fit-content;
+  transition: all 0.3s;
+}
+.news-btn:hover { background: rgba(255,255,255,0.06); }
+.s-news-right {
+  background: #1a1010;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.s-news-right-inner {
+  width: 100%; height: 100%;
+  background: linear-gradient(160deg, #1a0f0f 0%, #2a1520 50%, #0f0f1a 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.1); font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* Section 9: final CTA */
+.s-final {
+  background: #000; min-height: 100vh;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center;
+}
+#renderCanvas2 {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 1; outline: none;
+}
+.final-copy {
+  position: relative; z-index: 2;
+  margin-left: 50%; padding-right: 80px;
+  max-width: 580px;
+}
+.final-eyebrow {
+  display: flex; align-items: center; gap: 16px;
+  font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.35); margin-bottom: 28px;
+}
+.final-eyebrow::before { content:''; width: 40px; height: 1px; background: rgba(255,255,255,0.25); }
+.final-copy h2 {
+  font-size: clamp(46px, 7vw, 90px);
+  font-weight: 600; line-height: 0.97;
+  letter-spacing: -3px; color: #fff; margin-bottom: 40px;
+}
+.final-copy h2 em {
+  font-style: italic; font-weight: 300;
+  font-family: Georgia, serif;
+  color: rgba(255,255,255,0.55); letter-spacing: -2px;
+}
+.final-cta {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #fff; color: #000; font-size: 15px; font-weight: 500;
+  padding: 14px 28px; border-radius: 6px;
+  text-decoration: none; transition: opacity 0.3s;
+}
+.final-cta .arr { width: 22px; height: 22px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.final-cta:hover { opacity: 0.85; }
+
+/* Footer */
+footer {
+  background: #000; padding: 28px 48px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid #181818; font-size: 13px; color: rgba(255,255,255,0.35);
+}
+.f-logo { display: flex; align-items: center; gap: 8px; }
+.f-links { display: flex; gap: 20px; align-items: center; }
+.f-links a { color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
+.f-links a:hover { color: rgba(255,255,255,0.7); }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.8s cubic-bezier(0.23,1,0.32,1), transform 0.8s cubic-bezier(0.23,1,0.32,1); }
+.reveal.in { opacity: 1; transform: none; }
+.rd1 { transition-delay: 0.1s; }
+.rd2 { transition-delay: 0.2s; }
+.rd3 { transition-delay: 0.3s; }
+
+@media (max-width: 900px) {
+  .s-cards { grid-template-columns: 1fr; }
+  .s-learn  { grid-template-columns: 1fr; }
+  .s-trust  { grid-template-columns: 1fr; padding: 60px 32px; }
+  .s-news   { grid-template-columns: 1fr; }
+  .hscroll-track { grid-template-columns: 1fr 1fr; }
+  .hero-text { left: 24px; bottom: 36px; }
+  .navbar { padding: 18px 24px; }
+  .final-copy { margin-left: 0; padding: 40px 32px; max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="loader-ring"></div><div class="loader-text">Loading Helix</div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a href="#" class="logo"><div class="logo-icon">✦</div> helix</a>
+  <div class="nav-right">
+    <a href="#" class="nav-link">Careers</a>
+    <a href="#" class="nav-btn">Request Access ↗</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     HERO — STICKY SCROLL-JACKED SECTION
+     600vh tall so scroll drives the zoom
+════════════════════════════════════════ -->
+<div class="hero-sticky-wrapper" id="heroWrapper">
+  <div class="hero-sticky" id="heroSticky">
+    <canvas id="renderCanvas"></canvas>
+
+    <!-- White fade overlay -->
+    <div class="hero-fade" id="heroFade"></div>
+
+    <!-- Orbiting letters -->
+    <div class="orbit-letter" id="ol0" style="top:18%;left:12%;font-size:clamp(30px,4vw,60px);">in</div>
+    <div class="orbit-letter" id="ol1" style="top:13%;left:30%;font-size:clamp(12px,1.8vw,26px);">✦</div>
+    <div class="orbit-letter" id="ol2" style="top:19%;right:16%;font-size:clamp(18px,2.2vw,34px);">ab</div>
+    <div class="orbit-letter" id="ol3" style="top:40%;right:8%;font-size:clamp(24px,3.2vw,50px);">δ</div>
+    <div class="orbit-letter" id="ol4" style="top:62%;right:7%;font-size:clamp(24px,3.2vw,48px);">ρ</div>
+    <div class="orbit-letter" id="ol5" style="bottom:28%;left:8%;font-size:clamp(24px,3.2vw,52px);">α</div>
+    <div class="orbit-letter" id="ol6" style="bottom:17%;right:20%;font-size:clamp(18px,2.2vw,36px);">S</div>
+    <div class="orbit-letter" id="ol7" style="top:33%;left:6%;font-size:clamp(12px,1.6vw,24px);">✦</div>
+
+    <!-- Hero text -->
+    <div class="hero-text" id="heroText">
+      <div class="hero-eyebrow">Multi Agentic Teams for Pet Health.</div>
+      <h1 class="hero-title">Introducing <em>Helix.</em></h1>
+      <a href="#" class="hero-cta">Request Access <span class="cta-arrow">↗</span></a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ALL CONTENT SECTIONS
+════════════════════════════════════════ -->
+
+<!-- 1. White intro + founders image -->
+<section class="s-intro">
+  <h2 class="reveal">The <em>operating system</em> for pet care.</h2>
+  <p class="reveal rd1">Helix orchestrates 20+ autonomous agents across health, nutrition, and care — forming a synchronized system that learns, adapts, and executes like your best vet team, only faster.</p>
+  <div class="founders-img reveal rd2">
+    <div class="founders-img-inner">Team Photo</div>
+  </div>
+</section>
+
+<!-- 2. Analyze + Execute cards -->
+<div class="s-cards">
+  <div class="feat-card">
+    <div class="feat-preview">
+      <div class="chat-mock-wrap">
+        <div class="chat-input-row">
+          <span>Hi Helix! Generate a health QBR report</span>
+          <div class="ci-badge">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Deep Research
+          </div>
+          <div class="ci-send">↑</div>
+        </div>
+      </div>
+    </div>
+    <div class="feat-info">
+      <h3 class="reveal">Analyze</h3>
+      <p class="reveal rd1">Helix dives into your pet's data, uncovers insights, and explains performance in real time.</p>
+    </div>
+  </div>
+  <div class="feat-card">
+    <div class="feat-preview" style="background:#eaeaea;">
+      <div class="dash-mock-wrap reveal">
+        <div class="dm-title">Health Dashboard</div>
+        <div class="dm-row"><span>Heart Rate</span><div class="dm-status"><div class="dot dot-g"></div>98 bpm — Normal</div></div>
+        <div class="dm-row"><span>Activity</span><div class="dm-status"><div class="dot dot-b"></div>4.2 hrs today</div></div>
+        <div class="dm-row"><span>Nutrition</span><div class="dm-status"><div class="dot dot-a"></div>On schedule</div></div>
+        <div class="dm-row"><span>Next Vet Visit</span><span style="font-size:11px;color:#aaa;">Mar 12</span></div>
+      </div>
+    </div>
+    <div class="feat-info">
+      <h3 class="reveal">Execute</h3>
+      <p class="reveal rd1">Helix takes action across every platform — adjusting care plans, ordering food, booking vet visits.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Dark chat with wireframe ghost -->
+<section class="s-chat">
+  <div class="chat-glow"></div>
+  <div class="chat-msgs-wrap">
+    <div class="cmsg user reveal">Hi Helix! Every Monday at 9am, generate a weekly health report for all my pets and send me an email with a summary of the most important areas to look at.</div>
+    <div class="cmsg ai reveal rd1">
+      <div class="ai-av">H</div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+        <span>Absolutely! I will handle the weekly reporting going forward.</span>
+        <span class="tick">✓</span>
+      </div>
+    </div>
+    <div class="cmsg user reveal rd2">Also make sure to filter out all irrelevant searches by updating our negative keyword structure for pets running special diets.</div>
+    <div class="cmsg ai reveal rd3">
+      <div class="ai-av">H</div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+        <span>On it! Adding that to my agenda each day.</span>
+        <span class="task-done">Task Updated ✓</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Gray — Proactive section + horizontal cards -->
+<section class="s-proactive">
+  <h3 class="reveal">Helix is <em>Proactive.</em></h3>
+  <p class="reveal rd1">It constantly reviews performance, flags issues, and surfaces insights before they impact results.</p>
+  <div class="hscroll-track reveal rd2">
+    <div class="hcard">
+      <div class="hcard-top">
+        <div class="hcard-dot"></div>
+        <div class="hcard-icon">🏥</div>
+      </div>
+      <div class="hcard-info">
+        <h4>Health Check</h4>
+        <p>Weekly vitals review and anomaly detection across all pets.</p>
+      </div>
+    </div>
+    <div class="hcard">
+      <div class="hcard-top">
+        <div class="hcard-dot"></div>
+        <div class="hcard-icon">🍽️</div>
+      </div>
+      <div class="hcard-info">
+        <h4>Nutrition Plan</h4>
+        <p>Auto-adjusted meal plans based on activity and weight data.</p>
+      </div>
+    </div>
+    <div class="hcard">
+      <div class="hcard-top">
+        <div class="hcard-dot"></div>
+        <div class="hcard-icon">🐾</div>
+      </div>
+      <div class="hcard-info">
+        <h4>Activity Goals</h4>
+        <p>Daily exercise targets calibrated to breed and age profile.</p>
+      </div>
+    </div>
+    <div class="hcard">
+      <div class="hcard-top">
+        <div class="hcard-dot"></div>
+        <div class="hcard-icon">💊</div>
+      </div>
+      <div class="hcard-info">
+        <h4>Medication</h4>
+        <p>Reminders and refill orders handled automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Split learn panel -->
+<section class="s-learn">
+  <div class="s-learn-left">
+    <div class="lc">
+      <div class="lc-msg u reveal"><div class="lc-av"></div><span>Based on latest metrics, prepare a new care strategy for our senior pets.</span></div>
+      <div class="lc-msg u reveal rd1"><div class="lc-av"></div><span>Uploading relevant previous health records. 📋</span></div>
+      <div class="lc-msg a reveal rd2"><div class="lc-av ai">H</div><span>Of course! I'll also translate it for your international vet partners.</span></div>
+    </div>
+  </div>
+  <div class="s-learn-right">
+    <h3 class="reveal">Helix Learns<br>How You Work.</h3>
+    <p class="reveal rd1">Upload care plans, training docs, and pet context — Helix adapts to your methods and preferences. Over time, it mirrors how your team thinks and operates, delivering results that feel truly yours.</p>
+  </div>
+</section>
+
+<!-- 6. Trust pillars -->
+<section class="s-trust">
+  <div class="trust-col">
+    <div class="trust-ico reveal"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <h4 class="reveal">Privacy</h4>
+    <p class="reveal rd1">Your data, fully protected.</p>
+  </div>
+  <div class="trust-col">
+    <div class="trust-ico reveal"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <h4 class="reveal">Control</h4>
+    <p class="reveal rd1">You're always in charge.</p>
+  </div>
+  <div class="trust-col">
+    <div class="trust-ico reveal"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg></div>
+    <h4 class="reveal">Transparency</h4>
+    <p class="reveal rd1">Clear actions, no black box.</p>
+  </div>
+</section>
+
+<!-- 7. Media logos -->
+<div class="s-media">
+  <div class="s-media-label reveal">Helix in the media</div>
+  <div class="media-logos">
+    <span class="ml reveal">BREAKIT</span>
+    <span class="ml reveal rd1">Forbes</span>
+    <span class="ml serif reveal rd2">etn.</span>
+    <span class="ml reveal rd3">FORTUNE</span>
+    <span class="ml boxed reveal" style="transition-delay:0.4s;">Dagens Industri</span>
+  </div>
+</div>
+
+<!-- 8. News section -->
+<section class="s-news">
+  <div class="s-news-left">
+    <div class="s-news-eyebrow reveal">News</div>
+    <h3 class="reveal">Keep up with Helix.<br>Read our <em>News.</em></h3>
+    <a href="#" class="news-btn reveal rd1">Read Latest Article</a>
+  </div>
+  <div class="s-news-right">
+    <div class="s-news-right-inner">Founders Photo</div>
+  </div>
+</section>
+
+<!-- 9. Final CTA with second wireframe -->
+<section class="s-final">
+  <canvas id="renderCanvas2"></canvas>
+  <div class="final-copy">
+    <div class="final-eyebrow reveal">Join the next generation of pet care</div>
+    <h2 class="reveal">Request<br>Early <em>Access.</em></h2>
+    <a href="#" class="final-cta reveal rd1">Request Access <span class="arr">↗</span></a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="f-logo"><div class="logo-icon" style="width:22px;height:22px;font-size:10px;border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.4);">✦</div> helix</div>
+  <div class="f-links">
+    <a href="#">Linkedin</a><span>|</span><a href="#">Privacy</a><a href="#">Terms</a>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  WIREFRAME — exact from provided HTML
+// ═══════════════════════════════════════════════════════════
+const CONFIG = {
+  glbUrl: './idle01.glb',
+  useFallback: true,
+  wireColor: { r: 0.286, g: 0.651, b: 0.651 },
+  totalRotationY: 12.5,
+  totalRotationX: 1.1,
+  zWobbleAmount: 0.12,
+  initialRotationY: 5.75,
+  modelScale: 3.8,
+  positionOffset: { x: -1.8, y: 0, z: 0 },
+  cameraDistStart: 2.9,
+  cameraBetaStart: 1.3,
+  cameraAlphaStart: 0.46,
+  cameraTargetXStart: -1.4,
+  cameraTargetY: 0.2,
+  cameraDistEnd: 3.5,
+  cameraBetaEnd: 1.0,
+  cameraAlphaEnd: -3.14,
+  cameraTargetXEnd: -3.7,
+  glowIntensity: 0,
+};
+
+const canvas  = document.getElementById('renderCanvas');
+const engine  = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer:true, stencil:true, antialias:true });
+const canvas2 = document.getElementById('renderCanvas2');
+const engine2 = new BABYLON.Engine(canvas2, true, { antialias:true });
+
+let heroScrollProgress = 0; // 0→1 over the hero sticky zone
+
+function buildFallback(scene, wireMat, posX) {
+  const root = new BABYLON.TransformNode('root', scene);
+  const props = [
+    ['head',  () => BABYLON.MeshBuilder.CreateSphere('head',  {diameterX:2,diameterY:2.6,diameterZ:2.2,segments:28},scene), m => { m.position.y=0.8; }],
+    ['neck',  () => BABYLON.MeshBuilder.CreateCylinder('neck', {height:0.8,diameterTop:0.9,diameterBottom:1.1,tessellation:18},scene), m => { m.position.y=-0.7; }],
+    ['torso', () => BABYLON.MeshBuilder.CreateSphere('torso', {diameterX:3.5,diameterY:2.0,diameterZ:2.0,segments:22},scene), m => { m.position.y=-1.8; }],
+    ['nose',  () => BABYLON.MeshBuilder.CreateCylinder('nose', {height:0.6,diameterTop:0.15,diameterBottom:0.35,tessellation:10},scene), m => { m.position=new BABYLON.Vector3(0,0.7,1.0); m.rotation.x=Math.PI/2.5; }],
+    ['brow',  () => BABYLON.MeshBuilder.CreateTorus('brow', {diameter:1.4,thickness:0.15,tessellation:22},scene), m => { m.position=new BABYLON.Vector3(0,1.3,0.4); m.rotation.x=Math.PI/3; m.scaling=new BABYLON.Vector3(1,0.3,1); }],
+    ['jaw',   () => BABYLON.MeshBuilder.CreateSphere('jaw',  {diameterX:1.5,diameterY:0.8,diameterZ:1.3,segments:16},scene), m => { m.position=new BABYLON.Vector3(0,-0.1,0.2); }],
+    ['skull', () => BABYLON.MeshBuilder.CreateSphere('skull',{diameterX:2.2,diameterY:2.4,diameterZ:1.6,segments:20},scene), m => { m.position=new BABYLON.Vector3(0,1.0,-0.4); }],
+  ];
+  props.forEach(([,create,setup]) => { const m=create(); m.material=wireMat; setup(m); m.parent=root; });
+  [-0.45,0.45].forEach((x,i)=>{ const e=BABYLON.MeshBuilder.CreateSphere(`eye${i}`,{diameter:0.45,segments:14},scene); e.material=wireMat; e.position=new BABYLON.Vector3(x,1.0,0.7); e.parent=root; });
+  [-0.85,0.85].forEach((x,i)=>{ const c=BABYLON.MeshBuilder.CreateSphere(`ch${i}`,{diameterX:0.5,diameterY:0.4,diameterZ:0.5,segments:12},scene); c.material=wireMat; c.position=new BABYLON.Vector3(x,0.5,0.6); c.parent=root; });
+  [-1.05,1.05].forEach((x,i)=>{ const ear=BABYLON.MeshBuilder.CreateTorus(`ear${i}`,{diameter:0.4,thickness:0.08,tessellation:14},scene); ear.material=wireMat; ear.position=new BABYLON.Vector3(x,0.7,-0.1); ear.rotation.y=Math.PI/2; ear.parent=root; });
+  root.position.x = posX;
+  root.rotation.y = CONFIG.initialRotationY;
+  return root;
+}
+
+// ── HERO SCENE ──
+const createScene = async () => {
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0,0,0,1);
+  scene.ambientColor = new BABYLON.Color3(0.05,0.1,0.1);
+
+  // Camera: we drive radius (zoom) via scroll, NOT rotation
+  const camera = new BABYLON.ArcRotateCamera('cam',
+    CONFIG.cameraAlphaStart, CONFIG.cameraBetaStart,
+    CONFIG.cameraDistStart,
+    new BABYLON.Vector3(CONFIG.cameraTargetXStart, CONFIG.cameraTargetY, 0), scene);
+  camera.inputs.clear(); camera.minZ = 0.01;
+
+  const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0,1,0), scene);
+  hemi.intensity = 0.2; hemi.diffuse = new BABYLON.Color3(0.3,0.6,0.6);
+  const keyLight = new BABYLON.PointLight('key', new BABYLON.Vector3(2,3,-1), scene);
+  keyLight.intensity = 1.5; keyLight.diffuse = new BABYLON.Color3(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b);
+  const rimLight = new BABYLON.PointLight('rim', new BABYLON.Vector3(-3,0,3), scene);
+  rimLight.intensity = 0.8; rimLight.diffuse = new BABYLON.Color3(0.15,0.35,0.35);
+  const botLight = new BABYLON.PointLight('bot', new BABYLON.Vector3(0,-3,0), scene);
+  botLight.intensity = 0.4; botLight.diffuse = new BABYLON.Color3(CONFIG.wireColor.r*.5, CONFIG.wireColor.g*.5, CONFIG.wireColor.b*.5);
+
+  const wireMat = new BABYLON.StandardMaterial('wire', scene);
+  wireMat.wireframe = true;
+  wireMat.emissiveColor = new BABYLON.Color3(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b);
+  wireMat.diffuseColor  = new BABYLON.Color3(CONFIG.wireColor.r*.4, CONFIG.wireColor.g*.4, CONFIG.wireColor.b*.4);
+  wireMat.alpha = 0.9; wireMat.backFaceCulling = false;
+
+  const glow = new BABYLON.GlowLayer('glow', scene, {mainTextureFixedSize:512, blurKernelSize:64});
+  glow.intensity = CONFIG.glowIntensity;
+
+  let rootMesh;
+  try {
+    const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', CONFIG.glbUrl, scene);
+    rootMesh = result.meshes[0];
+    scene.stopAllAnimations();
+    result.meshes.forEach(m => { if (m.getTotalVertices && m.getTotalVertices()>0) m.material=wireMat; });
+    rootMesh.computeWorldMatrix(true);
+    let bounds = rootMesh.getHierarchyBoundingVectors(true);
+    const size = bounds.max.subtract(bounds.min);
+    const sf = CONFIG.modelScale / Math.max(size.x, size.y, size.z);
+    rootMesh.scaling = new BABYLON.Vector3(sf, sf, sf);
+    rootMesh.computeWorldMatrix(true);
+    bounds = rootMesh.getHierarchyBoundingVectors(true);
+    const ctr = bounds.min.add(bounds.max).scale(0.5);
+    rootMesh.position.x = -ctr.x + CONFIG.positionOffset.x;
+    rootMesh.position.y = -ctr.y + CONFIG.positionOffset.y;
+    rootMesh.position.z = -ctr.z + CONFIG.positionOffset.z;
+    rootMesh.rotation.y = CONFIG.initialRotationY;
+    camera.target = new BABYLON.Vector3(CONFIG.cameraTargetXStart, CONFIG.cameraTargetY, 0);
+  } catch(err) {
+    console.warn('GLB failed, using fallback:', err.message);
+    rootMesh = buildFallback(scene, wireMat, CONFIG.positionOffset.x);
+    camera.target = new BABYLON.Vector3(CONFIG.cameraTargetXStart, CONFIG.cameraTargetY, 0);
+  }
+
+  const ps = new BABYLON.ParticleSystem('dust', 200, scene);
+  ps.createPointEmitter(new BABYLON.Vector3(-4,-3,-4), new BABYLON.Vector3(4,4,4));
+  ps.emitRate=10; ps.minLifeTime=5; ps.maxLifeTime=10;
+  ps.minSize=0.008; ps.maxSize=0.025;
+  ps.color1=new BABYLON.Color4(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b, 0.35);
+  ps.color2=new BABYLON.Color4(1,1,1,0.08);
+  ps.minEmitPower=0.005; ps.maxEmitPower=0.03;
+  ps.start();
+
+  // KEY ANIMATION: on scroll, we ONLY zoom the camera in (reduce radius)
+  // NO rotation — the model stays still, camera flies into it
+  scene.registerBeforeRender(() => {
+    const t = heroScrollProgress; // 0→1
+
+    // ── ZOOM IN: camera flies from far to very close ──
+    // Start radius ~2.9, zoom to 0.4 (very close to face)
+    const targetRadius = CONFIG.cameraDistStart + t * (0.4 - CONFIG.cameraDistStart);
+    camera.radius += (targetRadius - camera.radius) * 0.06;
+
+    // Slightly center the camera target on the face as we zoom
+    const targetX = CONFIG.cameraTargetXStart + t * (0 - CONFIG.cameraTargetXStart);
+    camera.target.x += (targetX - camera.target.x) * 0.04;
+    const targetY = CONFIG.cameraTargetY + t * (0.6 - CONFIG.cameraTargetY);
+    camera.target.y += (targetY - camera.target.y) * 0.04;
+
+    // Small gentle idle rotation (NOT scroll-driven)
+    if (rootMesh) {
+      rootMesh.rotation.y = CONFIG.initialRotationY + Math.sin(Date.now() * 0.0003) * 0.08;
+    }
+
+    // Increase glow as we zoom in
+    glow.intensity = t * 0.5;
+
+    // Brighten wire as we zoom in
+    const r = CONFIG.wireColor.r + t * (0.85 - CONFIG.wireColor.r);
+    const g2= CONFIG.wireColor.g + t * (0.92 - CONFIG.wireColor.g);
+    const b = CONFIG.wireColor.b + t * (0.92 - CONFIG.wireColor.b);
+    wireMat.emissiveColor = new BABYLON.Color3(r, g2, b);
+    keyLight.diffuse = new BABYLON.Color3(r, g2, b);
+  });
+
+  return scene;
+};
+
+// ── FINAL SECTION WIREFRAME (same config, just slow idle rotation) ──
+const createScene2 = async () => {
+  const scene = new BABYLON.Scene(engine2);
+  scene.clearColor = new BABYLON.Color4(0,0,0,1);
+
+  const camera = new BABYLON.ArcRotateCamera('cam2', -0.5, 1.28, 3.0,
+    new BABYLON.Vector3(-1.3, 0.2, 0), scene);
+  camera.inputs.clear(); camera.minZ = 0.01;
+
+  new BABYLON.HemisphericLight('h2', new BABYLON.Vector3(0,1,0), scene).intensity = 0.2;
+  const kl2 = new BABYLON.PointLight('kl2', new BABYLON.Vector3(2,3,-1), scene);
+  kl2.intensity = 1.5; kl2.diffuse = new BABYLON.Color3(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b);
+
+  const wm2 = new BABYLON.StandardMaterial('wm2', scene);
+  wm2.wireframe = true;
+  wm2.emissiveColor = new BABYLON.Color3(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b);
+  wm2.diffuseColor  = new BABYLON.Color3(CONFIG.wireColor.r*.4, CONFIG.wireColor.g*.4, CONFIG.wireColor.b*.4);
+  wm2.alpha = 0.88; wm2.backFaceCulling = false;
+
+  const glow2 = new BABYLON.GlowLayer('gl2', scene, {mainTextureFixedSize:256});
+  glow2.intensity = 0.15;
+
+  let mesh2;
+  try {
+    const r2 = await BABYLON.SceneLoader.ImportMeshAsync('', '', CONFIG.glbUrl, scene);
+    mesh2 = r2.meshes[0];
+    scene.stopAllAnimations();
+    r2.meshes.forEach(m => { if (m.getTotalVertices && m.getTotalVertices()>0) m.material=wm2; });
+    mesh2.computeWorldMatrix(true);
+    let b = mesh2.getHierarchyBoundingVectors(true);
+    const sz = b.max.subtract(b.min);
+    const sf = CONFIG.modelScale / Math.max(sz.x, sz.y, sz.z);
+    mesh2.scaling = new BABYLON.Vector3(sf, sf, sf);
+    mesh2.computeWorldMatrix(true);
+    b = mesh2.getHierarchyBoundingVectors(true);
+    const ctr = b.min.add(b.max).scale(0.5);
+    mesh2.position.x = -ctr.x - 1.8;
+    mesh2.position.y = -ctr.y;
+    mesh2.position.z = -ctr.z;
+    mesh2.rotation.y = 4.2;
+  } catch(e) {
+    mesh2 = buildFallback(scene, wm2, -1.8);
+    mesh2.rotation.y = 4.2;
+  }
+
+  const ps2 = new BABYLON.ParticleSystem('dust2', 150, scene);
+  ps2.createPointEmitter(new BABYLON.Vector3(-4,-3,-4), new BABYLON.Vector3(4,4,4));
+  ps2.emitRate=8; ps2.minLifeTime=5; ps2.maxLifeTime=10;
+  ps2.minSize=0.008; ps2.maxSize=0.022;
+  ps2.color1=new BABYLON.Color4(CONFIG.wireColor.r, CONFIG.wireColor.g, CONFIG.wireColor.b, 0.3);
+  ps2.color2=new BABYLON.Color4(1,1,1,0.05);
+  ps2.minEmitPower=0.005; ps2.maxEmitPower=0.025;
+  ps2.start();
+
+  scene.registerBeforeRender(() => {
+    if (mesh2) mesh2.rotation.y = 4.2 + Math.sin(Date.now() * 0.0003) * 0.15;
+  });
+
+  return scene;
+};
+
+// ═══════════════════════════════════════════════════════════
+//  FLOATING LETTER IDLE ANIMATION
+// ═══════════════════════════════════════════════════════════
+const letters = document.querySelectorAll('.orbit-letter');
+const letterData = Array.from(letters).map((el, i) => ({
+  el,
+  phase: (i / letters.length) * Math.PI * 2,
+  speed: 0.35 + (i % 3) * 0.15,
+  ampX:  5 + (i % 4) * 4,
+  ampY:  7 + (i % 3) * 6,
+}));
+
+function animateLetters(t) {
+  letterData.forEach(({ el, phase, speed, ampX, ampY }) => {
+    const tt = t * 0.001 * speed + phase;
+    const dx = Math.sin(tt * 0.7) * ampX;
+    const dy = Math.cos(tt) * ampY;
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+  });
+  requestAnimationFrame(animateLetters);
+}
+requestAnimationFrame(animateLetters);
+
+// ═══════════════════════════════════════════════════════════
+//  SCROLL HANDLER
+//  - Reads scroll position within the hero sticky wrapper
+//  - Drives heroScrollProgress (0→1) for zoom
+//  - After zoom complete (t>0.7), starts fading in white overlay
+//  - Drives hero text fade-out
+//  - Drives navbar color change
+//  - Drives orbit letter scale-up / fade-out
+// ═══════════════════════════════════════════════════════════
+const navbar      = document.getElementById('navbar');
+const heroWrapper = document.getElementById('heroWrapper');
+const heroFade    = document.getElementById('heroFade');
+const heroText    = document.getElementById('heroText');
+
+function onScroll() {
+  const wrapperTop    = heroWrapper.offsetTop;
+  const wrapperHeight = heroWrapper.offsetHeight;
+  const viewH         = window.innerHeight;
+  const scrollY       = window.scrollY;
+
+  // How far into the wrapper are we? (0 = just entered, 1 = fully exited)
+  const rawT = Math.max(0, Math.min(1, (scrollY - wrapperTop) / (wrapperHeight - viewH)));
+  heroScrollProgress = rawT;
+
+  // ── Hero text: fade out and slide up as zoom begins (0→0.35)
+  const textOpacity = Math.max(0, 1 - rawT / 0.3);
+  heroText.style.opacity = textOpacity;
+  heroText.style.transform = `translateY(${rawT * -40}px)`;
+
+  // ── Orbiting letters: scale up and fade as zoom progresses (0→0.5)
+  const letterScale = 1 + rawT * 0.6;
+  const letterOpacity = Math.max(0, 1 - rawT / 0.4);
+  letters.forEach(el => {
+    el.style.opacity = letterOpacity;
+    el.style.transform = el.style.transform.replace(/scale\([^)]+\)/, '') + ` scale(${letterScale})`;
+  });
+
+  // ── White fade overlay: kick in after zoom is mostly done (t > 0.7)
+  const fadeStart = 0.7;
+  const fadeT = Math.max(0, Math.min(1, (rawT - fadeStart) / (1 - fadeStart)));
+  heroFade.style.opacity = fadeT;
+
+  // ── Navbar: white when past hero
+  const pastHero = scrollY > wrapperHeight - viewH * 0.5;
+  navbar.classList.toggle('on-white', pastHero);
+
+  // ── Scroll reveal for content sections
+  document.querySelectorAll('.reveal').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.9) el.classList.add('in');
+  });
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  const [s1, s2] = await Promise.all([createScene(), createScene2()]);
+  setTimeout(() => document.getElementById('loader').classList.add('hidden'), 900);
+  engine.runRenderLoop(() => s1.render());
+  engine2.runRenderLoop(() => s2.render());
+  window.addEventListener('resize', () => { engine.resize(); engine2.resize(); });
+  onScroll();
+})();
+</script>
+</body>
+</html>

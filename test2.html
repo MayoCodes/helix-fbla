@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lucy — Epiminds</title>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ─────────────────────────────────────────────────────────
+   RESET + VARS
+───────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#050b0b;
+  --dark:#0d1717;
+  --dark2:#111e1e;
+  --teal:#3a9090;
+  --teal-l:#5bbaba;
+  --white:#fafaf8;
+  --off:#f0ede6;
+  --off2:#e8e4dc;
+  --text:#0e1a1a;
+  --dim:#6a8080;
+}
+html{overflow-x:hidden}
+body{background:#fff;color:var(--white);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+
+/* ─────────────────────────────────────────────────────────
+   BABYLON CANVAS — z:1, fixed, full viewport
+───────────────────────────────────────────────────────── */
+#renderCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:3;touch-action:none;outline:none;pointer-events:none}
+
+/* ─────────────────────────────────────────────────────────
+   NAV — always on top
+───────────────────────────────────────────────────────── */
+#nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:24px 52px;
+  color:var(--text);
+  transition:color .5s ease;
+}
+#nav.dark{color:var(--text)}
+.nlogo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:500;letter-spacing:.01em;color:inherit;text-decoration:none}
+.nright{display:flex;align-items:center;gap:24px}
+.ncareer{font-size:13px;letter-spacing:.04em;color:inherit;text-decoration:none;opacity:.75;transition:opacity .2s}
+.ncareer:hover{opacity:1}
+.nreq{
+  font-size:13px;letter-spacing:.04em;
+  padding:9px 22px;
+  border:1.5px solid currentColor;
+  border-radius:7px;background:transparent;
+  color:inherit;cursor:pointer;text-decoration:none;
+  transition:background .2s,color .2s;
+}
+#nav:not(.dark) .nreq:hover{background:rgba(0,0,0,.08)}
+#nav.dark .nreq:hover{background:var(--text);color:white}
+
+/* ─────────────────────────────────────────────────────────
+   SMOOTH-SCROLL RAIL — z:2, moves on rAF
+───────────────────────────────────────────────────────── */
+#rail{position:fixed;top:0;left:0;width:100%;will-change:transform;z-index:2}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION + STICKY SYSTEM
+───────────────────────────────────────────────────────── */
+.sec{position:relative;width:100%}
+.pin{position:absolute;top:0;left:0;width:100%;height:100vh;overflow:hidden}
+
+/* ─────────────────────────────────────────────────────────
+   PET ICON PATTERN — hero background
+───────────────────────────────────────────────────────── */
+#pet-pattern {
+  position:absolute;
+  inset:0;
+  z-index:1;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity .6s ease;
+}
+#pet-pattern-canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.pet-icon-el {
+  position:absolute;
+  color: #b0b8b8;
+  transition: opacity 0.3s ease;
+}
+.pet-icon-el svg {
+  display: block;
+}
+
+/* ─────────────────────────────────────────────────────────
+   HERO  — dark, 300vh
+───────────────────────────────────────────────────────── */
+#s-hero{height:300vh}
+#s-hero .pin{background:#fff;overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;}
+#s-hero .pin::-webkit-scrollbar{display:none}
+
+#hero-ww{
+  position:absolute;inset:0;
+  background:var(--off);
+  opacity:0;pointer-events:none;z-index:4;
+}
+#hero-os{
+  position:absolute;inset:0;z-index:5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0 60px;
+  opacity:0;pointer-events:none;color:var(--text);
+}
+.os-label{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  opacity:.45;display:flex;align-items:center;justify-content:center;gap:14px;
+  margin-bottom:24px;
+}
+.os-label::before,.os-label::after{content:'';display:block;width:36px;height:1px;background:currentColor}
+.os-h{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(40px,5.5vw,78px);font-weight:400;line-height:1.06;
+  max-width:860px;
+}
+.os-h em{font-style:italic;color:var(--teal)}
+.os-body{font-size:16px;line-height:1.75;opacity:.5;max-width:540px;margin-top:20px}
+
+#hero-btm{
+  position:absolute;bottom:0;left:0;
+  padding:0 52px 64px;
+  z-index:10;
+}
+.hero-eyebrow{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.55;display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;color:var(--text);
+}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--text)}
+.hero-h1{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(52px,7.5vw,96px);font-weight:400;line-height:1.0;
+  letter-spacing:-.01em;margin-bottom:30px;color:var(--text);
+}
+.hero-h1 em{font-style:italic;color:var(--teal)}
+.hero-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--text);color:white;
+  border:none;border-radius:8px;
+  padding:15px 28px;font-size:14px;font-weight:500;letter-spacing:.01em;
+  cursor:pointer;text-decoration:none;
+  transition:transform .2s,box-shadow .2s,background .2s;
+}
+.hero-btn:hover{background:#1a2e2e;transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.2)}
+
+/* ─────────────────────────────────────────────────────────
+   OS+VIDEO SECTION
+───────────────────────────────────────────────────────── */
+#s-osvid{height:280vh}
+#s-osvid .pin{
+  background:var(--off);color:var(--text);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;gap:0;padding:0;
+  overflow-y:scroll;
+  -ms-overflow-style:none;scrollbar-width:none;
+}
+#s-osvid .pin::-webkit-scrollbar{display:none}
+.ovid-top{
+  width:100%;text-align:center;padding:120px 52px 40px;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+}
+.ovid-sub{font-size:15px;line-height:1.75;opacity:.48;max-width:560px}
+.vwrap{
+  width:min(960px,90vw);border-radius:18px;
+  overflow:hidden;box-shadow:0 36px 90px rgba(0,0,0,.13);
+  aspect-ratio:16/9;position:relative;background:#111;flex-shrink:0;
+}
+.vbg{position:absolute;inset:0;background:linear-gradient(160deg,#1e2e2e,#0c1616)}
+.vppl{position:absolute;bottom:0;left:0;right:0;height:82%;display:flex;justify-content:center;gap:14px;align-items:flex-end}
+.vprs{width:35%;height:90%;border-radius:90px 90px 0 0}
+.vplay{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:66px;height:66px;border:2px solid rgba(255,255,255,.38);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:white;cursor:pointer;z-index:2;
+  transition:all .22s;
+}
+.vplay:hover{background:var(--teal);border-color:var(--teal)}
+.vdur{position:absolute;bottom:18px;left:22px;font-size:12px;color:rgba(255,255,255,.35);z-index:2}
+.pbar{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  gap:52px;flex-wrap:wrap;padding:36px 52px 0;
+}
+.pb-lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.28;width:100%;text-align:center;margin-bottom:8px}
+.pb-logo{font-family:'Playfair Display',serif;font-size:clamp(15px,2vw,24px);font-weight:700;opacity:.28;cursor:default;transition:opacity .2s;color:var(--text)}
+.pb-logo:hover{opacity:.55}
+.pb-logo.ss{font-family:'DM Sans',sans-serif}
+.pb-logo.it{font-style:italic}
+
+/* ─────────────────────────────────────────────────────────
+   ADAPTS
+───────────────────────────────────────────────────────── */
+#s-adapts{height:400vh}
+#s-adapts .pin{
+  background:var(--off2);color:var(--text);
+  overflow:hidden;
+}
+#adapts-inner{
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:80px 8vw 80px;
+  gap:80px;
+  will-change:transform;
+}
+.adapt-head{margin-bottom:64px}
+.adapt-head h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(34px,4.8vw,62px);font-weight:400;line-height:1.1;
+}
+.adapt-head h2 em{font-style:italic;color:var(--teal)}
+
+.ar{
+  display:flex;align-items:center;width:100%;gap:72px;
+  opacity:1;transform:none;
+  flex-shrink:0;
+}
+.ar.rev{flex-direction:row-reverse}
+.ar.vis{opacity:1;transform:translateY(0)}
+.ar-txt{flex:0 0 min(360px,38%)}
+.ar-txt h3{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(22px,2.5vw,32px);font-weight:400;line-height:1.2;
+  margin-bottom:14px;
+}
+.ar-txt p{font-size:13px;line-height:1.8;opacity:.52;max-width:310px}
+.ar-card{
+  flex:1;max-width:540px;border-radius:18px;
+  overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.16);
+}
+
+.card-dark{background:#0e1a1a}
+.igpad{padding:28px}
+.igrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ico{
+  width:54px;height:54px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:700;color:white;
+}
+
+.chat-pad{padding:22px;display:flex;flex-direction:column;gap:12px;background:#0e1a1a}
+.crow{display:flex;gap:10px;align-items:flex-start}
+.crow.r{flex-direction:row-reverse}
+.cav{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  background:var(--teal);display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:white;
+}
+.cav.usr{background:#2e2e2e}
+.cbub{
+  background:rgba(255,255,255,.09);color:rgba(255,255,255,.8);
+  border-radius:12px;padding:12px 15px;font-size:12.5px;line-height:1.55;flex:1;
+}
+.cbub.usr{background:white;color:#1a1a1a}
+.ctag{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(58,144,144,.2);border-radius:7px;
+  padding:4px 10px;font-size:11px;color:rgba(255,255,255,.65);margin-top:8px;
+}
+
+.two-col{display:flex;gap:0;background:#f5f3ef;border-radius:18px;overflow:hidden}
+.tc-half{flex:1;padding:28px 26px}
+.tc-half h4{font-size:15px;font-weight:500;color:#0e1a1a;margin-bottom:7px}
+.tc-half p{font-size:12px;line-height:1.65;color:#888}
+.tc-half+.tc-half{border-left:1.5px solid rgba(0,0,0,.07)}
+
+/* ─────────────────────────────────────────────────────────
+   CHAT SECTION
+───────────────────────────────────────────────────────── */
+#s-chat{height:300vh}
+#s-chat .pin{background:rgba(0,0,0,.82);overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;}
+#s-chat .pin::-webkit-scrollbar{display:none}
+
+.chat-ui{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:min(600px,88vw);
+  display:flex;flex-direction:column;gap:14px;
+  z-index:5;
+}
+.cm{
+  background:white;color:var(--text);
+  border-radius:16px;padding:20px 24px;
+  font-size:15px;line-height:1.55;
+  opacity:0;transform:translateY(32px);
+  transition:opacity .55s ease,transform .55s ease;
+}
+.cm.show{opacity:1;transform:translateY(0)}
+.cm.ai{
+  background:transparent;
+  border:1.5px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.86);
+  display:flex;align-items:flex-start;gap:14px;
+  padding:16px 20px;
+}
+.cm-av{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  overflow:hidden;background:var(--dark2);
+  display:flex;align-items:center;justify-content:center;
+}
+.cm-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.cm-body{flex:1}
+.cm-badge{font-size:11px;opacity:.5;margin-left:8px}
+
+/* ─────────────────────────────────────────────────────────
+   TESTIMONIAL
+───────────────────────────────────────────────────────── */
+#s-testi{height:200vh}
+#s-testi .pin{background:#000;display:flex;align-items:center;padding:0 7vw;overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;}
+#s-testi .pin::-webkit-scrollbar{display:none}
+
+.testi-inner{max-width:1060px}
+.testi-q{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(22px,2.8vw,38px);font-weight:400;line-height:1.55;
+  margin-bottom:36px;
+  opacity:0;transform:translateY(40px);
+  transition:opacity .8s ease,transform .8s ease;
+}
+.testi-q.vis{opacity:1;transform:translateY(0)}
+.testi-who{
+  font-size:13px;opacity:.45;
+  display:flex;flex-direction:column;gap:4px;
+  opacity:0;transition:opacity .8s .15s ease;
+}
+.testi-who.vis{opacity:.45}
+.testi-name{font-weight:500;font-size:14px;opacity:.7;color:white}
+
+/* ─────────────────────────────────────────────────────────
+   NEWS
+───────────────────────────────────────────────────────── */
+#s-news{height:200vh}
+#s-news .pin{
+  background:#0a1414;
+  display:flex;align-items:center;
+  padding:0 8vw;gap:80px;
+  overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;
+}
+#s-news .pin::-webkit-scrollbar{display:none}
+.news-left{flex:1}
+.news-tag{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.35;display:flex;align-items:center;gap:14px;
+  margin-bottom:30px;
+}
+.news-tag::before{content:'';display:block;width:36px;height:1px;background:currentColor}
+.news-h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(30px,4vw,52px);font-weight:400;line-height:1.1;
+  margin-bottom:28px;
+}
+.news-h2 em{font-style:italic}
+.news-read{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1.5px solid rgba(255,255,255,.22);color:white;
+  border-radius:7px;padding:12px 24px;font-size:13px;
+  cursor:pointer;text-decoration:none;background:transparent;
+  transition:all .2s;
+}
+.news-read:hover{border-color:var(--teal);color:var(--teal)}
+.news-photo{
+  flex:0 0 min(480px,44%);aspect-ratio:4/3;
+  border-radius:16px;overflow:hidden;
+  background:linear-gradient(160deg,#2a3a38,#0d1a1a);
+  position:relative;
+}
+.news-photo-img{
+  width:100%;height:100%;object-fit:cover;
+  background:linear-gradient(165deg,#3a2e28 0%,#1a1612 60%,#0d1010 100%);
+}
+.np-ov{
+  position:absolute;inset:0;
+  display:flex;align-items:flex-end;justify-content:center;gap:20px;overflow:hidden;
+}
+.np-sil{width:38%;height:88%;border-radius:120px 120px 0 0;background:linear-gradient(180deg,#3d3530,#1c1a18)}
+
+/* ─────────────────────────────────────────────────────────
+   CTA
+───────────────────────────────────────────────────────── */
+#s-cta{height:200vh}
+#s-cta .pin{
+  background:var(--black);
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:0 10vw;
+  overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;
+}
+#s-cta .pin::-webkit-scrollbar{display:none}
+.cta-box{max-width:500px;z-index:5;position:relative}
+.cta-label{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.45;display:flex;align-items:center;gap:14px;
+  margin-bottom:22px;
+}
+.cta-label::before{content:'';display:block;width:36px;height:1px;background:currentColor}
+.cta-h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(48px,6.5vw,86px);font-weight:400;line-height:1.02;
+  margin-bottom:34px;
+}
+.cta-h2 em{font-style:italic;color:var(--teal)}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:white;color:var(--text);
+  border:none;border-radius:8px;
+  padding:16px 32px;font-size:14px;font-weight:500;
+  cursor:pointer;text-decoration:none;
+  transition:transform .2s,box-shadow .2s;
+}
+.cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
+
+/* ─────────────────────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────────────────────── */
+#s-footer{background:#050a0a;border-top:1px solid rgba(255,255,255,.05)}
+.footer-in{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 52px;
+}
+.f-logo{display:flex;align-items:center;gap:8px;font-size:14px;color:rgba(255,255,255,.32)}
+.f-links{display:flex;gap:28px;align-items:center}
+.f-link{font-size:12px;color:rgba(255,255,255,.3);text-decoration:none;transition:color .2s}
+.f-link:hover{color:var(--teal)}
+.f-sep{color:rgba(255,255,255,.12)}
+
+/* ─────────────────────────────────────────────────────────
+   GRAIN OVERLAY
+───────────────────────────────────────────────────────── */
+.grain{
+  position:fixed;inset:0;z-index:400;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px 180px;
+}
+</style>
+</head>
+<body>
+
+<canvas id="renderCanvas"></canvas>
+<div class="grain"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a class="nlogo" href="#">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="12,2 22,20 2,20"/></svg>
+    epiminds
+  </a>
+  <div class="nright">
+    <a href="#" class="ncareer">Careers</a>
+    <a href="#" class="nreq">Request Access</a>
+  </div>
+</nav>
+
+<div id="rail">
+
+<!-- ══════ HERO ══════ -->
+<div id="s-hero" class="sec">
+  <div class="pin">
+
+    <!-- PET PATTERN BACKGROUND -->
+    <div id="pet-pattern">
+      <div id="pet-pattern-canvas"></div>
+    </div>
+
+    <div id="hero-ww"></div>
+    <div id="hero-os">
+      <p class="os-label">A connected network of AI agents</p>
+      <h2 class="os-h">The <em>operating system</em> for marketing.</h2>
+      <p class="os-body">Lucy orchestrates 20+ autonomous agents across data, creative, and strategy, forming a synchronized system that learns, adapts, and executes like your best marketing team, only faster.</p>
+    </div>
+    <div id="hero-btm">
+      <p class="hero-eyebrow">Multi Agentic Teams for Marketing.</p>
+      <h1 class="hero-h1">Introducing <em>Lucy.</em></h1>
+      <a href="#" class="hero-btn">Request Access ↗</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ OS + VIDEO ══════ -->
+<div id="s-osvid" class="sec">
+  <div class="pin">
+    <div class="ovid-top">
+      <p class="os-label" style="color:var(--text)">A connected network of AI agents</p>
+      <h2 class="os-h" style="color:var(--text)">The <em>operating system</em> for marketing.</h2>
+      <p class="ovid-sub">Lucy orchestrates 20+ autonomous agents across data, creative, and strategy, forming a synchronized system that learns, adapts, and executes like your best marketing team, only faster.</p>
+    </div>
+    <div class="vwrap">
+      <div class="vbg">
+        <div class="vppl">
+          <div class="vprs" style="background:linear-gradient(180deg,#3d3530,#1c1a18)"></div>
+          <div class="vprs" style="background:linear-gradient(180deg,#504a44,#2a2520)"></div>
+        </div>
+        <div class="vplay">▶</div>
+        <span class="vdur">0:00 / 2:46</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ ADAPTS ══════ -->
+<div id="s-adapts" class="sec">
+  <div class="pin">
+    <div id="adapts-inner">
+    <div class="adapt-head"><h2>Lucy <em>adapts</em> to you.</h2></div>
+
+    <div class="ar" id="ar0">
+      <div class="ar-txt">
+        <h3>Analyze and Execute.</h3>
+        <p>Lucy dives into your data, uncovers insights, and takes action across every platform — adjusting budgets, optimizing ads, and launching updates.</p>
+      </div>
+      <div class="ar-card">
+        <div class="two-col">
+          <div class="tc-half">
+            <h4>Analyze</h4>
+            <p>Lucy dives into your data, uncovers insights, and explains performance in real time.</p>
+          </div>
+          <div class="tc-half">
+            <h4>Execute</h4>
+            <p>Lucy can take action across every platform — adjusting budgets, optimising ads, and launching updates.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ar" id="ar1">
+      <div class="ar-txt">
+        <h3>Works right in your workflow.</h3>
+        <p>Hi Lucy! Every Monday at 9am, generate weekly reports for all my clients and send me an email with a summary of the most important areas.</p>
+      </div>
+      <div class="ar-card card-dark">
+        <div class="chat-pad">
+          <div class="crow r">
+            <div class="cav usr" style="font-size:11px;color:rgba(255,255,255,.6)">U</div>
+            <div class="cbub usr">Hi Lucy! Every Monday at 9am, generate weekly reports for all my clients and send me an email with a summary of the most important areas to look at.</div>
+          </div>
+          <div class="crow">
+            <div class="cav">✦</div>
+            <div class="cbub">Absolutely! I will handle the weekly reporting going forward. ✓</div>
+          </div>
+          <div class="crow r">
+            <div class="cav usr" style="font-size:11px;color:rgba(255,255,255,.6)">U</div>
+            <div class="cbub usr">Also make sure to filter out all irrelevant searches by updating our negative keyword structure for clients running Google Ads.</div>
+          </div>
+          <div class="crow">
+            <div class="cav">✦</div>
+            <div class="cbub">On it! Adding that to my agenda each day. <span style="font-size:11px;opacity:.5">Task Updated ✓</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ar rev" id="ar2">
+      <div class="ar-txt">
+        <h3>Lucy Learns How You Work.</h3>
+        <p>Upload playbooks, training docs, and client context — Lucy adapts to your agency's methods and mirrors how your team thinks and operates.</p>
+      </div>
+      <div class="ar-card card-dark">
+        <div class="chat-pad">
+          <div class="crow r">
+            <div class="cav usr" style="font-size:11px">U</div>
+            <div class="cbub usr">Based on our latest metrics, prepare a new GTM strategy presentation.
+              <div class="ctag">📎 Uploading relevant previous decks</div>
+            </div>
+          </div>
+          <div class="crow">
+            <div class="cav">✦</div>
+            <div class="cbub">Of course! Let me get started. I will also translate it for our clients abroad.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ar" id="ar3">
+      <div class="ar-txt">
+        <h3>Connected to Your Marketing Stack.</h3>
+        <p>Lucy integrates with your entire marketing ecosystem — channels, CRMs, eCommerce, analytics, data warehouses, and trend platforms.</p>
+      </div>
+      <div class="ar-card card-dark">
+        <div class="igpad"><div class="igrid">
+          <div class="ico" style="background:#96bf48">🛍</div>
+          <div class="ico" style="background:#0866ff;font-size:20px">𝗠</div>
+          <div class="ico" style="background:#4285f4;font-size:13px">Ads</div>
+          <div class="ico" style="background:#217346">📊</div>
+          <div class="ico" style="background:#ff7a59;font-size:14px">HS</div>
+          <div class="ico" style="background:#008ad7;font-size:18px">A</div>
+          <div class="ico" style="background:#0a66c2;font-size:13px">in</div>
+          <div class="ico" style="background:#FFBE00">👻</div>
+          <div class="ico" style="background:#111;border:1px solid #333">♪</div>
+          <div class="ico" style="background:#e60023;font-size:18px">P</div>
+          <div class="ico" style="background:#ff4500;font-size:18px">R</div>
+          <div class="ico" style="background:#ff6900;font-size:11px">Spr</div>
+          <div class="ico" style="background:#4a154b;font-size:13px">S</div>
+          <div class="ico" style="background:#EA4335;font-size:15px">M</div>
+          <div class="ico" style="background:#0f9d58;font-size:11px">Cal</div>
+          <div class="ico" style="background:#00A1E0;font-size:10px">SF</div>
+        </div></div>
+      </div>
+    </div>
+    </div><!-- /#adapts-inner -->
+  </div>
+</div>
+
+<!-- ══════ CHAT ══════ -->
+<div id="s-chat" class="sec">
+  <div class="pin">
+    <div style="position:absolute;top:72px;left:0;right:0;text-align:center;z-index:6;padding:0 52px;">
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,58px);font-weight:400;line-height:1.1;color:#fff;">Works right in your <em style="font-style:italic;color:var(--teal-l)">workflow.</em></h2>
+    </div>
+    <div class="chat-ui">
+      <div class="cm" id="cm1">Hi Lucy! Every Monday at 9am, generate weekly reports for all my clients and send me an email with a summary of the most important areas to look at.</div>
+      <div class="cm ai" id="cm2">
+        <div class="cm-av">✦</div>
+        <div class="cm-body">Absolutely! I will handle the weekly reporting going forward.<span class="cm-badge">✓</span></div>
+      </div>
+      <div class="cm" id="cm3">Also make sure to filter out all irrelevant searches by updating our negative keyword structure for clients running Google Ads.</div>
+      <div class="cm ai" id="cm4">
+        <div class="cm-av">✦</div>
+        <div class="cm-body">On it! Adding that to my agenda each day.<span class="cm-badge">Task Updated ✓</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TESTIMONIAL ══════ -->
+<div id="s-testi" class="sec">
+  <div class="pin">
+    <div class="testi-inner">
+      <p class="testi-q" id="tq">"We've integrated Epiminds, a powerful stack of AI agents, into our advertising workflows. It has really started transforming how our specialists work by automating analysis and surfacing deep actionable insights, while we remain in control of strategic decisions. The result is faster optimization, more effective collaboration between human expertise and AI, and ultimately better outcomes for our clients."</p>
+      <div class="testi-who" id="tw">
+        <span class="testi-name">John Axelsson,</span>
+        <span>CEO of BBO</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ NEWS ══════ -->
+<div id="s-news" class="sec">
+  <div class="pin">
+    <div class="news-left">
+      <p class="news-tag">News</p>
+      <h2 class="news-h2">Keep up with Lucy.<br>Read our <em>News.</em></h2>
+      <a href="#" class="news-read">Read Latest Article</a>
+    </div>
+    <div class="news-photo">
+      <div class="news-photo-img"></div>
+      <div class="np-ov">
+        <div class="np-sil"></div>
+        <div class="np-sil" style="background:linear-gradient(180deg,#504a44,#1c1612);height:80%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ CTA ══════ -->
+<div id="s-cta" class="sec">
+  <div class="pin">
+    <div class="cta-box">
+      <p class="cta-label">Join the next generation of marketing</p>
+      <h2 class="cta-h2">Request<br>Early <em>Access.</em></h2>
+      <a href="#" class="cta-btn">Request Access ↗</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ FOOTER ══════ -->
+<div id="s-footer">
+  <div class="footer-in">
+    <div class="f-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polygon points="12,2 22,20 2,20"/></svg>
+      epiminds
+    </div>
+    <div class="f-links">
+      <a href="#" class="f-link">Linkedin</a>
+      <span class="f-sep">|</span>
+      <a href="#" class="f-link">Privacy</a>
+      <a href="#" class="f-link">Terms</a>
+    </div>
+  </div>
+</div>
+
+</div><!-- #rail -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  PET ICON PATTERN — uses Lucide CDN SVG icons, diagonal grid
+// ══════════════════════════════════════════════════════════════
+
+// Professional Lucide SVG paths (viewBox 0 0 24 24, stroke-based)
+const LUCIDE_ICONS = {
+  'paw-print': `<circle cx="11" cy="4" r="2"/><circle cx="18" cy="4" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="4" cy="12" r="2"/><path d="M15 18c0-2.21-1.79-4-4-4s-4 1.79-4 4c0 2.21 2.68 4.5 4 4.5s4-2.29 4-4.5z"/>`,
+  'bone': `<path d="M17 10c.7-.7 1.69 0 2.5 0a2.5 2.5 0 1 0 0-5 .5.5 0 0 1-.5-.5 2.5 2.5 0 1 0-5 0c0 .81.7 1.8 0 2.5l-7 7c-.7.7-1.69 0-2.5 0a2.5 2.5 0 0 0 0 5c.28 0 .5.22.5.5a2.5 2.5 0 1 0 5 0c0-.81-.7-1.8 0-2.5L17 10z"/>`,
+  'heart': `<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>`,
+  'scissors': `<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>`,
+  'syringe': `<path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/>`,
+  'stethoscope': `<path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v3a6 6 0 0 0 6 6 6 6 0 0 0 6-6 4 4 0 0 0 4-4V4a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v4H9V4a2 2 0 0 0-2-2z"/><circle cx="20" cy="13" r="2"/>`,
+  'fish': `<path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/><path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 3.5-.08 6.5 2.27 8.5l1.36-1"/><path d="m10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4"/><circle cx="11.5" cy="12.5" r="1.5"/>`,
+  'scissors-line-dashed': `<path d="M5.42 9.42 8 12"/><circle cx="4" cy="8" r="2"/><path d="m14 6-8.58 8.58"/><circle cx="4" cy="16" r="2"/><path d="M10.8 14.8 14 18l6-6"/><path d="M20 10h-6"/><path d="M20 6h-2.2"/>`,
+  'star': `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>`,
+  'shield-check': `<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>`,
+  'tag': `<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/>`,
+  'house': `<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>`,
+};
+
+const ICON_KEYS = Object.keys(LUCIDE_ICONS);
+
+function buildPetPattern() {
+  const container = document.getElementById('pet-pattern-canvas');
+  container.innerHTML = '';
+
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+
+  // Diagonal grid: offset every other row by half a cell
+  const ICON_SIZE = 36;
+  const GAP_X = 110;
+  const GAP_Y = 90;
+
+  // Rotation angles for variety — all diagonal-ish
+  const ROTATIONS = [-45, -30, -15, 15, 30, 45, -60, 60, 0, -45, 30, -30];
+  const OPACITIES = [0.13, 0.10, 0.16, 0.11, 0.14, 0.09, 0.15, 0.12];
+
+  // How many columns and rows to cover the viewport (with bleed)
+  const cols = Math.ceil(W / GAP_X) + 2;
+  const rows = Math.ceil(H / GAP_Y) + 2;
+
+  let iconIdx = 0;
+  for (let row = -1; row < rows; row++) {
+    for (let col = -1; col < cols; col++) {
+      // Diagonal offset: shift each row by half gap
+      const offsetX = (row % 2 === 0) ? 0 : GAP_X / 2;
+      const x = col * GAP_X + offsetX;
+      const y = row * GAP_Y;
+
+      const icon = LUCIDE_ICONS[ICON_KEYS[iconIdx % ICON_KEYS.length]];
+      iconIdx++;
+
+      const rot   = ROTATIONS[(col * 3 + row * 5) % ROTATIONS.length];
+      const op    = OPACITIES[(col + row * 2) % OPACITIES.length];
+
+      const el = document.createElement('div');
+      el.className = 'pet-icon-el';
+      el.style.cssText = `
+        left: ${x}px;
+        top: ${y}px;
+        width: ${ICON_SIZE}px;
+        height: ${ICON_SIZE}px;
+        transform: rotate(${rot}deg);
+        opacity: ${op};
+        color: #8a9e9e;
+      `;
+
+      el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
+
+      container.appendChild(el);
+    }
+  }
+}
+
+buildPetPattern();
+window.addEventListener('resize', buildPetPattern);
+
+// Fade out pattern as hero scrolls away
+function updatePatternOpacity(sy) {
+  const heroEl = document.getElementById('s-hero');
+  if (!heroEl) return;
+  const heroH = heroEl.offsetHeight;
+  // Fade out in the last 30% of hero scroll
+  const fadeStart = heroH * 0.15;
+  const fadeEnd   = heroH * 0.45;
+  const t = Math.max(0, Math.min(1, (sy - fadeStart) / (fadeEnd - fadeStart)));
+  document.getElementById('pet-pattern').style.opacity = (1 - t).toFixed(3);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BABYLON — idle01.glb
+// ══════════════════════════════════════════════════════════════
+const CFG = {
+  glbUrl: './idle01.glb',
+  wireColor: { r:0.286, g:0.651, b:0.651 },
+  modelScale: 3.8,
+  positionOffset: { x:0, y:0, z:0 },
+  heroCamera: { alpha:-Math.PI/2, beta:1.35, radius:3.2, tx:-0.6, ty:0.3 },
+  sections:[
+    { alpha:-Math.PI/2, beta:1.35, radius:3.2, tx:-0.6,  ty:0.3  },
+    { alpha:-Math.PI/2, beta:1.35, radius:3.5, tx:0,    ty:0.3  },
+    { alpha:-1.3,       beta:1.55, radius:3.8, tx:0.9,  ty:-0.1 },
+    { alpha:-1.57,      beta:1.25, radius:3.1, tx:-0.5, ty:0.4  },
+    { alpha:-1.57,      beta:1.6,  radius:4.8, tx:0.4,  ty:-0.3 },
+    { alpha:-1.5,       beta:1.5,  radius:4.5, tx:0.5,  ty:0    },
+    { alpha:-1.4,       beta:1.3,  radius:2.8, tx:-1.0, ty:0.4  },
+  ]
+};
+
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer:true, stencil:true, antialias:true });
+let scrollProgress=0, babylonSmooth=0;
+let heroAnimProgress=0, heroAnimSmooth=0;
+
+const createScene = async () => {
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+  scene.ambientColor = new BABYLON.Color3(0.05, 0.1, 0.1);
+
+  const camCfg = CFG.heroCamera;
+  const camera = new BABYLON.ArcRotateCamera('cam',
+    camCfg.alpha, camCfg.beta, camCfg.radius,
+    new BABYLON.Vector3(camCfg.tx, camCfg.ty, 0), scene);
+  camera.inputs.clear(); camera.minZ = 0.01;
+
+  const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0,1,0), scene);
+  hemi.intensity = 0.2; hemi.diffuse = new BABYLON.Color3(0.3,0.6,0.6);
+
+  const keyLight = new BABYLON.PointLight('key', new BABYLON.Vector3(2,3,-1), scene);
+  keyLight.intensity = 1.5;
+  keyLight.diffuse = new BABYLON.Color3(CFG.wireColor.r, CFG.wireColor.g, CFG.wireColor.b);
+
+  const rimLight = new BABYLON.PointLight('rim', new BABYLON.Vector3(-3,0,3), scene);
+  rimLight.intensity = 0.8; rimLight.diffuse = new BABYLON.Color3(0.15,0.35,0.35);
+
+  const botLight = new BABYLON.PointLight('bot', new BABYLON.Vector3(0,-3,0), scene);
+  botLight.intensity = 0.4;
+  botLight.diffuse = new BABYLON.Color3(CFG.wireColor.r*0.5, CFG.wireColor.g*0.5, CFG.wireColor.b*0.5);
+
+  const wireMat = new BABYLON.StandardMaterial('wire', scene);
+  wireMat.wireframe = true;
+  wireMat.emissiveColor = new BABYLON.Color3(CFG.wireColor.r, CFG.wireColor.g, CFG.wireColor.b);
+  wireMat.diffuseColor  = new BABYLON.Color3(CFG.wireColor.r*0.4, CFG.wireColor.g*0.4, CFG.wireColor.b*0.4);
+  wireMat.alpha = 0.9; wireMat.backFaceCulling = false;
+
+  const glow = new BABYLON.GlowLayer('glow', scene, { mainTextureFixedSize:512, blurKernelSize:64 });
+  glow.intensity = 0;
+
+  let rootMesh=null;
+
+  try {
+    const res = await BABYLON.SceneLoader.ImportMeshAsync('','',CFG.glbUrl,scene);
+    rootMesh = res.meshes[0];
+    res.meshes.forEach(m=>{ if(m.getTotalVertices&&m.getTotalVertices()>0) m.material=wireMat; });
+    rootMesh.computeWorldMatrix(true);
+    let b = rootMesh.getHierarchyBoundingVectors(true);
+    const sz = b.max.subtract(b.min);
+    const sc = CFG.modelScale / Math.max(sz.x,sz.y,sz.z);
+    rootMesh.scaling = new BABYLON.Vector3(sc,sc,sc);
+    rootMesh.computeWorldMatrix(true);
+    b = rootMesh.getHierarchyBoundingVectors(true);
+    const c = b.min.add(b.max).scale(0.5);
+    rootMesh.position.x = -c.x + CFG.positionOffset.x;
+    rootMesh.position.y = -c.y + CFG.positionOffset.y;
+    rootMesh.position.z = -c.z + CFG.positionOffset.z;
+    rootMesh.rotation.y = -Math.PI / 2;
+    if (res.animationGroups && res.animationGroups.length > 0) {
+      res.animationGroups[0].start(true);
+    }
+    camera.target = new BABYLON.Vector3(camCfg.tx, camCfg.ty, 0);
+  } catch(e) {
+    console.warn('GLB load failed, using fallback:', e.message);
+    rootMesh = new BABYLON.TransformNode('root', scene);
+    const head=BABYLON.MeshBuilder.CreateSphere('head',{diameterX:2,diameterY:2.6,diameterZ:2.2,segments:28},scene);
+    head.material=wireMat; head.position.y=0.8; head.parent=rootMesh;
+    const neck=BABYLON.MeshBuilder.CreateCylinder('neck',{height:0.8,diameterTop:0.9,diameterBottom:1.1,tessellation:18},scene);
+    neck.material=wireMat; neck.position.y=-0.7; neck.parent=rootMesh;
+    const torso=BABYLON.MeshBuilder.CreateSphere('torso',{diameterX:3.5,diameterY:2.0,diameterZ:2.0,segments:22},scene);
+    torso.material=wireMat; torso.position.y=-1.8; torso.parent=rootMesh;
+    rootMesh.rotation.y = -Math.PI / 2;
+    camera.target = new BABYLON.Vector3(camCfg.tx, camCfg.ty, 0);
+  }
+
+  let camTarget = {...CFG.sections[0]};
+  let smoothCam = {...CFG.sections[0]};
+  window._setCam = idx => { camTarget={...CFG.sections[Math.min(idx,CFG.sections.length-1)]}; };
+
+  scene.registerBeforeRender(() => {
+    if (!rootMesh) return;
+    if (!rootMesh._isMesh) {
+      const now = Date.now() * 0.001;
+      rootMesh.rotation.x = Math.sin(now * 0.7) * 0.04;
+      rootMesh.position.y = Math.sin(now * 0.5) * 0.06;
+    }
+    heroAnimSmooth += (heroAnimProgress - heroAnimSmooth) * 0.06;
+    const t = heroAnimSmooth;
+    const targetRadius = CFG.heroCamera.radius - t * (CFG.heroCamera.radius - 1.2);
+
+    // Smoothly interpolate camTarget so section changes don't snap
+    const lf = 0.045;
+    smoothCam.alpha  += (camTarget.alpha  - smoothCam.alpha)  * lf;
+    smoothCam.beta   += (camTarget.beta   - smoothCam.beta)   * lf;
+    smoothCam.radius += (camTarget.radius - smoothCam.radius) * lf;
+    smoothCam.tx     += (camTarget.tx     - smoothCam.tx)     * lf;
+    smoothCam.ty     += (camTarget.ty     - smoothCam.ty)     * lf;
+
+    const activeRadius = (lastSec === 0) ? targetRadius : smoothCam.radius;
+    camera.alpha    += (smoothCam.alpha  - camera.alpha)    * 0.05;
+    camera.beta     += (smoothCam.beta   - camera.beta)     * 0.05;
+    camera.radius   += (activeRadius     - camera.radius)   * 0.05;
+    camera.target.x += (smoothCam.tx    - camera.target.x) * 0.05;
+    camera.target.y += (smoothCam.ty    - camera.target.y) * 0.05;
+    glow.intensity = t * 0.15;
+  });
+
+  return scene;
+};
+
+// ══════════════════════════════════════════════════════════════
+//  SMOOTH SCROLL ENGINE
+// ══════════════════════════════════════════════════════════════
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const lerp  = (a,b,t) => a+(b-a)*t;
+const eOut  = t => 1-(1-t)**3;
+const eIO   = t => t<.5?2*t*t:-1+(4-2*t)*t;
+
+let sT=0, sC=0, maxScroll=0;
+const EASE=0.085;
+
+function buildBodyHeight() {
+  let h=0;
+  document.querySelectorAll('#rail > *').forEach(el => h+=el.offsetHeight);
+  document.body.style.height = h+'px';
+  maxScroll = Math.max(0, h-innerHeight);
+}
+
+window.addEventListener('scroll',()=>{ sT=clamp(window.scrollY,0,maxScroll); },{passive:true});
+
+// ── Two-phase section lock ──────────────────────────────────
+// Phase 1: entry lock — freeze page scroll for ENTRY_HOLD ms when landing on a section
+// Phase 2: inner scroll — route wheel into the pin's internal scroller
+// Phase 3: release — pass scroll to page once inner hits bottom/top
+const LOCKED_SECTIONS = ['s-hero','s-osvid','s-adapts','s-chat','s-testi','s-news','s-cta'];
+const ENTRY_HOLD = 700; // ms to hold on entry before allowing inner scroll
+
+// Track per-section state
+const secState = {};
+LOCKED_SECTIONS.forEach(id => {
+  secState[id] = {
+    entryLockUntil: 0,   // timestamp when entry lock expires
+    lastSeenInSec: false // was user in this section last frame?
+  };
+});
+
+function getActiveSec(sy) {
+  let active = null;
+  for (const id of LOCKED_SECTIONS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (sy >= el.offsetTop - 2 && sy < el.offsetTop + el.offsetHeight) {
+      active = id;
+    }
+  }
+  return active;
+}
+
+// When scroll position crosses into a new section, arm its entry lock
+let _lastActiveSec = null;
+function checkSectionEntry(sy) {
+  const active = getActiveSec(sy);
+  if (active && active !== _lastActiveSec) {
+    // Reset inner scroll to top and arm entry lock
+    const pin = document.getElementById(active)?.querySelector('.pin');
+    if (pin) pin.scrollTop = 0;
+    secState[active].entryLockUntil = performance.now() + ENTRY_HOLD;
+    _lastActiveSec = active;
+  }
+}
+
+function handleDelta(delta) {
+  const sy = sC;
+  const now = performance.now();
+  const activeId = getActiveSec(sy);
+  if (!activeId) { sT = clamp(sT + delta, 0, maxScroll); return; }
+
+  const state = secState[activeId];
+  const sec   = document.getElementById(activeId);
+  const pin   = sec?.querySelector('.pin');
+
+  // Phase 1 — entry lock: absorb all scroll, go nowhere
+  if (now < state.entryLockUntil) return;
+
+  // Phase 2 — inner scroll (skip for sections with no real inner content to scroll)
+  const NO_INNER_SCROLL = ['s-adapts','s-chat','s-testi','s-news','s-cta','s-hero'];
+  if (pin && !NO_INNER_SCROLL.includes(activeId)) {
+    const maxInner = pin.scrollHeight - pin.clientHeight;
+    if (maxInner > 20) { // only engage inner scroll if there's meaningful content
+      const atBottom = pin.scrollTop >= maxInner - 10;
+      const atTop    = pin.scrollTop <= 2;
+
+      if (delta > 0 && !atBottom) {
+        pin.scrollTop = Math.min(pin.scrollTop + delta, maxInner); // cap to prevent overshoot
+        return;
+      }
+      if (delta < 0 && !atTop) {
+        pin.scrollTop = Math.max(pin.scrollTop + delta, 0);
+        return;
+      }
+    }
+  }
+
+  // Phase 3 — release to page
+  sT = clamp(sT + delta, 0, maxScroll);
+}
+
+window.addEventListener('wheel', e => {
+  e.preventDefault();
+  handleDelta(e.deltaY);
+}, {passive:false});
+
+let _ty=0;
+window.addEventListener('touchstart', e => { _ty = e.touches[0].clientY; }, {passive:true});
+window.addEventListener('touchmove', e => {
+  const d = _ty - e.touches[0].clientY;
+  _ty = e.touches[0].clientY;
+  handleDelta(d * 1.4);
+}, {passive:true});
+
+function updatePins(sy) {
+  document.querySelectorAll('#rail .sec').forEach(sec => {
+    const pin = sec.querySelector('.pin'); if(!pin) return;
+    const top=sec.offsetTop, h=sec.offsetHeight;
+    pin.style.transform=`translate3d(0,${clamp(sy-top,0,h-innerHeight)}px,0)`;
+  });
+}
+
+function updateHero(sy) {
+  const sec=document.getElementById('s-hero');
+  const h=sec.offsetHeight;
+  const sr=clamp(sy/h,0,1);
+  const wT=clamp((sr-.70)/.30,0,1);
+  document.getElementById('hero-ww').style.opacity = eIO(wT);
+  document.getElementById('hero-os').style.opacity = eOut(clamp((wT-.35)/.65,0,1));
+  document.getElementById('hero-btm').style.opacity= clamp(1-(sr-.38)/.12,0,1);
+  updatePatternOpacity(sy);
+}
+
+function updateAdapts(sy) {
+  const sec = document.getElementById('s-adapts');
+  const inner = document.getElementById('adapts-inner');
+  if (!sec || !inner) return;
+  const secTop = sec.offsetTop;
+  const scrollable = sec.offsetHeight - innerHeight; // 300vh of travel
+  const progress = clamp(sy - secTop, 0, scrollable);
+  const contentOverflow = inner.scrollHeight - innerHeight;
+  const translateY = -clamp(progress / scrollable * contentOverflow, 0, contentOverflow);
+  inner.style.transform = `translate3d(0,${translateY}px,0)`;
+}
+
+function updateChat(sy) {
+  const sec=document.getElementById('s-chat');
+  const prog=clamp((sy-sec.offsetTop)/(sec.offsetHeight-innerHeight),0,1);
+  ['cm1','cm2','cm3','cm4'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('show',prog>i*.20+.05);
+  });
+}
+
+function updateTesti(sy) {
+  const sec=document.getElementById('s-testi');
+  const prog=clamp((sy-sec.offsetTop)/(sec.offsetHeight-innerHeight),0,1);
+  document.getElementById('tq').classList.toggle('vis',prog>.05);
+  document.getElementById('tw').classList.toggle('vis',prog>.15);
+}
+
+const lightSecs=['s-osvid','s-adapts'];
+function updateNav(sy) {
+  const nav=document.getElementById('nav');
+  const hero=document.getElementById('s-hero');
+  const heroPct=clamp(sy/hero.offsetHeight,0,1);
+  if(heroPct>.70){nav.classList.add('dark');return;}
+  let isLight=false;
+  lightSecs.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&sy>=el.offsetTop&&sy<el.offsetTop+el.offsetHeight) isLight=true;
+  });
+  nav.classList.toggle('dark',isLight);
+}
+
+const SECTION_IDS=['s-hero','s-osvid','s-adapts','s-chat','s-testi','s-news','s-cta'];
+let lastSec=-1;
+function updateBabylonCam(sy) {
+  const heroEl = document.getElementById('s-hero');
+  if (heroEl) {
+    const heroScrollable = heroEl.offsetHeight - innerHeight;
+    heroAnimProgress = clamp(sy / heroScrollable, 0, 1);
+  }
+
+  let activeSec=0;
+  SECTION_IDS.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el&&sy>=el.offsetTop-innerHeight*.35) activeSec=i;
+  });
+  if(activeSec!==lastSec){ lastSec=activeSec; if(window._setCam) window._setCam(activeSec); }
+
+  // Smoothly fade canvas out over a 200px window after the hero ends
+  if (heroEl) {
+    const heroEnd = heroEl.offsetHeight - innerHeight;
+    const fadeZone = 300;
+    const fadeT = clamp((sy - heroEnd) / fadeZone, 0, 1);
+    canvas.style.opacity = (1 - fadeT).toFixed(3);
+  }
+
+  scrollProgress=clamp(sy/maxScroll,0,1);
+}
+
+window.addEventListener('resize',()=>{ buildBodyHeight(); engine.resize(); buildPetPattern(); });
+requestAnimationFrame(()=>requestAnimationFrame(buildBodyHeight));
+
+(function loop(){
+  requestAnimationFrame(loop);
+  sC=lerp(sC,sT,EASE);
+  const sy=sC;
+  checkSectionEntry(sy);
+  document.getElementById('rail').style.transform=`translate3d(0,${-sy}px,0)`;
+  updatePins(sy);
+  updateHero(sy);
+  updateAdapts(sy);
+  updateChat(sy);
+  updateTesti(sy);
+  updateNav(sy);
+  updateBabylonCam(sy);
+})();
+
+(async()=>{
+  const scene = await createScene();
+  engine.runRenderLoop(()=>{ if(engine.scenes[0]) engine.scenes[0].render(); });
+  window.addEventListener('resize',()=>engine.resize());
+})();
+</script>
+</body>
+</html>
