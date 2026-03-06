@@ -3,13 +3,13 @@
  *
  * Strategy:
  *  iOS Safari  → model-viewer Quick Look  (native ARKit, pet stands on floor via camera)
- *  Android     → model-viewer Scene Viewer / WebXR (ARCore)
+ *  Android     → Scene Viewer / WebXR (ARCore)
  *
  * No 3D preview. Tap button → camera opens → pet appears on floor.
  *
- * Requires:
- *  .glb  files for Android
- *  .usdz files for iOS  (run convert-to-usdz.mjs to generate)
+ * Fixes applied via model-viewer attributes (no file editing needed):
+ *  - scale="25 25 25"         → dog was microscopic, now visible
+ *  - orientation="90deg 0 0"  → dog was face-down, now stands upright
  */
 
 (function () {
@@ -20,14 +20,14 @@
   // ─────────────────────────────────────────────────────────────────
   const MV_SRC = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
 
-  const MODELS = {
-    a: { glb: 'idle02.glb', usdz: 'idle02.usdz', label: 'Cat',  emoji: '🐱' },
-    b: { glb: 'idle02.glb', usdz: 'idle02.usdz', label: 'Dog',  emoji: '🐶' },
-    c: { glb: 'idle02.glb', usdz: 'idle02.usdz', label: 'Bird', emoji: '🦜' },
+  // Always use idle02 for AR regardless of active pet type
+  const AR_MODEL = {
+    glb:   'idle02.glb',
+    usdz:  'idle02.usdz',
   };
 
   const AR_BTN_ID = 'arLaunchBtn';
-  const MV_ID     = 'arMvHidden';   // hidden model-viewer used only as AR launcher
+  const MV_ID     = 'arMvHidden';
 
   // ─────────────────────────────────────────────────────────────────
   // DEVICE DETECTION
@@ -35,19 +35,16 @@
   const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  // iOS 12+ supports Quick Look AR in Safari
-  const SUPPORTS_QUICK_LOOK = IS_IOS && 'relList' in document.createElement('a') &&
+  const SUPPORTS_QUICK_LOOK = IS_IOS &&
     document.createElement('a').relList.supports('ar');
 
-  // Android WebXR / Scene Viewer
   const IS_ANDROID = /Android/.test(navigator.userAgent);
 
   // ─────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────
-  let mvReady    = false;
-  let mvEl       = null;   // the hidden model-viewer element
-  let loadingPet = false;
+  let mvEl       = null;
+  let loadingAR  = false;
 
   // ─────────────────────────────────────────────────────────────────
   // CSS
@@ -68,13 +65,12 @@
       -webkit-tap-highlight-color: transparent;
       outline: none; border-style: solid;
     }
-    #${AR_BTN_ID}:hover  {
+    #${AR_BTN_ID}:hover {
       transform: translateY(-3px) scale(1.04);
       box-shadow: 0 8px 28px rgba(73,166,166,.5);
       border-color: #49a6a6; color: #fff;
     }
     #${AR_BTN_ID}:active { transform: scale(.96); }
-
     #${AR_BTN_ID}.ar-loading {
       opacity: .7; pointer-events: none;
     }
@@ -87,7 +83,6 @@
       vertical-align: middle;
     }
     @keyframes arBtnSpin { to { transform: rotate(360deg); } }
-
     .arb-icon {
       width: 20px; height: 20px; flex-shrink: 0;
       transition: transform .3s, filter .3s;
@@ -104,7 +99,7 @@
     @keyframes arbBlink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
     .arb-label { pointer-events: none; }
 
-    /* ── iOS fallback notice (shown if no USDZ yet) ── */
+    /* ── Toast ── */
     .ar-notice-toast {
       position: fixed; bottom: 80px; left: 50%;
       transform: translateX(-50%) translateY(12px);
@@ -120,15 +115,13 @@
       opacity: 1; transform: translateX(-50%) translateY(0);
     }
 
-    /* ── Hidden model-viewer container ── */
+    /* ── Hidden model-viewer ── */
     #arMvContainer {
       position: fixed; width: 1px; height: 1px;
       overflow: hidden; opacity: 0; pointer-events: none;
       left: -9999px; top: -9999px; z-index: -1;
     }
-    #${MV_ID} {
-      display: block; width: 1px; height: 1px;
-    }
+    #${MV_ID} { display: block; width: 1px; height: 1px; }
   `;
 
   // ─────────────────────────────────────────────────────────────────
@@ -155,11 +148,6 @@
     btn.querySelector('.arb-label').textContent = on ? 'Opening…' : 'View in AR';
   }
 
-  function getCurrentPetType() {
-    try { if (typeof petData !== 'undefined' && petData.type) return petData.type; } catch (_) {}
-    return 'b';
-  }
-
   // ─────────────────────────────────────────────────────────────────
   // LOAD model-viewer SCRIPT
   // ─────────────────────────────────────────────────────────────────
@@ -179,32 +167,33 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // BUILD / UPDATE hidden model-viewer
+  // BUILD hidden model-viewer
+  // Key attributes:
+  //   scale="25 25 25"        — makes dog visible (was microscopic)
+  //   orientation="90deg 0 0" — rotates 90° on X so dog stands upright
+  //                             instead of lying face-down on the floor
   // ─────────────────────────────────────────────────────────────────
-  function ensureMvContainer() {
-    if (document.getElementById('arMvContainer')) return;
-    const wrap = document.createElement('div');
-    wrap.id = 'arMvContainer';
-    document.body.appendChild(wrap);
-  }
+  function buildMv() {
+    let wrap = document.getElementById('arMvContainer');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = 'arMvContainer';
+      document.body.appendChild(wrap);
+    }
 
-  function buildMv(petType) {
-    ensureMvContainer();
-    const wrap  = document.getElementById('arMvContainer');
-    const model = MODELS[petType] || MODELS['b'];
-
-    // Remove old instance
     const old = document.getElementById(MV_ID);
     if (old) old.remove();
 
     const mv = document.createElement('model-viewer');
     mv.id = MV_ID;
-    mv.setAttribute('src',          model.glb);
-    mv.setAttribute('ios-src',      model.usdz);
+    mv.setAttribute('src',          AR_MODEL.glb);
+    mv.setAttribute('ios-src',      AR_MODEL.usdz);
     mv.setAttribute('ar',           '');
     mv.setAttribute('ar-modes',     IS_IOS ? 'quick-look' : 'scene-viewer webxr');
     mv.setAttribute('ar-scale',     'fixed');
     mv.setAttribute('ar-placement', 'floor');
+    mv.setAttribute('scale',        '25 25 25');       // ← size fix
+    mv.setAttribute('orientation',  '90deg 0 0');      // ← angle fix — stands upright
     mv.setAttribute('loading',      'eager');
     mv.setAttribute('reveal',       'auto');
     mv.style.cssText = 'display:block;width:1px;height:1px;';
@@ -213,7 +202,7 @@
       if (e.detail.status === 'failed') {
         setButtonLoading(false);
         showToast(IS_IOS
-          ? '⚠️ AR failed — make sure .usdz file is on the server'
+          ? '⚠️ Make sure idle02.usdz is uploaded to your server'
           : '⚠️ AR not supported on this device');
       }
       if (e.detail.status === 'session-started') {
@@ -226,43 +215,41 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // DIRECT QUICK LOOK LINK (iOS fallback — bypasses model-viewer entirely)
-  // This is the most reliable iOS path: a hidden <a rel="ar"> link
-  // tapped programmatically. iOS Safari opens ARKit directly.
+  // iOS — direct <a rel="ar"> Quick Look trigger
+  // Most reliable iOS path — native browser feature, no JS library needed
+  // Must be called synchronously within the user gesture
   // ─────────────────────────────────────────────────────────────────
-  function triggerQuickLookDirect(usdzUrl) {
-    // Remove existing anchor
+  function triggerQuickLookDirect() {
     const old = document.getElementById('arQuickLookAnchor');
     if (old) old.remove();
 
-    const a = document.createElement('a');
-    a.id       = 'arQuickLookAnchor';
-    a.rel      = 'ar';
-    a.href     = usdzUrl;
-    a.download = usdzUrl.split('/').pop();
-    // Must contain an img child for Quick Look to activate
-    const img  = document.createElement('img');
-    img.src    = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    img.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;';
-    a.appendChild(img);
+    const a   = document.createElement('a');
+    a.id      = 'arQuickLookAnchor';
+    a.rel     = 'ar';
+    a.href    = AR_MODEL.usdz;
     a.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+
+    // Quick Look requires an <img> child to activate
+    const img = document.createElement('img');
+    img.src   = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    img.style.cssText = 'width:1px;height:1px;';
+    a.appendChild(img);
     document.body.appendChild(a);
 
-    // Simulate tap — this must happen in same call stack as user gesture
     a.click();
     setButtonLoading(false);
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // ANDROID — Scene Viewer intent URL (most reliable on Android Chrome)
-  // Opens Google's Scene Viewer AR directly, no model-viewer needed
+  // Android — Scene Viewer intent URL
   // ─────────────────────────────────────────────────────────────────
-  function triggerSceneViewer(glbUrl) {
-    // Scene Viewer intent — works on Android 10+ with ARCore
-    const fullUrl = new URL(glbUrl, window.location.href).href;
-    const intent  = `intent://arvr.google.com/scene-viewer/1.0?` +
+  function triggerSceneViewer() {
+    const fullUrl = new URL(AR_MODEL.glb, window.location.href).href;
+    const intent  =
+      `intent://arvr.google.com/scene-viewer/1.0?` +
       `file=${encodeURIComponent(fullUrl)}&mode=ar_preferred&resizable=false` +
-      `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;` +
+      `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;` +
+      `action=android.intent.action.VIEW;` +
       `S.browser_fallback_url=${encodeURIComponent(fullUrl)};end;`;
     window.location.href = intent;
     setButtonLoading(false);
@@ -272,41 +259,35 @@
   // MAIN TAP HANDLER
   // ─────────────────────────────────────────────────────────────────
   async function handleARTap() {
-    if (loadingPet) return;
-    loadingPet = true;
+    if (loadingAR) return;
+    loadingAR = true;
     setButtonLoading(true);
-
-    const petType = getCurrentPetType();
-    const model   = MODELS[petType] || MODELS['b'];
 
     // ── iOS Safari ────────────────────────────────────────────────
     if (IS_IOS) {
       if (!SUPPORTS_QUICK_LOOK) {
         showToast('⚠️ AR requires iOS 12 or later in Safari');
         setButtonLoading(false);
-        loadingPet = false;
+        loadingAR = false;
         return;
       }
-
-      // Direct <a rel="ar"> method — most reliable, no dependency
-      // MUST be called synchronously within the user gesture call stack
-      triggerQuickLookDirect(model.usdz);
-      loadingPet = false;
+      // Must stay synchronous with the tap gesture
+      triggerQuickLookDirect();
+      loadingAR = false;
       return;
     }
 
     // ── Android Chrome ────────────────────────────────────────────
     if (IS_ANDROID) {
-      triggerSceneViewer(model.glb);
-      loadingPet = false;
+      triggerSceneViewer();
+      loadingAR = false;
       return;
     }
 
-    // ── Desktop / other — use model-viewer as fallback ────────────
+    // ── Desktop fallback — model-viewer ──────────────────────────
     try {
       await loadMvScript();
-      buildMv(petType);
-      mvReady = true;
+      buildMv();
       if (typeof mvEl.activateAR === 'function') {
         mvEl.activateAR();
       }
@@ -316,7 +297,7 @@
     }
 
     setButtonLoading(false);
-    loadingPet = false;
+    loadingAR = false;
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -324,7 +305,6 @@
   // ─────────────────────────────────────────────────────────────────
   function buildButton() {
     if (document.getElementById(AR_BTN_ID)) return;
-
     const btn = document.createElement('button');
     btn.id    = AR_BTN_ID;
     btn.title = 'View pet in AR';
@@ -339,14 +319,12 @@
       </svg>
       <span class="arb-dot"></span>
       <span class="arb-label">View in AR</span>`;
-
-    // IMPORTANT: listener must be on direct user gesture — no async gap before tap
     btn.addEventListener('click', handleARTap);
     document.body.appendChild(btn);
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // INFER STYLES
+  // INJECT STYLES
   // ─────────────────────────────────────────────────────────────────
   function injectStyles() {
     if (document.getElementById('arCSS')) return;
@@ -356,13 +334,10 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // PRELOAD — start fetching model-viewer script in background on
-  // non-iOS so it's already registered when user taps
+  // PRELOAD — fetch model-viewer script in background on non-iOS
   // ─────────────────────────────────────────────────────────────────
   function preload() {
-    if (!IS_IOS) {
-      loadMvScript().catch(() => {});
-    }
+    if (!IS_IOS) loadMvScript().catch(() => {});
   }
 
   // ─────────────────────────────────────────────────────────────────
