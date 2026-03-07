@@ -310,7 +310,7 @@
        <div class="sb-si"><div class="sb-sr"><span class="sb-sl">Energy</span><span class="sb-sv"><span id="sbEnergy">100</span>%</span></div><div class="sb-bar-wrap"><div class="sb-bar-fill col" id="sbEnergyBar" style="width:100%"></div></div></div>
    </div>
    <!-- Expenses -->
-   <div class="sb-exp"><span>EXPENSES</span><span>$<span id="sbSpent">0</span> / $<span id="sbBudget">200</span></span></div>
+   <div class="sb-exp"><span>EXPENSES</span><span>$<span id="sbSpent">0</span> / $<span id="sbBudget">500</span></span></div>
 </div>
 
 
@@ -379,11 +379,11 @@
        <div class="care-grid">
            <button class="care-btn" onclick="feedPet()">
                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
-               <span class="cb-lbl">Feed</span><span class="cb-cost">$10</span>
+               <span class="cb-lbl">Feed</span><span class="cb-cost">$2</span>
            </button>
            <button class="care-btn" onclick="playWithPet()">
                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/></svg></div>
-               <span class="cb-lbl">Play (Toy)</span><span class="cb-cost">$15</span>
+               <span class="cb-lbl">Play (Toy)</span><span class="cb-cost">$2</span>
            </button>
            <button class="care-btn" onclick="restPet()">
                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 12l8-8m-8 8l8 8"/></svg></div>
@@ -391,13 +391,13 @@
            </button>
            <button class="care-btn" onclick="healthCheck()">
                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-               <span class="cb-lbl">Health Check</span><span class="cb-cost">$50</span>
+               <span class="cb-lbl">Health Check</span><span class="cb-cost">$10</span>
            </button>
        </div>
        <!-- Monthly Budget embedded in Care -->
        <div class="budget-box">
-           <div class="bdg-row"><span>Monthly Budget</span><span class="val">$<span id="cpBudget">200</span></span></div>
-           <div class="bdg-row"><span>Remaining</span><span class="val" id="cpRemaining">$200</span></div>
+           <div class="bdg-row"><span>Monthly Budget</span><span class="val">$<span id="cpBudget">500</span></span></div>
+           <div class="bdg-row"><span>Remaining</span><span class="val" id="cpRemaining">$500</span></div>
            <div class="bdg-bar-wrap"><div class="bdg-bar-fill" id="cpBudgetBar" style="width:100%"></div></div>
            <div class="bdg-cats">
                <div class="bdg-cat"><span>Food / Supplies:</span><span>$<span id="cpFood">0</span></span></div>
@@ -478,7 +478,7 @@ const AGE_STAGES = {
 let userData = {
    coins:500,
    costTracking:{totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,
-                 monthlyBudget:200,budgetRemaining:200,transactions:[],lastMonthReset:Date.now()}
+                 monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()}
 };
 let petData = {
    name:"Pet",type:"b",age:"baby",level:1,experience:0,experienceToNextLevel:100,
@@ -677,7 +677,7 @@ function updateUI() {
    // Expenses
    const ct=userData.costTracking||{};
    document.getElementById('sbSpent').textContent=ct.totalSpent||0;
-   document.getElementById('sbBudget').textContent=ct.monthlyBudget||200;
+   document.getElementById('sbBudget').textContent=ct.monthlyBudget||500;
 
 
    // Bottom card
@@ -708,7 +708,7 @@ function updateUI() {
 
 function updateBudgetUI() {
    const ct=userData.costTracking||{};
-   const budg=ct.monthlyBudget||200, rem=Math.max(0,ct.budgetRemaining||budg);
+   const budg=ct.monthlyBudget||500, rem=Math.max(0,ct.budgetRemaining||budg);
    const pct=(rem/budg)*100, low=pct<20;
    // stat board
    document.getElementById('sbSpent').textContent=ct.totalSpent||0;
@@ -945,7 +945,7 @@ Coins 5-15, Bond 10-30, Duration 5-30 min. Make them specific to a ${traits.name
 // ═══════════════════════════════════════════
 // CARE ACTIONS
 // ═══════════════════════════════════════════
-function ensureCT(){if(!userData.costTracking)userData.costTracking={totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:200,budgetRemaining:200,transactions:[],lastMonthReset:Date.now()};}
+function ensureCT(){if(!userData.costTracking)userData.costTracking={totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()};}
 function spend(amt,cat){
    const ct=userData.costTracking;
    userData.coins-=amt; ct.totalSpent+=amt; ct.budgetRemaining-=amt;
@@ -955,7 +955,7 @@ function spend(amt,cat){
    ct.transactions.push({id:Date.now().toString(),category:cat,amount:amt,date:Date.now()});
 }
 function feedPet(){
-   const C=10; ensureCT();
+   const C=2; ensureCT();
    if(userData.coins<C){showAlert('Not enough coins!','error');return;}
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.fullness>80){showAlert('Your pet is already full!','warning');return;}
@@ -966,7 +966,7 @@ function feedPet(){
    gainXP(10); updateUI(); savePetData();
 }
 function playWithPet(){
-   const C=15; ensureCT();
+   const C=2; ensureCT();
    if(userData.coins<C){showAlert('Not enough coins!','error');return;}
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.energy<20){showAlert('Your pet is too tired to play!','warning');return;}
@@ -983,7 +983,7 @@ function restPet(){
    gainXP(5); updateUI(); savePetData();
 }
 function healthCheck(){
-   const C=50; ensureCT();
+   const C=10; ensureCT();
    if(userData.coins<C){showAlert('Need $50 for a vet visit!','error');return;}
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    spend(C,'vet');
@@ -1004,7 +1004,7 @@ function gainXP(amt){
        petData.experience-=petData.experienceToNextLevel;
        petData.experienceToNextLevel=Math.floor((petData.experienceToNextLevel||100)*1.5);
        userData.coins=(userData.coins||0)+50;
-       showAlert(`⭐ Level Up! Now Level ${petData.level}! +50 coins!`,'success');
+       showAlert(`⭐ Level Up! Now Level ${petData.level}! +10 coins!`,'success');
    }
    updateUI();
 }
