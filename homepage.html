@@ -80,15 +80,127 @@
        .sb-exp{display:flex;justify-content:space-between;align-items:center;padding-top:5px;border-top:1px solid rgba(73,166,166,.12);font-size:.57rem;font-weight:700;color:rgba(255,255,255,.38);}
        .sb-exp span{color:var(--teal-lt);font-weight:800;}
 
-       /* ── BOTTOM-LEFT PET CARD ── */
-      /* ── BOTTOM-LEFT PET CARD ── */
+/* ── BOTTOM-LEFT PET CARD ── */
 .pet-card{position:fixed;left:96px;bottom:110px;z-index:100;display:flex;flex-direction:column;gap:6px;animation:slideUp .5s cubic-bezier(.34,1.56,.64,1) both;}
 @keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
 .pet-stat-row{display:flex;align-items:center;gap:5px;background:var(--glass);backdrop-filter:blur(12px);border-radius:10px;padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--yellow);}
-.pet-nameplate{background:var(--glass);backdrop-filter:blur(18px);border-radius:26px;padding:8px 20px 8px 14px;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 0 22px rgba(73,166,166,.18);transition:all .28s cubic-bezier(.34,1.56,.64,1);cursor:default;border:1px solid rgba(73,166,166,.15);}
-.pet-nameplate:hover{background:var(--glass-h);box-shadow:0 0 32px rgba(73,166,166,.45);transform:scale(1.03) translateY(-2px);}
+.pet-nameplate{
+    background:var(--glass);backdrop-filter:blur(18px);border-radius:26px;
+    padding:8px 18px 8px 12px;display:flex;align-items:center;gap:10px;
+    white-space:nowrap;cursor:pointer;
+    border:1px solid rgba(73,166,166,.2);
+    transition:all .28s cubic-bezier(.34,1.56,.64,1);
+    position:relative;overflow:hidden;
+}
+.pet-nameplate::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 30% 50%, rgba(73,166,166,.18), transparent 70%);
+    opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.pet-nameplate:hover::before{opacity:1;}
+.pet-nameplate:hover{
+    background:var(--glass-h);
+    box-shadow:0 0 28px rgba(73,166,166,.4), 0 0 0 1px rgba(73,166,166,.3);
+    transform:scale(1.04) translateY(-2px);
+}
+.pet-nameplate:active{transform:scale(.97);}
 .pet-name-text{font-family:'Lilita One',cursive;font-size:1.08rem;color:var(--teal-lt);text-shadow:1px 1px 0 var(--teal-dk);}
 
+/* ── MASTERY BADGE ── */
+.mastery-badge{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:4px 10px 4px 8px;border-radius:20px;
+    font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:1.4px;
+    flex-shrink:0;transition:all .3s;position:relative;
+}
+.mastery-badge::before{
+    content:'';position:absolute;inset:0;border-radius:20px;
+    background:linear-gradient(135deg,rgba(255,255,255,.08),transparent);
+    pointer-events:none;
+}
+.mastery-badge svg{width:11px;height:11px;flex-shrink:0;filter:drop-shadow(0 0 3px currentColor);}
+
+.mastery-iron   {background:rgba(90,90,100,.5);color:#b0b8c8;border:1px solid rgba(150,160,180,.45);box-shadow:0 0 10px rgba(120,130,150,.2),inset 0 1px 0 rgba(255,255,255,.08);}
+.mastery-bronze {background:rgba(130,70,30,.45);color:#f0a060;border:1px solid rgba(205,127,50,.5);box-shadow:0 0 10px rgba(205,127,50,.25),inset 0 1px 0 rgba(255,255,255,.08);}
+.mastery-silver {background:rgba(130,140,160,.35);color:#dde4f0;border:1px solid rgba(192,210,230,.5);box-shadow:0 0 12px rgba(192,210,230,.25),inset 0 1px 0 rgba(255,255,255,.12);}
+.mastery-gold   {background:rgba(160,120,0,.4);color:#ffe066;border:1px solid rgba(212,175,55,.65);box-shadow:0 0 14px rgba(212,175,55,.4),inset 0 1px 0 rgba(255,255,255,.1);}
+.mastery-diamond{background:rgba(60,180,255,.2);color:#a8f0ff;border:1px solid rgba(73,180,255,.55);box-shadow:0 0 14px rgba(73,180,255,.35),inset 0 1px 0 rgba(255,255,255,.1);}
+.mastery-mythic {background:rgba(160,50,255,.28);color:#e8a0ff;border:1px solid rgba(180,60,255,.6);box-shadow:0 0 16px rgba(160,40,220,.45),inset 0 1px 0 rgba(255,255,255,.08);}
+.mastery-legend {
+    background:linear-gradient(135deg,rgba(255,110,0,.35),rgba(255,20,80,.32));
+    color:#ffb84d;border:1px solid rgba(255,140,0,.65);
+    box-shadow:0 0 18px rgba(255,100,0,.55),inset 0 1px 0 rgba(255,200,0,.2);
+    animation:legendPulse 2.2s ease-in-out infinite;
+}
+@keyframes legendPulse{
+    0%,100%{box-shadow:0 0 12px rgba(255,120,0,.5),0 0 24px rgba(255,60,0,.2);}
+    50%{box-shadow:0 0 22px rgba(255,150,0,.75),0 0 40px rgba(255,60,0,.4);}
+}
+
+/* ── MASTERY TRACK POPUP ── */
+.mastery-track-popup{
+    position:fixed;left:96px;bottom:175px;z-index:300;
+    background:rgba(4,14,14,.96);backdrop-filter:blur(32px);
+    border:1px solid rgba(73,166,166,.3);border-radius:20px;
+    padding:16px 0 16px 16px;
+    box-shadow:0 16px 48px rgba(0,0,0,.7), 0 0 0 1px rgba(73,166,166,.08) inset;
+    width:340px;
+    display:none;
+    flex-direction:column;
+    gap:12px;
+    animation:trackSlideUp .3s cubic-bezier(.34,1.56,.64,1);
+}
+.mastery-track-popup.open{display:flex;}
+@keyframes trackSlideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mtp-title{
+    font-family:'Lilita One',cursive;font-size:.8rem;color:var(--teal-lt);
+    letter-spacing:.5px;padding-right:16px;display:flex;align-items:center;justify-content:space-between;
+}
+.mtp-title span{font-family:'Nunito',sans-serif;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.35);}
+.mtp-scroll{
+    display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;padding-right:16px;
+    scroll-behavior:smooth;cursor:grab;
+}
+.mtp-scroll:active{cursor:grabbing;}
+.mtp-scroll::-webkit-scrollbar{height:3px;}
+.mtp-scroll::-webkit-scrollbar-track{background:rgba(73,166,166,.06);border-radius:2px;}
+.mtp-scroll::-webkit-scrollbar-thumb{background:rgba(73,166,166,.3);border-radius:2px;}
+.mtp-tier{
+    flex-shrink:0;width:110px;
+    background:rgba(73,166,166,.05);border:1px solid rgba(73,166,166,.12);
+    border-radius:14px;padding:12px 10px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    position:relative;transition:all .25s;
+}
+.mtp-tier.current{
+    border-color:rgba(73,166,166,.5);
+    background:rgba(73,166,166,.12);
+    box-shadow:0 0 16px rgba(73,166,166,.2);
+}
+.mtp-tier.achieved{opacity:.7;}
+.mtp-tier.locked{opacity:.4;}
+.mtp-tier-badge{
+    display:flex;align-items:center;gap:4px;
+    padding:4px 10px;border-radius:14px;
+    font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:1.2px;
+    width:100%;justify-content:center;
+}
+.mtp-tier-req{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.35);text-align:center;line-height:1.4;}
+.mtp-tier-req strong{color:var(--teal-lt);font-size:.68rem;}
+.mtp-tier-bar{width:100%;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+.mtp-tier-bar-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+.mtp-current-label{
+    position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+    background:var(--teal);color:#fff;font-size:.48rem;font-weight:900;
+    text-transform:uppercase;letter-spacing:.8px;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+}
+.mtp-check{
+    position:absolute;top:8px;right:8px;
+    width:14px;height:14px;background:var(--green);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+}
+.mtp-check svg{width:8px;height:8px;color:#fff;}
 /* ── MASTERY BADGE ── */
 .mastery-badge{
     display:inline-flex;align-items:center;gap:5px;
@@ -473,12 +585,20 @@
    <div class="pet-stat-row">
        Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
    </div>
-   <div class="pet-nameplate">
+   <div class="pet-nameplate" onclick="toggleMasteryTrack()">
        <span class="pet-name-text" id="petName">—</span>
 <span class="mastery-badge mastery-iron" id="masteryBadge">
            <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>Iron
        </span>
    </div>
+   <!-- MASTERY TRACK POPUP -->
+<div class="mastery-track-popup" id="masteryTrackPopup">
+    <div class="mtp-title">
+        Mastery Track
+        <span id="mtpBondLabel">Bond: 0 / 100</span>
+    </div>
+    <div class="mtp-scroll" id="masteryScroll"></div>
+</div>
 </div>
 
 <!-- BOTTOM-CENTER PET SLOTS -->
@@ -1321,6 +1441,90 @@ function showAlert(msg,type='info'){
    document.getElementById('alertOv').classList.add('on');
 }
 function closeAlert(){document.getElementById('alertOv').classList.remove('on');}
+
+// ── MASTERY TRACK ──
+const TIER_COLORS = {
+    'mastery-iron':   {bar:'#b0b8c8', glow:'rgba(150,160,180,.5)'},
+    'mastery-bronze': {bar:'#f0a060', glow:'rgba(205,127,50,.5)'},
+    'mastery-silver': {bar:'#dde4f0', glow:'rgba(200,210,230,.5)'},
+    'mastery-gold':   {bar:'#ffe066', glow:'rgba(212,175,55,.6)'},
+    'mastery-diamond':{bar:'#a8f0ff', glow:'rgba(73,180,255,.5)'},
+    'mastery-mythic': {bar:'#e8a0ff', glow:'rgba(180,60,255,.5)'},
+    'mastery-legend': {bar:'#ffb84d', glow:'rgba(255,120,0,.6)'},
+};
+
+function buildMasteryTrack() {
+    const bond = petData.bond || 0;
+    const scroll = document.getElementById('masteryScroll');
+    document.getElementById('mtpBondLabel').textContent = `Bond: ${bond} / 100`;
+    scroll.innerHTML = '';
+
+    MASTERY_TIERS.slice().reverse().forEach((tier, i) => {
+        const nextTier = MASTERY_TIERS.slice().reverse()[i + 1];
+        const maxBond = nextTier ? nextTier.min : 100;
+        const minBond = tier.min;
+        const isCurrent = bond >= minBond && (bond < maxBond || tier.label === 'Legend');
+        const isAchieved = bond >= maxBond && tier.label !== 'Legend';
+        const isLocked = bond < minBond;
+        const colors = TIER_COLORS[tier.cls] || {bar:'#7fcece', glow:'rgba(73,166,166,.5)'};
+        const pct = isCurrent
+            ? Math.round(((bond - minBond) / (maxBond - minBond)) * 100)
+            : isAchieved ? 100 : 0;
+
+        const div = document.createElement('div');
+        div.className = `mtp-tier${isCurrent ? ' current' : ''}${isAchieved ? ' achieved' : ''}${isLocked ? ' locked' : ''}`;
+
+        div.innerHTML = `
+            ${isCurrent ? '<div class="mtp-current-label">You Are Here</div>' : ''}
+            ${isAchieved ? `<div class="mtp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>` : ''}
+            <div class="mtp-tier-badge ${tier.cls}">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
+                ${tier.label}
+            </div>
+            <div class="mtp-tier-req">
+                ${tier.label === 'Legend' ? '<strong>Max Rank</strong><br>Bond 95+' : `Bond <strong>${minBond}–${maxBond}</strong>`}
+            </div>
+            <div class="mtp-tier-bar">
+                <div class="mtp-tier-bar-fill" style="width:${pct}%;background:${colors.bar};box-shadow:0 0 6px ${colors.glow};"></div>
+            </div>
+        `;
+        scroll.appendChild(div);
+    });
+
+    // Scroll to current tier
+    setTimeout(() => {
+        const current = scroll.querySelector('.mtp-tier.current');
+        if(current) current.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    }, 100);
+
+    // Drag to scroll
+    let isDown = false, startX, scrollLeft;
+    scroll.addEventListener('mousedown', e => { isDown=true; startX=e.pageX-scroll.offsetLeft; scrollLeft=scroll.scrollLeft; });
+    scroll.addEventListener('mouseleave', () => isDown=false);
+    scroll.addEventListener('mouseup', () => isDown=false);
+    scroll.addEventListener('mousemove', e => { if(!isDown) return; e.preventDefault(); scroll.scrollLeft = scrollLeft-(e.pageX-scroll.offsetLeft-startX); });
+}
+
+function toggleMasteryTrack() {
+    const popup = document.getElementById('masteryTrackPopup');
+    const isOpen = popup.classList.contains('open');
+    if(isOpen) {
+        popup.classList.remove('open');
+    } else {
+        buildMasteryTrack();
+        popup.classList.add('open');
+    }
+}
+
+// Close mastery track when clicking outside
+document.addEventListener('click', e => {
+    const popup = document.getElementById('masteryTrackPopup');
+    if(!popup.classList.contains('open')) return;
+    if(!popup.contains(e.target) && !e.target.closest('.pet-nameplate')) {
+        popup.classList.remove('open');
+    }
+});
+
 
 // ═══════════════════════════════════════════
 // INIT
