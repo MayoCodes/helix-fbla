@@ -5,11 +5,12 @@
 
 ---
 
-Helix is a browser-based virtual pet care platform where users can adopt and care for a 3D-rendered virtual pet
+the Helix website is a virtual pet care platform where users can adopt and care for a 3D-rendered virtual pet
 using Babylon.js, choosing from a Cat, Dog, or Bird pet, and keep it healthy by performing daily care actions,
-tasks, and in-app purchases. The pet is 3D-rendered in real time and reacts to the user's actions with visual
+tasks, and purchases. The pet is 3D-rendered in real time and reacts to the user's actions with visual
 changes in its stats and mood.
-Each care action comes with a dollar cost, and the user has a monthly budget of $500 to manage their expenses,
+
+Each care action comes with a specifc costs, and the user has a monthly budget of $500 which they have to keep in mind while planning to manage their expenses,
 which are categorized and displayed using Chart.js dashboards on the analytics page, and the system restricts
 purchases when the budget is depleted.
 
@@ -30,10 +31,10 @@ purchases when the budget is depleted.
 
 ## How to Run
 
-**Requirements:** Any modern browser (Chrome, Firefox, Edge, Safari) with an active internet connection. No installation required.
+**Requirements:** Any modern browser like Chrome should be fine
 
 **Steps:**
-1. Open `index.html` in a web browser
+1. Open `index.html` in your browser
 2. Click **Sign Up** to create an account using email/password or Google Sign-In
 3. You will be redirected to `homepage.html`, the main pet care screen
 
