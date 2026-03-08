@@ -7,7 +7,7 @@
 
 Helix is a browser-based virtual pet care platform where users adopt and raise a 3D-rendered digital companion, choosing from a Cat, Dog, or Bird, and keep it healthy through daily care actions, tasks, and in-app purchases. The pet is rendered in real time using Babylon.js and responds to the user's decisions with visible stat changes and mood expressions.
 
-Every care action carries a dollar cost tracked against a monthly **$200 budget**, so users have to think about how they spend. Expenses are logged by category, visualized in Chart.js dashboards on the analytics page, and the system blocks purchases once the budget runs out.
+Every care action carries a dollar cost tracked against a monthly **$500 budget**, so users have to think about how they spend. Expenses are logged by category, visualized in Chart.js dashboards on the analytics page, and the system blocks purchases once the budget runs out.
 
 ---
 
