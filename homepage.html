@@ -136,71 +136,146 @@
     0%,100%{box-shadow:0 0 12px rgba(255,120,0,.5),0 0 24px rgba(255,60,0,.2);}
     50%{box-shadow:0 0 22px rgba(255,150,0,.75),0 0 40px rgba(255,60,0,.4);}
 }
-
 /* ── MASTERY TRACK POPUP ── */
 .mastery-track-popup{
-    position:fixed;left:96px;bottom:175px;z-index:300;
-    background:rgba(4,14,14,.96);backdrop-filter:blur(32px);
-    border:1px solid rgba(73,166,166,.3);border-radius:20px;
-    padding:16px 0 16px 16px;
-    box-shadow:0 16px 48px rgba(0,0,0,.7), 0 0 0 1px rgba(73,166,166,.08) inset;
-    width:340px;
-    display:none;
-    flex-direction:column;
-    gap:12px;
-    animation:trackSlideUp .3s cubic-bezier(.34,1.56,.64,1);
+    position:fixed;left:96px;bottom:178px;z-index:300;
+    background:rgba(3,12,12,.97);backdrop-filter:blur(36px);
+    border:1px solid rgba(73,166,166,.25);border-radius:22px;
+    padding:18px 20px 20px;
+    box-shadow:0 20px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(73,166,166,.06) inset;
+    width:360px;
+    display:none;flex-direction:column;gap:14px;
+    animation:trackSlideUp .32s cubic-bezier(.34,1.56,.64,1);
 }
 .mastery-track-popup.open{display:flex;}
-@keyframes trackSlideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.mtp-title{
-    font-family:'Lilita One',cursive;font-size:.8rem;color:var(--teal-lt);
-    letter-spacing:.5px;padding-right:16px;display:flex;align-items:center;justify-content:space-between;
+@keyframes trackSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.mtp-header{display:flex;align-items:center;justify-content:space-between;}
+.mtp-header-title{font-family:'Lilita One',cursive;font-size:.88rem;color:var(--teal-lt);letter-spacing:.5px;}
+.mtp-header-sub{font-size:.62rem;font-weight:800;color:rgba(255,255,255,.3);letter-spacing:.5px;}
+
+/* the scrollable rail */
+.mtp-rail-wrap{
+    overflow-x:auto;overflow-y:visible;
+    padding:28px 8px 16px;
+    cursor:grab;
+    scrollbar-width:none;
 }
-.mtp-title span{font-family:'Nunito',sans-serif;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.35);}
-.mtp-scroll{
-    display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;padding-right:16px;
-    scroll-behavior:smooth;cursor:grab;
+.mtp-rail-wrap:active{cursor:grabbing;}
+.mtp-rail-wrap::-webkit-scrollbar{display:none;}
+
+.mtp-rail{
+    display:flex;align-items:center;
+    gap:0;
+    width:max-content;
+    position:relative;
 }
-.mtp-scroll:active{cursor:grabbing;}
-.mtp-scroll::-webkit-scrollbar{height:3px;}
-.mtp-scroll::-webkit-scrollbar-track{background:rgba(73,166,166,.06);border-radius:2px;}
-.mtp-scroll::-webkit-scrollbar-thumb{background:rgba(73,166,166,.3);border-radius:2px;}
-.mtp-tier{
-    flex-shrink:0;width:110px;
-    background:rgba(73,166,166,.05);border:1px solid rgba(73,166,166,.12);
-    border-radius:14px;padding:12px 10px;
-    display:flex;flex-direction:column;align-items:center;gap:8px;
-    position:relative;transition:all .25s;
+
+/* connector line between nodes */
+.mtp-connector{
+    height:3px;width:44px;flex-shrink:0;
+    border-radius:2px;
+    position:relative;top:0;
 }
-.mtp-tier.current{
-    border-color:rgba(73,166,166,.5);
-    background:rgba(73,166,166,.12);
-    box-shadow:0 0 16px rgba(73,166,166,.2);
+.mtp-connector.done{background:linear-gradient(90deg,var(--conn-a),var(--conn-b));}
+.mtp-connector.active{background:linear-gradient(90deg,var(--conn-a),rgba(73,166,166,.25));}
+.mtp-connector.locked{background:rgba(255,255,255,.07);}
+
+/* tier node */
+.mtp-node{
+    display:flex;flex-direction:column;align-items:center;
+    gap:7px;flex-shrink:0;position:relative;
+    width:62px;
 }
-.mtp-tier.achieved{opacity:.7;}
-.mtp-tier.locked{opacity:.4;}
-.mtp-tier-badge{
-    display:flex;align-items:center;gap:4px;
-    padding:4px 10px;border-radius:14px;
-    font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:1.2px;
-    width:100%;justify-content:center;
-}
-.mtp-tier-req{font-size:.6rem;font-weight:700;color:rgba(255,255,255,.35);text-align:center;line-height:1.4;}
-.mtp-tier-req strong{color:var(--teal-lt);font-size:.68rem;}
-.mtp-tier-bar{width:100%;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
-.mtp-tier-bar-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1);}
-.mtp-current-label{
-    position:absolute;top:-8px;left:50%;transform:translateX(-50%);
-    background:var(--teal);color:#fff;font-size:.48rem;font-weight:900;
-    text-transform:uppercase;letter-spacing:.8px;
-    padding:2px 7px;border-radius:6px;white-space:nowrap;
-}
-.mtp-check{
-    position:absolute;top:8px;right:8px;
-    width:14px;height:14px;background:var(--green);border-radius:50%;
+.mtp-node-ring{
+    width:46px;height:46px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
 }
-.mtp-check svg{width:8px;height:8px;color:#fff;}
+.mtp-node:hover .mtp-node-ring{transform:scale(1.15);}
+.mtp-node-ring::before{
+    content:'';position:absolute;inset:-3px;border-radius:50%;
+    border:2px solid transparent;
+    transition:all .3s;
+}
+.mtp-node-ring::after{
+    content:'';position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.18),transparent 60%);
+    pointer-events:none;
+}
+.mtp-node.current .mtp-node-ring{
+    animation:nodeGlow 2s ease-in-out infinite;
+}
+.mtp-node.locked .mtp-node-ring{filter:grayscale(.7);opacity:.45;}
+
+/* roman numeral / icon inside node */
+.mtp-node-icon{
+    font-family:'Lilita One',cursive;
+    font-size:.75rem;color:#fff;
+    position:relative;z-index:1;
+    text-shadow:0 1px 4px rgba(0,0,0,.5);
+    letter-spacing:0;
+}
+
+/* label below node */
+.mtp-node-label{
+    font-size:.52rem;font-weight:900;text-transform:uppercase;
+    letter-spacing:1px;text-align:center;line-height:1.2;
+    transition:color .3s;
+}
+.mtp-node.locked .mtp-node-label{color:rgba(255,255,255,.2);}
+
+/* bond range below label */
+.mtp-node-range{
+    font-size:.48rem;font-weight:700;
+    color:rgba(255,255,255,.22);text-align:center;
+    margin-top:-4px;
+}
+
+/* YOU ARE HERE pip */
+.mtp-you{
+    position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+    background:var(--teal);color:#fff;
+    font-size:.42rem;font-weight:900;text-transform:uppercase;letter-spacing:.8px;
+    padding:2px 6px;border-radius:5px;white-space:nowrap;
+    box-shadow:0 2px 8px rgba(73,166,166,.6);
+}
+.mtp-you::after{
+    content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:4px solid transparent;border-top-color:var(--teal);
+}
+
+/* mini progress arc under current node */
+.mtp-arc{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);}
+
+/* bottom bond bar */
+.mtp-bottom{display:flex;flex-direction:column;gap:6px;}
+.mtp-progress-row{display:flex;justify-content:space-between;align-items:center;font-size:.6rem;font-weight:800;}
+.mtp-progress-label{color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;}
+.mtp-progress-val{color:var(--teal-lt);}
+.mtp-progress-bar{
+    width:100%;height:6px;
+    background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;
+    position:relative;
+}
+.mtp-progress-bar-fill{
+    height:100%;border-radius:3px;
+    transition:width .7s cubic-bezier(.4,0,.2,1);
+    position:relative;
+}
+.mtp-progress-bar-fill::after{
+    content:'';position:absolute;top:0;right:0;bottom:0;width:20px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.35));
+    border-radius:0 3px 3px 0;
+}
+.mtp-next-label{font-size:.58rem;font-weight:700;color:rgba(255,255,255,.25);text-align:right;}
+.mtp-next-label strong{color:rgba(255,255,255,.5);}
+
+@keyframes nodeGlow{
+    0%,100%{box-shadow:0 0 0 0 var(--node-glow,rgba(73,166,166,.5));}
+    50%{box-shadow:0 0 0 8px transparent,0 0 20px var(--node-glow,rgba(73,166,166,.4));}
+}
 /* ── MASTERY BADGE ── */
 .mastery-badge{
     display:inline-flex;align-items:center;gap:5px;
@@ -592,12 +667,14 @@
        </span>
    </div>
    <!-- MASTERY TRACK POPUP -->
+<!-- MASTERY TRACK POPUP -->
 <div class="mastery-track-popup" id="masteryTrackPopup">
-    <div class="mtp-title">
-        Mastery Track
-        <span id="mtpBondLabel">Bond: 0 / 100</span>
+    <div class="mtp-header">
+        <div class="mtp-header-title">Mastery Track</div>
+        <div class="mtp-header-sub" id="mtpBondLabel">Iron · 0/100</div>
     </div>
-    <div class="mtp-scroll" id="masteryScroll"></div>
+    <div class="mtp-rail-wrap" id="masteryScroll"></div>
+    <div class="mtp-bottom" id="mtpBottom"></div>
 </div>
 </div>
 
@@ -1453,56 +1530,151 @@ const TIER_COLORS = {
     'mastery-legend': {bar:'#ffb84d', glow:'rgba(255,120,0,.6)'},
 };
 
+const TIER_META = {
+    'mastery-iron':   { color:'#b0b8c8', bg:'rgba(100,110,130,.7)',  glow:'rgba(150,160,180,.6)', conn:'#8090a8' },
+    'mastery-bronze': { color:'#f0a060', bg:'rgba(130,70,30,.8)',    glow:'rgba(205,127,50,.7)',  conn:'#c07840' },
+    'mastery-silver': { color:'#e0eaff', bg:'rgba(140,155,180,.75)', glow:'rgba(200,215,240,.7)', conn:'#b0c0d8' },
+    'mastery-gold':   { color:'#ffe066', bg:'rgba(160,120,0,.8)',    glow:'rgba(220,180,0,.8)',   conn:'#c8a000' },
+    'mastery-diamond':{ color:'#a8f0ff', bg:'rgba(20,140,200,.7)',   glow:'rgba(80,200,255,.8)',  conn:'#30b0e0' },
+    'mastery-mythic': { color:'#e8a0ff', bg:'rgba(130,30,220,.7)',   glow:'rgba(190,70,255,.8)',  conn:'#a030e0' },
+    'mastery-legend': { color:'#ffb84d', bg:'linear-gradient(135deg,rgba(200,80,0,.85),rgba(180,20,60,.8))', glow:'rgba(255,120,0,.9)', conn:'#e06000' },
+};
+const TIER_NUMERALS = ['I','II','III','IV','V','VI','VII'];
+
 function buildMasteryTrack() {
     const bond = petData.bond || 0;
     const scroll = document.getElementById('masteryScroll');
-    document.getElementById('mtpBondLabel').textContent = `Bond: ${bond} / 100`;
+
+    // header
+    const currentTier = getMastery(bond);
+    document.getElementById('mtpBondLabel').textContent = `${currentTier.label} · ${bond}/100`;
+
     scroll.innerHTML = '';
+    const rail = document.createElement('div');
+    rail.className = 'mtp-rail';
 
-    MASTERY_TIERS.slice().reverse().forEach((tier, i) => {
-        const nextTier = MASTERY_TIERS.slice().reverse()[i + 1];
-        const maxBond = nextTier ? nextTier.min : 100;
+    const ordered = [...MASTERY_TIERS].reverse(); // Iron→Legend
+
+    ordered.forEach((tier, i) => {
+        const meta = TIER_META[tier.cls] || TIER_META['mastery-iron'];
+        const nextTier = ordered[i + 1];
         const minBond = tier.min;
-        const isCurrent = bond >= minBond && (bond < maxBond || tier.label === 'Legend');
-        const isAchieved = bond >= maxBond && tier.label !== 'Legend';
+        const maxBond = nextTier ? nextTier.min : 101;
+        const isCurrent = bond >= minBond && bond < maxBond;
+        const isAchieved = bond >= maxBond;
         const isLocked = bond < minBond;
-        const colors = TIER_COLORS[tier.cls] || {bar:'#7fcece', glow:'rgba(73,166,166,.5)'};
-        const pct = isCurrent
-            ? Math.round(((bond - minBond) / (maxBond - minBond)) * 100)
-            : isAchieved ? 100 : 0;
 
-        const div = document.createElement('div');
-        div.className = `mtp-tier${isCurrent ? ' current' : ''}${isAchieved ? ' achieved' : ''}${isLocked ? ' locked' : ''}`;
+        // ── NODE ──
+        const node = document.createElement('div');
+        node.className = `mtp-node${isCurrent?' current':''}${isAchieved?' achieved':''}${isLocked?' locked':''}`;
 
-        div.innerHTML = `
-            ${isCurrent ? '<div class="mtp-current-label">You Are Here</div>' : ''}
-            ${isAchieved ? `<div class="mtp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>` : ''}
-            <div class="mtp-tier-badge ${tier.cls}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
-                ${tier.label}
-            </div>
-            <div class="mtp-tier-req">
-                ${tier.label === 'Legend' ? '<strong>Max Rank</strong><br>Bond 95+' : `Bond <strong>${minBond}–${maxBond}</strong>`}
-            </div>
-            <div class="mtp-tier-bar">
-                <div class="mtp-tier-bar-fill" style="width:${pct}%;background:${colors.bar};box-shadow:0 0 6px ${colors.glow};"></div>
-            </div>
-        `;
-        scroll.appendChild(div);
+        // glow CSS var
+        node.style.setProperty('--node-glow', meta.glow);
+
+        // ring
+        const ring = document.createElement('div');
+        ring.className = 'mtp-node-ring';
+        ring.style.cssText = `background:${meta.bg};box-shadow:0 4px 16px ${meta.glow},inset 0 1px 0 rgba(255,255,255,.15);`;
+        if(isCurrent) ring.style.setProperty('--node-glow', meta.glow);
+
+        // icon: star SVG for achieved/current, lock for locked
+        const icon = document.createElement('div');
+        icon.className = 'mtp-node-icon';
+        if(isLocked) {
+            icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,.4)" stroke="none"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"/></svg>`;
+        } else {
+            icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="${meta.color}" stroke="none" style="filter:drop-shadow(0 0 4px ${meta.glow})"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>`;
+        }
+
+        ring.appendChild(icon);
+
+        // "YOU ARE HERE" pip
+        if(isCurrent) {
+            const pip = document.createElement('div');
+            pip.className = 'mtp-you';
+            pip.textContent = 'Now';
+            node.appendChild(pip);
+        }
+
+        // SVG arc progress (only for current)
+        if(isCurrent && nextTier) {
+            const pct = (bond - minBond) / (maxBond - minBond);
+            const R = 22, C = 2 * Math.PI * R;
+            const arc = document.createElement('div');
+            arc.className = 'mtp-arc';
+            arc.innerHTML = `<svg width="50" height="50" viewBox="0 0 50 50" style="transform:rotate(-90deg)">
+                <circle cx="25" cy="25" r="${R}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="3"/>
+                <circle cx="25" cy="25" r="${R}" fill="none" stroke="${meta.color}" stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pct)}"
+                    style="filter:drop-shadow(0 0 4px ${meta.glow});transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/>
+            </svg>`;
+            // place arc behind ring
+            node.appendChild(arc);
+        }
+
+        node.appendChild(ring);
+
+        const label = document.createElement('div');
+        label.className = 'mtp-node-label';
+        label.style.color = isLocked ? 'rgba(255,255,255,.2)' : meta.color;
+        label.textContent = tier.label;
+        node.appendChild(label);
+
+        const range = document.createElement('div');
+        range.className = 'mtp-node-range';
+        range.textContent = tier.label === 'Legend' ? '95–100' : `${minBond}–${maxBond-1}`;
+        node.appendChild(range);
+
+        rail.appendChild(node);
+
+        // ── CONNECTOR between nodes ──
+        if(i < ordered.length - 1) {
+            const conn = document.createElement('div');
+            conn.className = `mtp-connector ${isAchieved ? 'done' : isCurrent ? 'active' : 'locked'}`;
+            const nextMeta = TIER_META[ordered[i+1].cls] || meta;
+            conn.style.setProperty('--conn-a', meta.conn);
+            conn.style.setProperty('--conn-b', nextMeta.conn);
+            rail.appendChild(conn);
+        }
     });
 
-    // Scroll to current tier
-    setTimeout(() => {
-        const current = scroll.querySelector('.mtp-tier.current');
-        if(current) current.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
-    }, 100);
+    scroll.appendChild(rail);
 
-    // Drag to scroll
-    let isDown = false, startX, scrollLeft;
-    scroll.addEventListener('mousedown', e => { isDown=true; startX=e.pageX-scroll.offsetLeft; scrollLeft=scroll.scrollLeft; });
-    scroll.addEventListener('mouseleave', () => isDown=false);
-    scroll.addEventListener('mouseup', () => isDown=false);
-    scroll.addEventListener('mousemove', e => { if(!isDown) return; e.preventDefault(); scroll.scrollLeft = scrollLeft-(e.pageX-scroll.offsetLeft-startX); });
+    // bottom progress bar to next tier
+    const next = MASTERY_TIERS.find(t => t.min > bond);
+    const curr = getMastery(bond);
+    const currMeta = TIER_META[curr.cls];
+    const bottom = document.getElementById('mtpBottom');
+    if(next) {
+        const currMin = curr.min;
+        const pct = Math.round(((bond - currMin) / (next.min - currMin)) * 100);
+        bottom.innerHTML = `
+            <div class="mtp-progress-row">
+                <span class="mtp-progress-label">Progress to ${next.label}</span>
+                <span class="mtp-progress-val">${bond} / ${next.min}</span>
+            </div>
+            <div class="mtp-progress-bar">
+                <div class="mtp-progress-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${currMeta.conn},${currMeta.color});box-shadow:0 0 10px ${currMeta.glow};"></div>
+            </div>
+            <div class="mtp-next-label">Need <strong>${next.min - bond} more bond</strong> to reach ${next.label}</div>
+        `;
+    } else {
+        bottom.innerHTML = `<div class="mtp-progress-row"><span class="mtp-progress-label" style="color:${currMeta.color}">MAX RANK — LEGEND</span><span class="mtp-progress-val">${bond}/100</span></div>`;
+    }
+
+    // scroll to current node
+    setTimeout(() => {
+        const cur = scroll.querySelector('.mtp-node.current');
+        if(cur) cur.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    }, 80);
+
+    // drag scroll
+    let down=false, sx=0, sl=0;
+    scroll.onmousedown = e=>{down=true;sx=e.pageX-scroll.offsetLeft;sl=scroll.scrollLeft;};
+    scroll.onmouseleave = ()=>down=false;
+    scroll.onmouseup = ()=>down=false;
+    scroll.onmousemove = e=>{if(!down)return;e.preventDefault();scroll.scrollLeft=sl-(e.pageX-scroll.offsetLeft-sx);};
 }
 
 function toggleMasteryTrack() {
