@@ -310,6 +310,23 @@
        .start-btn{width:100%;padding:1.1rem;font-family:'Lilita One',cursive;font-size:1.15rem;background:linear-gradient(135deg,var(--teal-dk),var(--teal));border:none;border-radius:50px;color:#fff;cursor:pointer;transition:all .3s;box-shadow:0 5px 20px rgba(73,166,166,.35);letter-spacing:.5px;}
        .start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(73,166,166,.5);}
        .start-btn:disabled{background:rgba(73,166,166,.2);cursor:not-allowed;box-shadow:none;transform:none;}
+
+       .mastery-badge {
+    font-size:.55rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;
+    padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle;
+}
+.mastery-wood    { background:rgba(139,90,43,.25);  color:#c8a06e; border:1px solid #8b5a2b; }
+.mastery-bronze  { background:rgba(180,100,40,.25); color:#e8914a; border:1px solid #b46428; }
+.mastery-silver  { background:rgba(160,160,180,.25);color:#c0c0d0; border:1px solid #a0a0b4; }
+.mastery-gold    { background:rgba(212,175,55,.25); color:#f4c430; border:1px solid #d4af37; }
+.mastery-diamond { background:rgba(100,200,255,.25);color:#7fcece; border:1px solid #49a6a6; }
+.mastery-mythic  { background:rgba(200,80,255,.25); color:#df80ff; border:1px solid #a020d0; }
+.mastery-legend  { background:rgba(255,140,0,.35);  color:#ff9d00; border:1px solid #ff6a00;
+                   animation:legendGlow 2s ease-in-out infinite; }
+@keyframes legendGlow {
+    0%,100%{box-shadow:0 0 6px rgba(255,154,0,.5)}
+    50%{box-shadow:0 0 14px rgba(255,154,0,.9)}
+}
    </style>
 </head>
 <body>
@@ -446,10 +463,10 @@
 
 <!-- BOTTOM-LEFT PET CARD -->
 <div class="pet-card">
-   <div class="pet-stat-row">
-      Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
-   </div>
-   <div class="pet-nameplate" id="petName">—</div>
+    <div class="pet-stat-row">
+        Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
+    </div>
+    <div class="pet-nameplate" id="petName">—<span id="masteryBadge" class="mastery-badge"></span></div>
 </div>
 
 <!-- BOTTOM-CENTER PET SLOTS -->
@@ -532,6 +549,16 @@
 <script src="ar.js"></script>
 <script src="overlay.js"></script>
 <script>
+
+function getMastery(bond) {
+    if(bond >= 95) return { label:'Legend',   cls:'mastery-legend'  };
+    if(bond >= 80) return { label:'Mythic',   cls:'mastery-mythic'  };
+    if(bond >= 65) return { label:'Diamond',  cls:'mastery-diamond' };
+    if(bond >= 50) return { label:'Gold',     cls:'mastery-gold'    };
+    if(bond >= 35) return { label:'Silver',   cls:'mastery-silver'  };
+    if(bond >= 20) return { label:'Bronze',   cls:'mastery-bronze'  };
+    return                { label:'Iron',     cls:'mastery-iron'    };
+}
 // ═══════════════════════════════════════════
 // FIREBASE
 // ═══════════════════════════════════════════
@@ -773,7 +800,10 @@ document.getElementById('sbCoins').textContent=Math.max(0,userData.costTracking.
    const ct=userData.costTracking||{};
    document.getElementById('sbSpent').textContent=ct.totalSpent||0;
    document.getElementById('sbBudget').textContent=ct.monthlyBudget||500;
-   document.getElementById('petName').textContent=petData.name;
+   document.getElementById('petName').childNodes[0].textContent=petData.name+' ';
+const m=getMastery(petData.bond||0);
+const mb=document.getElementById('masteryBadge');
+mb.textContent=m.label; mb.className='mastery-badge '+m.cls;
    document.getElementById('petBond').textContent=petData.bond||0;
    document.getElementById('petLv').textContent=petData.level||1;
 
