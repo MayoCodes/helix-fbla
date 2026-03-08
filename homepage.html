@@ -81,11 +81,34 @@
        .sb-exp span{color:var(--teal-lt);font-weight:800;}
 
        /* ── BOTTOM-LEFT PET CARD ── */
-       .pet-card{position:fixed;left:96px;bottom:110px;z-index:100;display:flex;flex-direction:column;gap:5px;animation:slideUp .5s cubic-bezier(.34,1.56,.64,1) both;}
-       @keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
-       .pet-stat-row{display:flex;align-items:center;gap:5px;background:var(--glass);backdrop-filter:blur(12px);border-radius:10px;padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--yellow);}
-       .pet-nameplate{background:var(--glass);backdrop-filter:blur(18px);border-radius:26px;padding:7px 24px;font-family:'Lilita One',cursive;font-size:1.08rem;color:var(--teal-lt);text-shadow:1px 1px 0 var(--teal-dk);white-space:nowrap;box-shadow:0 0 22px rgba(73,166,166,.18);transition:all .28s cubic-bezier(.34,1.56,.64,1);cursor:default;}
-       .pet-nameplate:hover{background:var(--glass-h);box-shadow:0 0 32px rgba(73,166,166,.45);transform:scale(1.05) translateY(-2px);}
+      /* ── BOTTOM-LEFT PET CARD ── */
+.pet-card{position:fixed;left:96px;bottom:110px;z-index:100;display:flex;flex-direction:column;gap:6px;animation:slideUp .5s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+.pet-stat-row{display:flex;align-items:center;gap:5px;background:var(--glass);backdrop-filter:blur(12px);border-radius:10px;padding:3px 10px;font-size:.68rem;font-weight:800;color:var(--yellow);}
+.pet-nameplate{background:var(--glass);backdrop-filter:blur(18px);border-radius:26px;padding:8px 20px 8px 14px;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 0 22px rgba(73,166,166,.18);transition:all .28s cubic-bezier(.34,1.56,.64,1);cursor:default;border:1px solid rgba(73,166,166,.15);}
+.pet-nameplate:hover{background:var(--glass-h);box-shadow:0 0 32px rgba(73,166,166,.45);transform:scale(1.03) translateY(-2px);}
+.pet-name-text{font-family:'Lilita One',cursive;font-size:1.08rem;color:var(--teal-lt);text-shadow:1px 1px 0 var(--teal-dk);}
+
+/* ── MASTERY BADGE ── */
+.mastery-badge{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:3px 9px 3px 7px;border-radius:20px;
+    font-size:.58rem;font-weight:900;text-transform:uppercase;letter-spacing:1.2px;
+    flex-shrink:0;transition:all .3s;
+}
+.mastery-badge svg{width:11px;height:11px;flex-shrink:0;}
+
+.mastery-wood   {background:rgba(101,67,33,.35);color:#d4a96a;border:1px solid rgba(180,120,60,.5);box-shadow:0 0 8px rgba(180,120,60,.2);}
+.mastery-bronze {background:rgba(160,82,45,.35);color:#f0a060;border:1px solid rgba(205,127,50,.5);box-shadow:0 0 8px rgba(205,127,50,.25);}
+.mastery-silver {background:rgba(148,148,165,.25);color:#d8d8e8;border:1px solid rgba(192,192,210,.5);box-shadow:0 0 8px rgba(192,192,210,.2);}
+.mastery-gold   {background:rgba(184,140,0,.3);color:#ffe066;border:1px solid rgba(212,175,55,.6);box-shadow:0 0 10px rgba(212,175,55,.35);}
+.mastery-diamond{background:rgba(80,200,255,.18);color:#a0eeff;border:1px solid rgba(73,166,255,.5);box-shadow:0 0 10px rgba(73,166,255,.3);}
+.mastery-mythic {background:rgba(180,60,255,.22);color:#e090ff;border:1px solid rgba(160,40,220,.55);box-shadow:0 0 12px rgba(160,40,220,.4);}
+.mastery-legend {background:linear-gradient(135deg,rgba(255,120,0,.3),rgba(255,30,80,.3));color:#ffb040;border:1px solid rgba(255,140,0,.6);box-shadow:0 0 14px rgba(255,120,0,.5);animation:legendPulse 2.2s ease-in-out infinite;}
+@keyframes legendPulse{
+    0%,100%{box-shadow:0 0 10px rgba(255,120,0,.45),0 0 20px rgba(255,60,0,.2);}
+    50%{box-shadow:0 0 18px rgba(255,140,0,.7),0 0 32px rgba(255,60,0,.35);}
+}
 
        /* ── BOTTOM-CENTER PET SLOTS ── */
        .pet-slots{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:14px;z-index:100;}
@@ -462,11 +485,18 @@
 <div class="speech-bubble" id="speechBubble">Feeling great today!</div>
 
 <!-- BOTTOM-LEFT PET CARD -->
+<!-- BOTTOM-LEFT PET CARD -->
 <div class="pet-card">
-    <div class="pet-stat-row">
-        Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
-    </div>
-    <div class="pet-nameplate" id="petName">—<span id="masteryBadge" class="mastery-badge"></span></div>
+   <div class="pet-stat-row">
+       Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
+   </div>
+   <div class="pet-nameplate">
+       <span class="pet-name-text" id="petName">—</span>
+       <span class="mastery-badge mastery-wood" id="masteryBadge">
+           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
+           Wood
+       </span>
+   </div>
 </div>
 
 <!-- BOTTOM-CENTER PET SLOTS -->
@@ -558,6 +588,18 @@ function getMastery(bond) {
     if(bond >= 35) return { label:'Silver',   cls:'mastery-silver'  };
     if(bond >= 20) return { label:'Bronze',   cls:'mastery-bronze'  };
     return                { label:'Iron',     cls:'mastery-iron'    };
+}
+const MASTERY_TIERS = [
+    { min:95, label:'Legend',  cls:'mastery-legend'  },
+    { min:80, label:'Mythic',  cls:'mastery-mythic'  },
+    { min:65, label:'Diamond', cls:'mastery-diamond' },
+    { min:50, label:'Gold',    cls:'mastery-gold'    },
+    { min:35, label:'Silver',  cls:'mastery-silver'  },
+    { min:20, label:'Bronze',  cls:'mastery-bronze'  },
+    { min:0,  label:'Iron',    cls:'mastery-wood'    },
+];
+function getMastery(bond) {
+    return MASTERY_TIERS.find(t => (bond||0) >= t.min) || MASTERY_TIERS[6];
 }
 // ═══════════════════════════════════════════
 // FIREBASE
@@ -906,7 +948,11 @@ function setNav(el,key) {
 // ═══════════════════════════════════════════
 function updateChatHeader() {
    const traits = PET_TRAITS[petData.type];
-   document.getElementById('chatPetName').textContent = petData.name;
+   document.getElementById('petName').textContent=petData.name;
+const m=getMastery(petData.bond||0);
+const mb=document.getElementById('masteryBadge');
+mb.className='mastery-badge '+m.cls;
+mb.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>${m.label}`;
    document.getElementById('chatPetAv').textContent = traits?.emoji || '🐾';
    const personality = petData.personality || traits?.defaultPersonality || 'friendly';
    document.getElementById('chatPetPersonality').textContent = personality;
