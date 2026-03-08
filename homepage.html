@@ -98,7 +98,7 @@
 }
 .mastery-badge svg{width:11px;height:11px;flex-shrink:0;}
 
-.mastery-wood   {background:rgba(101,67,33,.35);color:#d4a96a;border:1px solid rgba(180,120,60,.5);box-shadow:0 0 8px rgba(180,120,60,.2);}
+.mastery-iron   {background:rgba(101,67,33,.35);color:#d4a96a;border:1px solid rgba(180,120,60,.5);box-shadow:0 0 8px rgba(180,120,60,.2);}
 .mastery-bronze {background:rgba(160,82,45,.35);color:#f0a060;border:1px solid rgba(205,127,50,.5);box-shadow:0 0 8px rgba(205,127,50,.25);}
 .mastery-silver {background:rgba(148,148,165,.25);color:#d8d8e8;border:1px solid rgba(192,192,210,.5);box-shadow:0 0 8px rgba(192,192,210,.2);}
 .mastery-gold   {background:rgba(184,140,0,.3);color:#ffe066;border:1px solid rgba(212,175,55,.6);box-shadow:0 0 10px rgba(212,175,55,.35);}
@@ -333,23 +333,6 @@
        .start-btn{width:100%;padding:1.1rem;font-family:'Lilita One',cursive;font-size:1.15rem;background:linear-gradient(135deg,var(--teal-dk),var(--teal));border:none;border-radius:50px;color:#fff;cursor:pointer;transition:all .3s;box-shadow:0 5px 20px rgba(73,166,166,.35);letter-spacing:.5px;}
        .start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(73,166,166,.5);}
        .start-btn:disabled{background:rgba(73,166,166,.2);cursor:not-allowed;box-shadow:none;transform:none;}
-
-       .mastery-badge {
-    font-size:.55rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;
-    padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle;
-}
-.mastery-wood    { background:rgba(139,90,43,.25);  color:#c8a06e; border:1px solid #8b5a2b; }
-.mastery-bronze  { background:rgba(180,100,40,.25); color:#e8914a; border:1px solid #b46428; }
-.mastery-silver  { background:rgba(160,160,180,.25);color:#c0c0d0; border:1px solid #a0a0b4; }
-.mastery-gold    { background:rgba(212,175,55,.25); color:#f4c430; border:1px solid #d4af37; }
-.mastery-diamond { background:rgba(100,200,255,.25);color:#7fcece; border:1px solid #49a6a6; }
-.mastery-mythic  { background:rgba(200,80,255,.25); color:#df80ff; border:1px solid #a020d0; }
-.mastery-legend  { background:rgba(255,140,0,.35);  color:#ff9d00; border:1px solid #ff6a00;
-                   animation:legendGlow 2s ease-in-out infinite; }
-@keyframes legendGlow {
-    0%,100%{box-shadow:0 0 6px rgba(255,154,0,.5)}
-    50%{box-shadow:0 0 14px rgba(255,154,0,.9)}
-}
    </style>
 </head>
 <body>
@@ -492,9 +475,8 @@
    </div>
    <div class="pet-nameplate">
        <span class="pet-name-text" id="petName">—</span>
-       <span class="mastery-badge mastery-wood" id="masteryBadge">
-           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
-           Wood
+<span class="mastery-badge mastery-iron" id="masteryBadge">
+           <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>Iron
        </span>
    </div>
 </div>
@@ -575,20 +557,9 @@
        </button>
    </div>
 </div>
-
-<script src="ar.js"></script>
 <script src="overlay.js"></script>
 <script>
 
-function getMastery(bond) {
-    if(bond >= 95) return { label:'Legend',   cls:'mastery-legend'  };
-    if(bond >= 80) return { label:'Mythic',   cls:'mastery-mythic'  };
-    if(bond >= 65) return { label:'Diamond',  cls:'mastery-diamond' };
-    if(bond >= 50) return { label:'Gold',     cls:'mastery-gold'    };
-    if(bond >= 35) return { label:'Silver',   cls:'mastery-silver'  };
-    if(bond >= 20) return { label:'Bronze',   cls:'mastery-bronze'  };
-    return                { label:'Iron',     cls:'mastery-iron'    };
-}
 const MASTERY_TIERS = [
     { min:95, label:'Legend',  cls:'mastery-legend'  },
     { min:80, label:'Mythic',  cls:'mastery-mythic'  },
@@ -596,7 +567,7 @@ const MASTERY_TIERS = [
     { min:50, label:'Gold',    cls:'mastery-gold'    },
     { min:35, label:'Silver',  cls:'mastery-silver'  },
     { min:20, label:'Bronze',  cls:'mastery-bronze'  },
-    { min:0,  label:'Iron',    cls:'mastery-wood'    },
+    { min:0,  label:'Iron',    cls:'mastery-iron'    },
 ];
 function getMastery(bond) {
     return MASTERY_TIERS.find(t => (bond||0) >= t.min) || MASTERY_TIERS[6];
@@ -845,7 +816,8 @@ document.getElementById('sbCoins').textContent=Math.max(0,userData.costTracking.
    document.getElementById('petName').childNodes[0].textContent=petData.name+' ';
 const m=getMastery(petData.bond||0);
 const mb=document.getElementById('masteryBadge');
-mb.textContent=m.label; mb.className='mastery-badge '+m.cls;
+mb.className='mastery-badge '+m.cls;
+mb.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>${m.label}`;
    document.getElementById('petBond').textContent=petData.bond||0;
    document.getElementById('petLv').textContent=petData.level||1;
 
