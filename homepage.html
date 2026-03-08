@@ -478,7 +478,7 @@
            </button>
            <button class="care-btn" onclick="healthCheck()">
                <div class="cb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-               <span class="cb-lbl">Health Check</span><span class="cb-cost">$10</span>
+               <span class="cb-lbl">Health Check</span><span class="cb-cost">$50</span>
            </button>
        </div>
        <div class="budget-box">
@@ -699,6 +699,10 @@ async function loadPetData() {
        const userDoc=await db.collection('users').doc(currentUser.uid).get();
        const petsSnap=await db.collection('users').doc(currentUser.uid).collection('pets').get();
        if(userDoc.exists&&userDoc.data().userData) userData=userDoc.data().userData;
+if(userData.costTracking.monthlyBudget < 500) {
+    userData.costTracking.monthlyBudget = 500;
+    userData.costTracking.budgetRemaining = Math.min(500, userData.costTracking.budgetRemaining + 300);
+}
        if(!petsSnap.empty){
            userPets={};
            petsSnap.forEach(doc=>{
@@ -1209,7 +1213,7 @@ function restPet(){
    gainXP(5); updateUI(); savePetData();
 }
 function healthCheck(){
-   const C=10; ensureCT();
+   const C=50; ensureCT();
    if(userData.coins<C){showAlert('Need $50 for a vet visit!','error');return;}
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    spend(C,'vet');
