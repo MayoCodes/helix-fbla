@@ -374,7 +374,7 @@
            <span class="p-name" id="trainerName">Trainer</span>
            <div class="p-sub">
                <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="#f4c430" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
-               <span id="trainerCoins">0</span> coins
+               $<span id="trainerCoins">0</span>
            </div>
        </div>
    </div>
@@ -384,7 +384,7 @@
 <div class="stat-board" id="statBoard">
    <div class="sb-head">
        <span class="sb-name" id="sbName">—</span>
-       <span class="sb-coins"><svg width="11" height="11" viewBox="0 0 24 24" fill="#f4c430" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg><span id="sbCoins">0</span></span>
+       <span class="sb-coins">$<span id="sbCoins">0</span></span>
        <span class="sb-mood" id="sbMood">😊</span>
    </div>
    <div>
@@ -447,8 +447,7 @@
 <!-- BOTTOM-LEFT PET CARD -->
 <div class="pet-card">
    <div class="pet-stat-row">
-       <svg class="ico" width="11" height="11" viewBox="0 0 24 24" fill="#f4c430" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
-       Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
+      Bond: <span id="petBond">0</span>/100 · Lv.<span id="petLv">1</span>
    </div>
    <div class="pet-nameplate" id="petName">—</div>
 </div>
@@ -505,7 +504,7 @@
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
            Generate AI Tasks
        </button>
-       <p style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:10px;font-style:italic;">Complete tasks to earn coins and increase bond!</p>
+       <p style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:10px;font-style:italic;">Complete tasks to earn money and increase bond!</p>
        <div id="taskList"></div>
    </div>
 </div>
@@ -1108,7 +1107,7 @@ function renderTasks(tasks) {
            <div class="task-dur">⏱ ${task.duration}</div>
            ${isAI?'<div class="task-ai-badge">✨ AI Task</div>':''}
            <div class="task-rewards">
-               <span class="task-coins">★ +${task.coins} coins</span>
+               <span class="task-coins">★ +$${task.coins}</span>
                <span class="task-bond">♥ +${task.bond} bond</span>
            </div>
            ${petData.tasksCompleted[task.id]?'<span class="task-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>':''}
@@ -1151,7 +1150,7 @@ function completeTask(task,el,orig) {
    el.classList.remove('in-progress'); el.classList.add('completed'); el.onclick=null;
    el.innerHTML=orig+'<span class="task-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>';
    updateUI(); savePetData();
-   showAlert(`Task done! +${task.coins} coins, +${task.bond} bond! 🎉`,'success');
+   showAlert(`Task done! +$${task.coins}, +${task.bond} bond! 🎉`,'success');
 }
 
 async function refreshAITasks(btn) {
@@ -1189,7 +1188,7 @@ function spend(amt,cat){
 }
 function feedPet(){
    const C=2; ensureCT();
-   if(userData.coins<C){showAlert('Not enough coins!','error');return;}
+   if(userData.coins<C){showAlert('Not enough money!','error');return;}
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.fullness>80){showAlert('Your pet is already full!','warning');return;}
    spend(C,'food');
@@ -1200,7 +1199,7 @@ function feedPet(){
 }
 function playWithPet(){
    const C=2; ensureCT();
-   if(userData.coins<C){showAlert('Not enough coins!','error');return;}
+   if(userData.coins<C){showAlert('Not enough money!','error');return;}
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.energy<20){showAlert('Your pet is too tired to play!','warning');return;}
    spend(C,'toy');
@@ -1236,7 +1235,7 @@ function gainXP(amt){
        petData.experience-=petData.experienceToNextLevel;
        petData.experienceToNextLevel=Math.floor((petData.experienceToNextLevel||100)*1.5);
        userData.costTracking.budgetRemaining+=50;
-       showAlert(`⭐ Level Up! Now Level ${petData.level}! +50 coins!`,'success');
+       showAlert(`⭐ Level Up! Now Level ${petData.level}! +$50!`,'success');
    }
    updateUI();
 }
