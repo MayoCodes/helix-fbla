@@ -1,9 +1,8 @@
 # Helix - 3D Virtual Pet Care Platform
 
-> **FBLA Introduction to Programming | 2025-2026**
-> **Topic:** Build a Virtual Pet
+> **FBLA Introduction to Programming | 2025-2026** | **Topic:** Build a Virtual Pet
 
-Helix is a browser-based virtual pet care platform where users adopt and raise a 3D-rendered digital companion, choosing from a Cat, Dog, or Bird, and keep it healthy through daily care actions, tasks, and in-app purchases. Every action has a dollar cost tracked against a monthly $200 budget, encouraging responsible spending. Expenses are categorized and displayed in Chart.js dashboards, and purchases are blocked once the budget runs out.
+Helix is a browser-based virtual pet care platform where users adopt a 3D-rendered Cat, Dog, or Bird and keep it healthy through daily care actions, tasks, and in-app purchases. Every action has a dollar cost tracked against a monthly $200 budget. Expenses are categorized and shown in Chart.js dashboards, and purchases are blocked once the budget runs out.
 
 ---
 
@@ -38,7 +37,7 @@ The pet's mood appears as an icon in the stat board and a speech bubble above th
 <details>
 <summary><strong>Pet Growth and Progression</strong></summary>
 
-Pets earn XP from care actions and tasks. Leveling up gives 50 bonus coins, restores +20 Health and Happiness, and increases the next XP threshold by 50%. Bond points from completed tasks drive age stage progression: Baby (0-24), Young (25-49), Adult (50-74), Senior (75-100).
+Pets earn XP from care actions and tasks. Leveling up gives 50 bonus coins, restores +20 Health and Happiness, and raises the next XP threshold by 50%. Bond points from completed tasks drive age stage progression: Baby (0-24), Young (25-49), Adult (50-74), Senior (75-100).
 
 </details>
 
@@ -64,13 +63,12 @@ Helix is a multi-page HTML/JS/CSS application backed by Firebase. Each page is s
 
 ```
 helix/
-├── index.html          # Landing page with auth modal
-├── homepage.html       # Main gameplay screen (Babylon.js 3D pet)
-├── dashboard.html      # Analytics dashboard (Chart.js + expense table)
-├── shop.html           # 3D accessory shop (Three.js product showcase)
-├── instruct.html       # Instructions and help page
-├── nav.html            # Shared navigation component
-├── app.js              # Shared: Firebase init, auth, loading overlay, notifications
+├── index.html       # Landing page with auth modal
+├── homepage.html    # Main gameplay screen (Babylon.js 3D pet)
+├── dashboard.html   # Analytics dashboard (Chart.js + expense table)
+├── shop.html        # 3D accessory shop (Three.js)
+├── instruct.html    # Instructions and help
+├── app.js           # Shared auth, loading overlay, notifications
 └── README.md
 ```
 
@@ -78,17 +76,14 @@ helix/
 
 ## Libraries Used
 
-| Library | Version | Purpose | Source |
-|---|---|---|---|
-| Firebase (App, Auth, Firestore) | 9.22.0 | Authentication and real-time database | [firebase.google.com](https://firebase.google.com) |
-| Babylon.js | Latest | 3D pet rendering on the homepage | [cdn.babylonjs.com](https://cdn.babylonjs.com/babylon.js) |
-| Babylon.js Loaders | Latest | GLB/GLTF model loading | [cdn.babylonjs.com](https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js) |
-| Three.js | r128 | 3D product rendering in the shop | [cdnjs.cloudflare.com](https://cdnjs.cloudflare.com) |
-| Three.js GLTFLoader | 0.128.0 | Accessory GLB model loading | cdn.jsdelivr.net |
-| Three.js OrbitControls | 0.128.0 | Mouse-drag rotation in the shop | cdn.jsdelivr.net |
-| Chart.js | 4.4.1 | Doughnut and radar charts on the dashboard | [cdnjs.cloudflare.com](https://cdnjs.cloudflare.com) |
-| Anthropic Claude API | claude-sonnet-4-20250514 | AI tasks and pet chat dialogue | [api.anthropic.com](https://api.anthropic.com) |
-| Google Fonts | N/A | Typography across all pages | [fonts.googleapis.com](https://fonts.googleapis.com) |
+| Library | Version | Purpose |
+|---|---|---|
+| Firebase (App, Auth, Firestore) | 9.22.0 | Authentication and real-time database |
+| Babylon.js + Loaders | Latest | 3D pet rendering and GLB model loading |
+| Three.js + GLTFLoader + OrbitControls | r128 / 0.128.0 | 3D shop showcase with rotation |
+| Chart.js | 4.4.1 | Doughnut and radar charts on the dashboard |
+| Anthropic Claude API | claude-sonnet-4-20250514 | AI tasks and pet chat dialogue |
+| Google Fonts | N/A | Typography across all pages |
 
 > All UI layout, design, and code was written from scratch by the competing team. No templates or starter kits were used.
 
