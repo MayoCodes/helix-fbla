@@ -1,4 +1,4 @@
-# Helix - 3D Virtual Pet Care Platform
+# Helix - FBLA Pet Simulator
 
 > **FBLA Introduction to Programming | 2025-2026**
 > **Topic:** Build a Virtual Pet
