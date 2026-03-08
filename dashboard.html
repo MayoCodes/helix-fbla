@@ -182,9 +182,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .streak-icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px; margin: 0 auto 8px; }
 
 /* AI CHAT */
-.ai-chat-fab { position: fixed; bottom: 28px; right: 28px; width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary), #319795); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 8px 24px rgba(79,209,197,0.4); z-index: 999; transition: transform 0.2s, box-shadow 0.2s; border: none; }
+.ai-chat-fab { position: fixed; top: 24px; right: 28px; width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary), #319795); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 8px 24px rgba(79,209,197,0.4); z-index: 999; transition: transform 0.2s, box-shadow 0.2s; border: none; }
 .ai-chat-fab:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(79,209,197,0.5); }
-.ai-chat-panel { position: fixed; bottom: 96px; right: 28px; width: 380px; max-height: 520px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); z-index: 998; display: none; flex-direction: column; overflow: hidden; }
+.ai-chat-panel { position: fixed; top: 92px; right: 28px; width: 380px; max-height: 520px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); z-index: 998; display: none; flex-direction: column; overflow: hidden; }
 .ai-chat-panel.open { display: flex; }
 .ai-chat-header { background: var(--dark-card); padding: 18px 20px; color: white; display: flex; align-items: center; gap: 12px; }
 .ai-chat-header-icon { width: 36px; height: 36px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
@@ -416,10 +416,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       <h1>Dashboard</h1>
     </div>
     <div class="topbar-right">
-      <div class="search-box">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" placeholder="Type here...">
-      </div>
     </div>
   </div>
 
@@ -1124,6 +1120,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   </div><!-- /docs-modal -->
 </div><!-- /docs-backdrop -->
 
+<script src="overlay.js"></script>
 <script>
 // ── DOCS MODAL ──────────────────────────────────────────────────────────────
 window.openDocs = function() {
