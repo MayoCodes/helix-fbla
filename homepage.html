@@ -579,10 +579,13 @@ const AGE_STAGES = {
 // STATE
 // ═══════════════════════════════════════════
 let userData = {
-   coins:500,
    costTracking:{totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,
                  monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()}
 };
+Object.defineProperty(userData, 'coins', {
+   get() { return this.costTracking.budgetRemaining; },
+   set(v) { this.costTracking.budgetRemaining = v; }
+});
 let petData = {
    name:"Pet",type:"b",age:"baby",level:1,experience:0,experienceToNextLevel:100,
    health:100,happiness:100,fullness:100,energy:100,bond:0,
@@ -728,7 +731,7 @@ if(userData.costTracking.monthlyBudget < 500) {
 
 async function savePetData() {
    petData.lastUpdated=Date.now();
-   if(userData.coins<0) userData.coins=0;
+   if(userData.costTracking.budgetRemaining<0) userData.costTracking.budgetRemaining=0;
    if(currentPetId) userPets[currentPetId]=petData;
    if(!currentUser) return;
    try {
@@ -742,9 +745,9 @@ async function savePetData() {
 // ═══════════════════════════════════════════
 function updateUI() {
    document.getElementById('trainerName').textContent=currentUser?.displayName||currentUser?.email?.split('@')[0]||'Trainer';
-   document.getElementById('trainerCoins').textContent=Math.max(0,userData.coins||0);
+   document.getElementById('trainerCoins').textContent=Math.max(0,userData.costTracking.budgetRemaining||0);
+document.getElementById('sbCoins').textContent=Math.max(0,userData.costTracking.budgetRemaining||0);
    document.getElementById('sbName').textContent=petData.name;
-   document.getElementById('sbCoins').textContent=Math.max(0,userData.coins||0);
    document.getElementById('sbLv').textContent=petData.level||1;
    document.getElementById('sbXP').textContent=petData.experience||0;
    document.getElementById('sbXPMax').textContent=petData.experienceToNextLevel||100;
@@ -1141,7 +1144,7 @@ function startTask(task, el) {
 function completeTask(task,el,orig) {
    if(!petData.tasksCompleted) petData.tasksCompleted={};
    petData.tasksCompleted[task.id]=true;
-   userData.coins=(userData.coins||0)+task.coins;
+   userData.costTracking.budgetRemaining+=task.coins;
    petData.bond=Math.min(100,(petData.bond||0)+task.bond);
    petData.happiness=Math.min(100,petData.happiness+10);
    gainXP(task.bond); checkAge();
@@ -1178,7 +1181,7 @@ if(r.ok){
 function ensureCT(){if(!userData.costTracking)userData.costTracking={totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()};}
 function spend(amt,cat){
    const ct=userData.costTracking;
-   userData.coins-=amt; ct.totalSpent+=amt; ct.budgetRemaining-=amt;
+   ct.totalSpent+=amt; ct.budgetRemaining-=amt;
    if(cat==='food') ct.foodSpent+=amt;
    else if(cat==='vet') ct.vetSpent+=amt;
    else if(cat==='toy') ct.toySpent+=amt;
@@ -1232,7 +1235,7 @@ function gainXP(amt){
        petData.level=(petData.level||1)+1;
        petData.experience-=petData.experienceToNextLevel;
        petData.experienceToNextLevel=Math.floor((petData.experienceToNextLevel||100)*1.5);
-       userData.coins=(userData.coins||0)+50;
+       userData.costTracking.budgetRemaining+=50;
        showAlert(`⭐ Level Up! Now Level ${petData.level}! +50 coins!`,'success');
    }
    updateUI();
