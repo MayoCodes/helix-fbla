@@ -1,349 +1,1578 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Helix - Next Generation Virtual Pet Experience</title>
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <!-- Babylon.js for 3D -->
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-    
-    <link rel="stylesheet" href="landing-style.css">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Helix</title>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ─────────────────────────────────────────────────────────
+   RESET + VARS
+───────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#050b0b;
+  --dark:#0d1717;
+  --dark2:#111e1e;
+  --teal:#3a9090;
+  --teal-l:#5bbaba;
+  --white:#fafaf8;
+  --off:#f0ede6;
+  --off2:#e8e4dc;
+  --text:#0e1a1a;
+  --dim:#6a8080;
+}
+html{overflow-x:hidden}
+body{background:#fff;color:var(--white);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+
+/* ─────────────────────────────────────────────────────────
+   BABYLON CANVAS — z:1, fixed, full viewport
+───────────────────────────────────────────────────────── */
+#renderCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:3;touch-action:none;outline:none;pointer-events:none}
+
+/* ─────────────────────────────────────────────────────────
+   NAV — always on top
+───────────────────────────────────────────────────────── */
+#nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:24px 52px;
+  color:var(--text);
+  transition:color .5s ease;
+}
+#nav.dark{color:var(--text)}
+.nlogo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:500;letter-spacing:.01em;color:inherit;text-decoration:none}
+.nright{display:flex;align-items:center;gap:24px}
+.ncareer{font-size:13px;letter-spacing:.04em;color:inherit;text-decoration:none;opacity:.75;transition:opacity .2s}
+.ncareer:hover{opacity:1}
+.nreq{
+  font-size:13px;letter-spacing:.04em;
+  padding:9px 22px;
+  border:1.5px solid currentColor;
+  border-radius:7px;background:transparent;
+  color:inherit;cursor:pointer;text-decoration:none;
+  transition:background .2s,color .2s;
+}
+#nav:not(.dark) .nreq:hover{background:rgba(0,0,0,.08)}
+#nav.dark .nreq:hover{background:var(--text);color:white}
+
+/* ─────────────────────────────────────────────────────────
+   SMOOTH-SCROLL RAIL — z:2, moves on rAF
+───────────────────────────────────────────────────────── */
+#rail{position:fixed;top:0;left:0;width:100%;will-change:transform;z-index:2}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION + STICKY SYSTEM
+───────────────────────────────────────────────────────── */
+.sec{position:relative;width:100%}
+.pin{position:absolute;top:0;left:0;width:100%;height:100vh;overflow:hidden}
+
+/* ─────────────────────────────────────────────────────────
+   PET ICON PATTERN — hero background
+───────────────────────────────────────────────────────── */
+#pet-pattern {
+  position:absolute;
+  inset:0;
+  z-index:1;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity .6s ease;
+}
+#pet-pattern-canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.pet-icon-el {
+  position:absolute;
+  color: #b0b8b8;
+  transition: opacity 0.3s ease;
+}
+.pet-icon-el svg {
+  display: block;
+}
+
+/* ─────────────────────────────────────────────────────────
+   HERO  — dark, 300vh
+───────────────────────────────────────────────────────── */
+#s-hero{height:300vh}
+#s-hero .pin{background:#fff;overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;}
+#s-hero .pin::-webkit-scrollbar{display:none}
+
+#hero-ww{
+  position:absolute;inset:0;
+  background:var(--off);
+  opacity:0;pointer-events:none;z-index:4;
+}
+#hero-os{
+  position:absolute;inset:0;z-index:5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:0 60px;
+  opacity:0;pointer-events:none;color:var(--text);
+}
+.os-label{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  opacity:.45;display:flex;align-items:center;justify-content:center;gap:14px;
+  margin-bottom:24px;
+}
+.os-label::before,.os-label::after{content:'';display:block;width:36px;height:1px;background:currentColor}
+.os-h{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(40px,5.5vw,78px);font-weight:400;line-height:1.06;
+  max-width:860px;
+}
+.os-h em{font-style:italic;color:var(--teal)}
+.os-body{font-size:16px;line-height:1.75;opacity:.5;max-width:540px;margin-top:20px}
+
+#hero-btm{
+  position:absolute;bottom:0;left:0;
+  padding:0 52px 64px;
+  z-index:10;
+}
+.hero-eyebrow{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.55;display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;color:var(--text);
+}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--text)}
+.hero-h1{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(52px,7.5vw,96px);font-weight:400;line-height:1.0;
+  letter-spacing:-.01em;margin-bottom:30px;color:var(--text);
+}
+.hero-h1 em{font-style:italic;color:var(--teal)}
+.hero-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--text);color:white;
+  border:none;border-radius:8px;
+  padding:15px 28px;font-size:14px;font-weight:500;letter-spacing:.01em;
+  cursor:pointer;text-decoration:none;
+  transition:transform .2s,box-shadow .2s,background .2s;
+}
+.hero-btn:hover{background:#1a2e2e;transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.2)}
+
+/* ─────────────────────────────────────────────────────────
+   OS+VIDEO SECTION
+───────────────────────────────────────────────────────── */
+#s-osvid{height:280vh}
+#s-osvid .pin{
+  background:var(--off);color:var(--text);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;gap:0;padding:0;
+  overflow-y:scroll;
+  -ms-overflow-style:none;scrollbar-width:none;
+}
+#s-osvid .pin::-webkit-scrollbar{display:none}
+.ovid-top{
+  width:100%;text-align:center;padding:120px 52px 40px;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+}
+.ovid-sub{font-size:15px;line-height:1.75;opacity:.48;max-width:560px}
+.vwrap{
+  width:min(960px,90vw);border-radius:18px;
+  overflow:hidden;box-shadow:0 36px 90px rgba(0,0,0,.13);
+  aspect-ratio:16/9;position:relative;background:#111;flex-shrink:0;
+}
+.vbg{position:absolute;inset:0;background:linear-gradient(160deg,#1e2e2e,#0c1616)}
+.vppl{position:absolute;bottom:0;left:0;right:0;height:82%;display:flex;justify-content:center;gap:14px;align-items:flex-end}
+.vprs{width:35%;height:90%;border-radius:90px 90px 0 0}
+.vplay{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:66px;height:66px;border:2px solid rgba(255,255,255,.38);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:white;cursor:pointer;z-index:2;
+  transition:all .22s;
+}
+.vplay:hover{background:var(--teal);border-color:var(--teal)}
+.vdur{position:absolute;bottom:18px;left:22px;font-size:12px;color:rgba(255,255,255,.35);z-index:2}
+.pbar{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  gap:52px;flex-wrap:wrap;padding:36px 52px 0;
+}
+.pb-lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.28;width:100%;text-align:center;margin-bottom:8px}
+.pb-logo{font-family:'Playfair Display',serif;font-size:clamp(15px,2vw,24px);font-weight:700;opacity:.28;cursor:default;transition:opacity .2s;color:var(--text)}
+.pb-logo:hover{opacity:.55}
+.pb-logo.ss{font-family:'DM Sans',sans-serif}
+.pb-logo.it{font-style:italic}
+
+/* ─────────────────────────────────────────────────────────
+   ADAPTS
+───────────────────────────────────────────────────────── */
+#s-adapts{height:400vh}
+#s-adapts .pin{
+  background:var(--off2);color:var(--text);
+  overflow:hidden;
+}
+#adapts-inner{
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:80px 8vw 80px;
+  gap:80px;
+  will-change:transform;
+}
+.adapt-head{margin-bottom:64px}
+.adapt-head h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(34px,4.8vw,62px);font-weight:400;line-height:1.1;
+}
+.adapt-head h2 em{font-style:italic;color:var(--teal)}
+
+.ar{
+  display:flex;align-items:center;width:100%;gap:72px;
+  opacity:1;transform:none;
+  flex-shrink:0;
+}
+.ar.rev{flex-direction:row-reverse}
+.ar.vis{opacity:1;transform:translateY(0)}
+.ar-txt{flex:0 0 min(360px,38%)}
+.ar-txt h3{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(22px,2.5vw,32px);font-weight:400;line-height:1.2;
+  margin-bottom:14px;
+}
+.ar-txt p{font-size:13px;line-height:1.8;opacity:.52;max-width:310px}
+.ar-card{
+  flex:1;max-width:540px;border-radius:18px;
+  overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.16);
+}
+
+.card-dark{background:#0e1a1a}
+.igpad{padding:28px}
+.igrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ico{
+  width:54px;height:54px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:700;color:white;
+}
+
+.chat-pad{padding:22px;display:flex;flex-direction:column;gap:12px;background:#0e1a1a}
+.crow{display:flex;gap:10px;align-items:flex-start}
+.crow.r{flex-direction:row-reverse}
+.cav{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  background:var(--teal);display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:white;
+}
+.cav.usr{background:#2e2e2e}
+.cbub{
+  background:rgba(255,255,255,.09);color:rgba(255,255,255,.8);
+  border-radius:12px;padding:12px 15px;font-size:12.5px;line-height:1.55;flex:1;
+}
+.cbub.usr{background:white;color:#1a1a1a}
+.ctag{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(58,144,144,.2);border-radius:7px;
+  padding:4px 10px;font-size:11px;color:rgba(255,255,255,.65);margin-top:8px;
+}
+
+.two-col{display:flex;gap:0;background:#f5f3ef;border-radius:18px;overflow:hidden}
+.tc-half{flex:1;padding:28px 26px}
+.tc-half h4{font-size:15px;font-weight:500;color:#0e1a1a;margin-bottom:7px}
+.tc-half p{font-size:12px;line-height:1.65;color:#888}
+.tc-half+.tc-half{border-left:1.5px solid rgba(0,0,0,.07)}
+
+/* ─────────────────────────────────────────────────────────
+   CHAT SECTION
+───────────────────────────────────────────────────────── */
+#s-chat{height:300vh}
+#s-chat .pin{background:rgba(0,0,0,.82);overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;}
+#s-chat .pin::-webkit-scrollbar{display:none}
+
+.chat-ui{
+  position:absolute;top:58%;left:50%;
+  transform:translate(-50%,-50%);
+  width:min(600px,88vw);
+  display:flex;flex-direction:column;gap:22px;
+  z-index:5;
+}
+.cm{
+  background:white;color:var(--text);
+  border-radius:16px;padding:20px 24px;
+  font-size:15px;line-height:1.55;
+  opacity:0;transform:translateY(32px);
+  transition:opacity .55s ease,transform .55s ease;
+}
+.cm.show{opacity:1;transform:translateY(0)}
+.cm.ai{
+  background:transparent;
+  border:1.5px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.86);
+  display:flex;align-items:flex-start;gap:14px;
+  padding:16px 20px;
+}
+.cm-av{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  overflow:hidden;background:var(--dark2);
+  display:flex;align-items:center;justify-content:center;
+}
+.cm-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.cm-body{flex:1}
+.cm-badge{font-size:11px;opacity:.5;margin-left:8px}
+
+/* ─────────────────────────────────────────────────────────
+   TESTIMONIAL
+───────────────────────────────────────────────────────── */
+#s-testi{height:200vh}
+#s-testi .pin{background:#000;display:flex;align-items:center;padding:0 7vw;overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;}
+#s-testi .pin::-webkit-scrollbar{display:none}
+
+.testi-inner{max-width:1060px}
+.testi-q{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(22px,2.8vw,38px);font-weight:400;line-height:1.55;
+  margin-bottom:36px;
+  opacity:0;transform:translateY(40px);
+  transition:opacity .8s ease,transform .8s ease;
+}
+.testi-q.vis{opacity:1;transform:translateY(0)}
+.testi-who{
+  font-size:13px;opacity:.45;
+  display:flex;flex-direction:column;gap:4px;
+  opacity:0;transition:opacity .8s .15s ease;
+}
+.testi-who.vis{opacity:.45}
+.testi-name{font-weight:500;font-size:14px;opacity:.7;color:white}
+
+/* ─────────────────────────────────────────────────────────
+   NEWS
+───────────────────────────────────────────────────────── */
+#s-news{height:200vh}
+#s-news .pin{
+  background:#0a1414;
+  display:flex;align-items:center;
+  padding:0 8vw;gap:80px;
+  overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;
+}
+#s-news .pin::-webkit-scrollbar{display:none}
+.news-left{flex:1}
+.news-tag{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.35;display:flex;align-items:center;gap:14px;
+  margin-bottom:30px;
+}
+.news-tag::before{content:'';display:block;width:36px;height:1px;background:currentColor}
+.news-h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(30px,4vw,52px);font-weight:400;line-height:1.1;
+  margin-bottom:28px;
+}
+.news-h2 em{font-style:italic}
+.news-read{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1.5px solid rgba(255,255,255,.22);color:white;
+  border-radius:7px;padding:12px 24px;font-size:13px;
+  cursor:pointer;text-decoration:none;background:transparent;
+  transition:all .2s;
+}
+.news-read:hover{border-color:var(--teal);color:var(--teal)}
+.news-photo{
+  flex:0 0 min(480px,44%);aspect-ratio:4/3;
+  border-radius:16px;overflow:hidden;
+  background:linear-gradient(160deg,#2a3a38,#0d1a1a);
+  position:relative;
+}
+.news-photo-img{
+  width:100%;height:100%;object-fit:cover;
+  background:linear-gradient(165deg,#3a2e28 0%,#1a1612 60%,#0d1010 100%);
+}
+.np-ov{
+  position:absolute;inset:0;
+  display:flex;align-items:flex-end;justify-content:center;gap:20px;overflow:hidden;
+}
+.np-sil{width:38%;height:88%;border-radius:120px 120px 0 0;background:linear-gradient(180deg,#3d3530,#1c1a18)}
+
+/* ─────────────────────────────────────────────────────────
+   CTA
+───────────────────────────────────────────────────────── */
+#s-cta{height:200vh}
+#s-cta .pin{
+  background:var(--black);
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:0 10vw;
+  overflow-y:scroll;-ms-overflow-style:none;scrollbar-width:none;
+}
+#s-cta .pin::-webkit-scrollbar{display:none}
+.cta-box{max-width:500px;z-index:5;position:relative}
+.cta-label{
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.45;display:flex;align-items:center;gap:14px;
+  margin-bottom:22px;
+}
+.cta-label::before{content:'';display:block;width:36px;height:1px;background:currentColor}
+.cta-h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(48px,6.5vw,86px);font-weight:400;line-height:1.02;
+  margin-bottom:34px;
+}
+.cta-h2 em{font-style:italic;color:var(--teal)}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  background:white;color:var(--text);
+  border:none;border-radius:8px;
+  padding:16px 32px;font-size:14px;font-weight:500;
+  cursor:pointer;text-decoration:none;
+  transition:transform .2s,box-shadow .2s;
+}
+.cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
+
+/* ─────────────────────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────────────────────── */
+#s-footer{background:#050a0a;border-top:1px solid rgba(255,255,255,.05)}
+.footer-in{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 52px;
+}
+.f-logo{display:flex;align-items:center;gap:8px;font-size:14px;color:rgba(255,255,255,.32)}
+.f-links{display:flex;gap:28px;align-items:center}
+.f-link{font-size:12px;color:rgba(255,255,255,.3);text-decoration:none;transition:color .2s}
+.f-link:hover{color:var(--teal)}
+.f-sep{color:rgba(255,255,255,.12)}
+
+/* ─────────────────────────────────────────────────────────
+   GRAIN OVERLAY
+───────────────────────────────────────────────────────── */
+.grain{
+  position:fixed;inset:0;z-index:400;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px 180px;
+}
+
+/* ── AUTH MODAL ── */
+.auth-modal{display:none;position:fixed;inset:0;z-index:100000;}
+.auth-modal.open{display:block;}
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);}
+.circular-auth-container{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+.auth-circle{
+  background:#fff;color:var(--text);
+  border-radius:24px;padding:44px 40px 36px;
+  width:min(420px,90vw);position:relative;
+  box-shadow:0 32px 80px rgba(0,0,0,.28);
+}
+.close-modal{
+  position:absolute;top:16px;right:18px;
+  background:none;border:none;font-size:22px;cursor:pointer;
+  color:var(--dim);line-height:1;
+}
+.close-modal:hover{color:var(--text);}
+.auth-view{display:none;}
+.auth-view.active{display:block;}
+.auth-icon{display:flex;justify-content:center;margin-bottom:16px;color:var(--teal);}
+.auth-circle h2{font-family:'Playfair Display',serif;font-size:26px;font-weight:400;text-align:center;margin-bottom:24px;}
+.auth-form{display:flex;flex-direction:column;gap:12px;}
+.input-group input{
+  width:100%;padding:12px 16px;
+  border:1.5px solid #e0ddd8;border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);
+  outline:none;transition:border-color .2s;background:#fafaf8;
+}
+.input-group input:focus{border-color:var(--teal);}
+.btn-submit{
+  background:var(--text);color:white;border:none;
+  border-radius:10px;padding:13px;font-size:14px;font-weight:500;
+  cursor:pointer;margin-top:4px;transition:background .2s;
+  font-family:'DM Sans',sans-serif;
+}
+.btn-submit:hover{background:#1a2e2e;}
+.auth-divider{text-align:center;font-size:12px;opacity:.4;margin:14px 0;}
+.btn-google{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+  border:1.5px solid #e0ddd8;border-radius:10px;padding:11px;
+  background:#fff;color:var(--text);font-size:13px;font-weight:500;
+  cursor:pointer;transition:border-color .2s;font-family:'DM Sans',sans-serif;
+}
+.btn-google:hover{border-color:var(--teal);}
+.switch-view{text-align:center;margin-top:18px;font-size:13px;opacity:.55;}
+.switch-view a{color:var(--teal);text-decoration:none;font-weight:500;}
+.switch-view a:hover{text-decoration:underline;}
+#nav.white{color:#fff;}
+#nav.white .nreq{border-color:rgba(255,255,255,.6);color:#fff;}
+#nav.white .nreq:hover{background:rgba(255,255,255,.15);}
+#nav.white .ncareer{color:#fff;}
+#nav.white .nlogo { color: #fff; }
+#nav.white .ncareer { color: #fff; }
+#nav.white .nreq { border-color: rgba(255,255,255,.6); color: #fff; }
+/* This is the key missing one — override the inline-styled Sign Up button */
+#nav.white .nreq[style] {
+  background: rgba(255,255,255,.15) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,.6) !important;
+}
+</style>
 </head>
 <body>
-    <!-- Same HTML content as before, just removing inline scripts -->
-    <!-- Navigation -->
-    <nav>
-        <div class="nav-container">
-            <a href="#" class="logo">
-                <div class="logo-icon"><img src="logo.png" alt="Helix Logo" style="width:35px;height:35px;"></div>
-                Helix
-            </a>
-            <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="#simulator">Simulator</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#about">About</a></li>
-            </ul>
-            <div class="nav-auth-buttons">
-                <button class="btn-login" onclick="openAuthModal('login')">Log In</button>
-                <button class="btn-signup" onclick="openAuthModal('signup')">Sign Up</button>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Hero -->
-    <section class="hero" id="home">
-        <div class="container">
-            <div class="badge">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                Next Generation Virtual Pet Experience
-            </div>
-            <h1>Meet Your Perfect<br><span class="highlight">Digital Companion</span></h1>
-            <p>Experience the future of virtual pet simulation. Care for, play with, and watch your digital companion thrive in this immersive experience.</p>
-            <div class="hero-buttons">
-                <button class="btn-primary" onclick="openAuthModal('signup')">Start Playing</button>
-                <button class="btn-secondary" onclick="document.querySelector('#features').scrollIntoView({behavior: 'smooth'})">Learn More</button>
-            </div>
-        </div>
-    </section>
+<canvas id="renderCanvas"></canvas>
+<div class="grain"></div>
 
-    <!-- Why Choose -->
-    <section class="why-section" id="features">
-        <div class="container">
-            <div class="section-header">
-                <h2>Why Choose Helix?</h2>
-                <p>The most advanced virtual pet simulation experience with features designed for maximum engagement</p>
-            </div>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                        </svg>
-                    </div>
-                    <h3>Real-Time Interaction</h3>
-                    <p>Watch your pet respond instantly to your care and attention with dynamic stat updates.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                    </div>
-                    <h3>Advanced Care System</h3>
-                    <p>Monitor health, happiness, hunger, and energy levels to keep your companion thriving.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                    </div>
-                    <h3>Engaging Activities</h3>
-                    <p>Feed, play, rest, and clean to build a stronger bond with your digital companion.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
-                    </div>
-                    <h3>Beautiful Design</h3>
-                    <p>Experience a modern, clean interface designed for both desktop and mobile devices.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- NAV -->
+<nav id="nav">
+  <a class="nlogo" href="#">
+    <img src="logo.png" alt="Helix Logo" style="height:18px;width:auto;">
+    Helix
+  </a>
+<div class="nright">
+    <div class="nav-auth-buttons">
+      <button class="nreq" onclick="openAuthModal('login')">Log In</button>
+      <button class="nreq" style="background:var(--text);color:white;border-color:var(--text);" onclick="openAuthModal('signup')">Sign Up</button>
+    </div>
+  </div>
+</nav>
 
-    <!-- Companions -->
-    <section class="companions-section" id="simulator">
-        <div class="container">
-            <div class="section-header">
-                <h2>Meet Our Virtual Companions</h2>
-                <p>Each pet has unique personality traits and needs. Choose your perfect match!</p>
-            </div>
-            <div class="companions-grid">
-                <div class="companion-card">
-                    <div class="bubble-canvas-wrapper">
-                        <canvas class="bubble-canvas" id="indexBubbleCanvas_dog"></canvas>
-                    </div>
-                    <div class="companion-info">
-                        <h3>Dogs</h3>
-                        <p>Loyal and energetic companions that help you build healthy habits through regular care routines.</p>
-                        <div class="quality-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                            </svg>
-                            Builds Exercise Habits
-                        </div>
-                    </div>
-                </div>
-                <div class="companion-card">
-                    <div class="bubble-canvas-wrapper">
-                        <canvas class="bubble-canvas" id="indexBubbleCanvas_cat"></canvas>
-                    </div>
-                    <div class="companion-info">
-                        <h3>Cats</h3>
-                        <p>Independent yet affectionate friends that teach you focus and time management skills.</p>
-                        <div class="quality-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                            </svg>
-                            Enhances Productivity
-                        </div>
-                    </div>
-                </div>
-                <div class="companion-card">
-                    <div class="bubble-canvas-wrapper">
-                        <canvas class="bubble-canvas" id="indexBubbleCanvas_bird"></canvas>
-                    </div>
-                    <div class="companion-info">
-                        <h3>Birds</h3>
-                        <p>Colorful and interactive companions that encourage social engagement and communication.</p>
-                        <div class="quality-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            </svg>
-                            Improves Socializing
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<div id="rail">
 
-    <!-- Testimonials -->
-    <section class="testimonials-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>What Our Users Say</h2>
-                <p>Join thousands of happy pet owners in the Helix community</p>
-            </div>
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <div class="stars">
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    </div>
-                    <p>"Helix has become part of my daily routine. The attention to detail in the pet interactions is incredible!"</p>
-                    <div class="testimonial-author">Sarah Johnson</div>
-                    <div class="testimonial-role">Pet Enthusiast</div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="stars">
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    </div>
-                    <p>"Best virtual pet experience I've ever had. The stats system and animations are top-notch."</p>
-                    <div class="testimonial-author">Michael Chen</div>
-                    <div class="testimonial-role">Gamer</div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="stars">
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    </div>
-                    <p>"I love how relaxing and rewarding it is to care for my virtual pet. Perfect stress relief!"</p>
-                    <div class="testimonial-author">Emma Davis</div>
-                    <div class="testimonial-role">Student</div>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- ══════ HERO ══════ -->
+<div id="s-hero" class="sec">
+  <div class="pin">
 
-    <!-- CTA -->
-    <section class="cta-section">
-        <div class="container">
-            <h2>Ready to Meet Your New Companion?</h2>
-            <p>Start your virtual pet journey today. No downloads required, play directly in your browser!</p>
-            <div class="cta-buttons">
-                <button class="btn-white" onclick="openAuthModal('signup')">Start Playing Now →</button>
-                <button class="btn-outline">Learn More</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer id="about">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <div class="logo">
-                    <div class="logo-icon">H</div>
-                    Helix
-                </div>
-                <p>The next generation of virtual pet simulation. Create lasting bonds with your digital companion.</p>
-            </div>
-            <div class="footer-links">
-                <h4>Product</h4>
-                <ul>
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#simulator">Simulator</a></li>
-                    <li><a href="#">Pricing</a></li>
-                </ul>
-            </div>
-            <div class="footer-links">
-                <h4>Company</h4>
-                <ul>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#">Blog</a></li>
-                    <li><a href="#">Careers</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Helix. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <!-- Auth Modal (keeping existing modal HTML from old version) -->
-    <!-- Include the full auth modal HTML here -->
-
-    <!-- Auth Modal -->
-    <div class="auth-modal" id="authModal">
-        <div class="modal-overlay" onclick="closeAuthModal()"></div>
-        <div class="circular-auth-container">
-            <div class="auth-circle">
-                <button class="close-modal" onclick="closeAuthModal()">&times;</button>
-                
-                <!-- Login View -->
-                <div class="auth-view active" id="loginView">
-                    <div class="auth-icon">
-                        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                    </div>
-                    <h2>Welcome Back</h2>
-                    <form id="loginForm" class="auth-form">
-                        <div class="input-group">
-                            <input type="email" id="loginEmail" placeholder="Email" required>
-                        </div>
-                        <div class="input-group">
-                            <input type="password" id="loginPassword" placeholder="Password" required>
-                        </div>
-                        <button type="submit" class="btn-submit">Login</button>
-                    </form>
-                    <div class="auth-divider">or</div>
-                    <button class="btn-google" onclick="handleGoogleAuth('login')">
-                        <svg width="18" height="18" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        <span>Sign in with Google</span>
-                    </button>
-                    <div class="switch-view">
-                        <a href="#" onclick="switchView('signup'); return false;">Create an account</a>
-                    </div>
-                </div>
-
-                <!-- Signup View -->
-                <div class="auth-view" id="signupView">
-                    <div class="auth-icon">
-                        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="8.5" cy="7" r="4"></circle>
-                            <line x1="20" y1="8" x2="20" y2="14"></line>
-                            <line x1="23" y1="11" x2="17" y2="11"></line>
-                        </svg>
-                    </div>
-                    <h2>Join Us Today</h2>
-                    <form id="signupForm" class="auth-form">
-                        <div class="input-group">
-                            <input type="text" id="signupName" placeholder="Full Name" required>
-                        </div>
-                        <div class="input-group">
-                            <input type="email" id="signupEmail" placeholder="Email" required>
-                        </div>
-                        <div class="input-group">
-                            <input type="password" id="signupPassword" placeholder="Password" required>
-                        </div>
-                        <button type="submit" class="btn-submit">Sign Up</button>
-                    </form>
-                    <div class="auth-divider">or</div>
-                    <button class="btn-google" onclick="handleGoogleAuth('signup')">
-                        <svg width="18" height="18" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        <span>Sign up with Google</span>
-                    </button>
-                    <div class="switch-view">
-                        <a href="#" onclick="switchView('login'); return false;">Already have an account?</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- PET PATTERN BACKGROUND -->
+    <div id="pet-pattern">
+      <div id="pet-pattern-canvas"></div>
     </div>
 
-    <!-- External JavaScript -->
-     <script src="loading.js"></script>
-    <script src="app.js"></script>
+    <div id="hero-ww"></div>
+    <div id="hero-os">
+      <p class="os-label">A connected network of AI agents</p>
+      <h2 class="os-h">It Lives EVERYWHERE <em>Everywhere</em> You Do.</h2>
+      <p class="os-body">Lucy  20+ autonomous agents across data, creative, and strategy, forming a synchronized system that learns, adapts, and executes like your best marketing team, only faster.</p>
+    </div>
+    <div id="hero-btm">
+      <p class="hero-eyebrow">Are You ready to Meet Your New Best Friend?</p>
+      <h1 class="hero-h1">This is <em>HELIX</em></h1>
+      <button class="hero-btn" onclick="openAuthModal('signup')">Sign Up ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ OS + VIDEO ══════ -->
+<div id="s-osvid" class="sec">
+  <div class="pin">
+    <div class="ovid-top">
+      <p class="os-label" style="color:var(--text)">Cross Platform as SwiftUI IOS app and Website</p>
+      <h2 class="os-h" style="color:var(--text)">It Lives <em>Everywhere</em> You Do.</h2>
+      <p class="ovid-sub">
+The seamless app for every screen.
+Built for iPhone and the web; your pet doesn't care what device you're on, it just shows up.</p>
+    </div>
+    <div class="vwrap" style="text-align:center;">
+      <div class="vbg">
+        <img src="cross.jpg" style="height:550px;width:1000px;">
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     REPLACE the entire <div id="s-adapts" class="sec"> block
+     with this. No other changes needed.
+══════════════════════════════════════════════════════════ -->
+
+<style>
+/* ── Override adapts-inner so our layout controls everything ── */
+#s-adapts #adapts-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 6vw 80px;
+  gap: 80px;
+  width: 100%;
+}
+
+/* ── Shared row ── */
+.ww-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 96px;
+  width: 100%;
+  max-width: 1100px;
+}
+.ww-row.ww-rev {
+  flex-direction: row-reverse;
+}
+
+/* ── Text side ── */
+.ww-txt {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.ww-txt h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 2.8vw, 42px);
+  font-weight: 400;
+  line-height: 1.12;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+.ww-txt p {
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--text);
+  opacity: .50;
+  max-width: 320px;
+}
+
+/* ── Card side ── */
+.ww-card {
+  flex: 0 0 460px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(0,0,0,.12);
+}
+.ww-card-light {
+  background: #fff;
+  padding: 26px 24px 20px;
+}
+.ww-card-dark {
+  background: #0c1820;
+  position: relative;
+  overflow: visible;
+}
+.ww-clabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: #A0AEC0;
+  margin-bottom: 2px;
+}
+.ww-csub {
+  font-size: 11px;
+  color: #A0AEC0;
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     REPLACE the entire <div id="s-adapts" class="sec"> block
+     with this. No other changes needed.
+══════════════════════════════════════════════════════════ -->
+
+<style>
+/* ── Override adapts-inner so our layout controls everything ── */
+#s-adapts #adapts-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 6vw 80px;
+  gap: 80px;
+  width: 100%;
+}
+
+/* ── Shared row ── */
+.ww-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 96px;
+  width: 100%;
+  max-width: 1100px;
+}
+.ww-row.ww-rev {
+  flex-direction: row-reverse;
+}
+
+/* ── Text side ── */
+.ww-txt {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.ww-txt h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 2.8vw, 42px);
+  font-weight: 400;
+  line-height: 1.12;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+.ww-txt p {
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--text);
+  opacity: .50;
+  max-width: 320px;
+}
+
+/* ── Card side ── */
+.ww-card {
+  flex: 0 0 460px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(0,0,0,.12);
+}
+.ww-card-light {
+  background: #fff;
+  padding: 26px 24px 20px;
+}
+.ww-card-dark {
+  background: #0c1820;
+  position: relative;
+  overflow: visible;
+}
+.ww-clabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: #A0AEC0;
+  margin-bottom: 2px;
+}
+.ww-csub {
+  font-size: 11px;
+  color: #A0AEC0;
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+</style>
+
+<div id="s-adapts" class="sec">
+  <div class="pin">
+    <div id="adapts-inner">
+
+      <!-- Section heading -->
+      <div class="adapt-head" style="text-align:center;width:100%;max-width:980px;">
+        <h2>Your Pet's Life In <em>Living Color</em></h2>
+      </div>
+
+      <!-- ══ ROW 1 — Radar  [card | text] ══ -->
+      <div class="ww-row" id="ar0">
+
+        <div class="ww-card ww-card-light">
+          <p class="ww-clabel">Pet Stats Overview</p>
+          <p class="ww-csub">Current condition at a glance</p>
+          <div style="display:flex;justify-content:center;padding:2px 0 10px;">
+            <svg width="240" height="214" viewBox="0 0 240 214" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+              <!-- Grid rings -->
+              <g fill="none" stroke="#4FD1C5" stroke-width="1" opacity=".14">
+                <polygon points="120,30 190,70 190,142 120,182 50,142 50,70"/>
+                <polygon points="120,52 168,82 168,130 120,160 72,130 72,82"/>
+                <polygon points="120,74 146,94 146,118 120,138 94,118 94,94"/>
+              </g>
+              <!-- Axis spokes -->
+              <g stroke="#E2E8F0" stroke-width="1">
+                <line x1="120" y1="30"  x2="120" y2="182"/>
+                <line x1="120" y1="106" x2="190" y2="70"/>
+                <line x1="120" y1="106" x2="190" y2="142"/>
+                <line x1="120" y1="106" x2="50"  y2="142"/>
+                <line x1="120" y1="106" x2="50"  y2="70"/>
+              </g>
+              <!-- Data shape -->
+              <polygon
+                points="120,42  176,78  170,134  70,134  54,74"
+                fill="rgba(79,209,197,0.18)"
+                stroke="#4FD1C5"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+              />
+              <!-- Dots -->
+              <circle cx="120" cy="42"  r="4.5" fill="#4FD1C5" stroke="#fff" stroke-width="2"/>
+              <circle cx="176" cy="78"  r="4.5" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+              <circle cx="170" cy="134" r="4.5" fill="#4FD1C5" stroke="#fff" stroke-width="2"/>
+              <circle cx="70"  cy="134" r="4.5" fill="#9F7AEA" stroke="#fff" stroke-width="2"/>
+              <circle cx="54"  cy="74"  r="4.5" fill="#FC8181" stroke="#fff" stroke-width="2"/>
+              <!-- Labels -->
+              <text x="120" y="20"  text-anchor="middle" font-size="10" font-weight="700" fill="#2D3748" font-family="sans-serif">Health</text>
+              <text x="198" y="70"  text-anchor="start"  font-size="10" font-weight="700" fill="#2D3748" font-family="sans-serif">Happy</text>
+              <text x="198" y="146" text-anchor="start"  font-size="10" font-weight="700" fill="#2D3748" font-family="sans-serif">Fullness</text>
+              <text x="42"  y="146" text-anchor="end"    font-size="10" font-weight="700" fill="#2D3748" font-family="sans-serif">Energy</text>
+              <text x="42"  y="70"  text-anchor="end"    font-size="10" font-weight="700" fill="#2D3748" font-family="sans-serif">Bond</text>
+            </svg>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="background:#E6FFFA;color:#2C7A7B;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;">Health 85%</span>
+            <span style="background:#FFFAF0;color:#C05621;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;">Happy 72%</span>
+            <span style="background:#E6FFFA;color:#2C7A7B;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;">Fullness 60%</span>
+            <span style="background:#FAF5FF;color:#6B46C1;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;">Energy 78%</span>
+            <span style="background:#FFF5F5;color:#C53030;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;">Bond 45%</span>
+          </div>
+        </div>
+
+        <div class="ww-txt">
+          <h3>The Chart That<br>Hits Different.</h3>
+          <p>The Pet Stats Radar chart plots all five vitals — Health, Happiness, Fullness, Energy, and Bond — into one web-shaped visual. You see the shape of your pet's wellbeing at a glance, not just numbers.</p>
+        </div>
+
+      </div>
+
+      <!-- ══ ROW 2 — Spending vs Happiness  [text | card] ══ -->
+      <div class="ww-row ww-rev" id="ar1">
+
+        <div class="ww-card ww-card-light">
+          <p class="ww-clabel">Spending vs Happiness</p>
+          <p class="ww-csub">Based on your transactions</p>
+          <svg width="100%" viewBox="0 0 400 170" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+            <!-- Grid -->
+            <g stroke="#EDF2F7" stroke-width="1">
+              <line x1="44" y1="18"  x2="390" y2="18"/>
+              <line x1="44" y1="52"  x2="390" y2="52"/>
+              <line x1="44" y1="86"  x2="390" y2="86"/>
+              <line x1="44" y1="120" x2="390" y2="120"/>
+            </g>
+            <!-- Y labels -->
+            <text x="38" y="21"  text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">100</text>
+            <text x="38" y="55"  text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">75</text>
+            <text x="38" y="89"  text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">50</text>
+            <text x="38" y="123" text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">25</text>
+            <!-- Spending bars -->
+            <rect x="58"  y="98" width="26" height="22" rx="4" fill="rgba(79,209,197,0.38)"/>
+            <rect x="114" y="83" width="26" height="37" rx="4" fill="rgba(79,209,197,0.38)"/>
+            <rect x="170" y="67" width="26" height="53" rx="4" fill="rgba(79,209,197,0.38)"/>
+            <rect x="226" y="87" width="26" height="33" rx="4" fill="rgba(79,209,197,0.38)"/>
+            <rect x="282" y="54" width="26" height="66" rx="4" fill="rgba(79,209,197,0.38)"/>
+            <rect x="338" y="70" width="26" height="50" rx="4" fill="rgba(79,209,197,0.38)"/>
+            <!-- Happiness line -->
+            <polyline
+              points="71,100 127,85 183,68 239,90 295,52 351,70"
+              fill="none" stroke="#F6AD55" stroke-width="2.5"
+              stroke-linejoin="round" stroke-linecap="round"
+            />
+            <circle cx="71"  cy="100" r="4" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+            <circle cx="127" cy="85"  r="4" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+            <circle cx="183" cy="68"  r="4" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+            <circle cx="239" cy="90"  r="4" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+            <circle cx="295" cy="52"  r="4" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+            <circle cx="351" cy="70"  r="4" fill="#F6AD55" stroke="#fff" stroke-width="2"/>
+            <!-- X labels -->
+            <text x="71"  y="140" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Jan 3</text>
+            <text x="127" y="140" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Jan 8</text>
+            <text x="183" y="140" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Jan 13</text>
+            <text x="239" y="140" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Jan 18</text>
+            <text x="295" y="140" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Jan 23</text>
+            <text x="351" y="140" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Jan 28</text>
+          </svg>
+          <!-- Legend -->
+          <div style="display:flex;gap:20px;margin-top:12px;">
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#718096;">
+              <div style="width:11px;height:11px;border-radius:3px;background:rgba(79,209,197,0.45);flex-shrink:0;"></div>Spending
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#718096;">
+              <div style="width:11px;height:11px;border-radius:50%;background:#F6AD55;flex-shrink:0;"></div>Happiness %
+            </div>
+          </div>
+        </div>
+
+        <div class="ww-txt">
+          <h3>Does Spoiling Them<br>Actually Work?</h3>
+          <p>A live line chart that plots your transaction history against your pet's happiness score over time. See in real data whether those vet visits and toy splurges are actually making your pet happier.</p>
+        </div>
+
+      </div>
+
+      <!-- ══ ROW 3 — AI Chat  [card | text] ══ -->
+      <div class="ww-row" id="ar2">
+
+        <div class="ww-card ww-card-dark">
+          <!-- Header -->
+          <div style="background:#0F1535;padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06);border-radius:20px 20px 0 0;">
+            <div style="width:34px;height:34px;background:#4FD1C5;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            </div>
+            <div>
+              <p style="font-size:13px;font-weight:700;color:white;margin:0;">HELIX AI Assistant</p>
+              <p style="font-size:10px;color:rgba(255,255,255,.4);margin:0;">Ask about your pet's stats, budget, or care tips</p>
+            </div>
+          </div>
+          <!-- Messages -->
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+            <div style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.82);border-radius:14px 14px 14px 4px;padding:10px 14px;font-size:12.5px;line-height:1.55;max-width:86%;">Hi! I'm your HELIX AI. Ask me anything about your pet!</div>
+            <div style="background:white;color:#1a1a1a;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:12.5px;line-height:1.55;align-self:flex-end;max-width:72%;">How is Mochi doing today?</div>
+            <div style="background:rgba(79,209,197,.13);border:1px solid rgba(79,209,197,.28);color:rgba(255,255,255,.86);border-radius:14px 14px 14px 4px;padding:10px 14px;font-size:12.5px;line-height:1.55;max-width:94%;">Mochi is at 85% health and 72% happiness — looking good! Energy is a bit low at 42%, so a rest session would help before any play. You're also at 68% of your monthly budget.</div>
+          </div>
+          <!-- Chips -->
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 20px 14px;">
+            <span style="background:rgba(79,209,197,.15);color:#4FD1C5;border:1px solid rgba(79,209,197,.3);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">How is my pet doing?</span>
+            <span style="background:rgba(79,209,197,.15);color:#4FD1C5;border:1px solid rgba(79,209,197,.3);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Am I on budget?</span>
+            <span style="background:rgba(79,209,197,.15);color:#4FD1C5;border:1px solid rgba(79,209,197,.3);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Boost happiness</span>
+          </div>
+          <!-- Input -->
+          <div style="display:flex;gap:8px;padding:10px 16px 16px;border-top:1px solid rgba(255,255,255,.06);">
+            <div style="flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 14px;font-size:12px;color:rgba(255,255,255,.28);">Ask about your pet…</div>
+            <div style="background:linear-gradient(135deg,#4FD1C5,#319795);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="ww-txt">
+          <h3>It Knows Your Pet & <br>It's Ready to Talk.</h3>
+          <p>No matter what tab you're on, the AI chat button is right there. Ask it anything — it already knows your pet's live stats, spending, and care history, and fires back with answers that are actually specific to your pet.</p>
+        </div>
+
+      </div>
+
+      <!-- ══ ROW 4 — Forecast  [text | card] ══ -->
+      <div class="ww-row ww-rev" id="ar3">
+
+        <div class="ww-card ww-card-light">
+          <p class="ww-clabel">Spending Forecast</p>
+          <p class="ww-csub">Projected to finish <span style="color:#38A169;font-weight:700;">$18 under budget</span></p>
+          <svg width="100%" viewBox="0 0 400 168" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+            <!-- Grid -->
+            <g stroke="#EDF2F7" stroke-width="1">
+              <line x1="44" y1="18"  x2="380" y2="18"/>
+              <line x1="44" y1="55"  x2="380" y2="55"/>
+              <line x1="44" y1="92"  x2="380" y2="92"/>
+              <line x1="44" y1="129" x2="380" y2="129"/>
+            </g>
+            <!-- Y labels -->
+            <text x="38" y="21"  text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">$200</text>
+            <text x="38" y="58"  text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">$150</text>
+            <text x="38" y="95"  text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">$100</text>
+            <text x="38" y="132" text-anchor="end" font-size="9" fill="#A0AEC0" font-family="sans-serif">$50</text>
+            <!-- Spent $95 — 95/200 = 47.5% of 111px range = 53px tall, base at 129, top = 76 -->
+            <rect x="68"  y="76"  width="80" height="53" rx="6" fill="#4FD1C5"/>
+            <!-- Projected $87 — 87/200 * 111 = 48px, top = 81 -->
+            <rect x="180" y="81"  width="80" height="48" rx="6" fill="rgba(79,209,197,0.30)"/>
+            <!-- Remaining $18 — 18/200 * 111 = 10px, top = 119 -->
+            <rect x="292" y="119" width="80" height="10" rx="6" fill="#EDF2F7"/>
+            <!-- Budget ceiling -->
+            <line x1="44" y1="18" x2="380" y2="18" stroke="#FC8181" stroke-width="2" stroke-dasharray="5,4"/>
+            <!-- Value labels above bars -->
+            <text x="108" y="70"  text-anchor="middle" font-size="10" font-weight="700" fill="#2D3748" font-family="sans-serif">$95</text>
+            <text x="220" y="75"  text-anchor="middle" font-size="10" font-weight="700" fill="#2C7A7B" font-family="sans-serif">$87</text>
+            <text x="332" y="113" text-anchor="middle" font-size="10" font-weight="700" fill="#A0AEC0" font-family="sans-serif">$18</text>
+            <!-- X labels -->
+            <text x="108" y="148" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Spent So Far</text>
+            <text x="220" y="148" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Projected</text>
+            <text x="332" y="148" text-anchor="middle" font-size="9" fill="#A0AEC0" font-family="sans-serif">Remaining</text>
+            <!-- Budget label at right of dashed line -->
+            <text x="383" y="16" font-size="9" fill="#FC8181" font-weight="700" font-family="sans-serif">$200</text>
+          </svg>
+          <!-- Legend -->
+          <div style="display:flex;gap:20px;margin-top:12px;">
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#718096;">
+              <div style="width:11px;height:11px;border-radius:3px;background:#4FD1C5;flex-shrink:0;"></div>Spent
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#718096;">
+              <div style="width:11px;height:11px;border-radius:3px;background:rgba(79,209,197,.35);flex-shrink:0;"></div>Projected
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#718096;">
+              <div style="width:22px;height:0;border-top:2px dashed #FC8181;"></div>Budget
+            </div>
+          </div>
+        </div>
+
+        <div class="ww-txt">
+          <h3>The Crystal Ball<br>for Your Wallet.</h3>
+          <p>Based on your current pace, the forecast chart projects exactly where your spending will land by month's end — with a red dashed budget ceiling cutting across the chart so you can see trouble before it arrives.</p>
+        </div>
+
+      </div>
+
+    </div><!-- /#adapts-inner -->
+  </div>
+</div>
+
+<!-- ══════ CHAT ══════ -->
+<div id="s-chat" class="sec">
+  <div class="pin">
+    <div style="position:absolute;top:72px;left:0;right:0;text-align:center;z-index:6;padding:0 52px;">
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,58px);font-weight:400;line-height:1.1;color:#fff;">Each Pet Has Their Own <em style="font-style:italic;color:var(--teal-l)">Personalities.</em></h2>
+    </div>
+    <div class="chat-ui">
+      <div class="cm" id="cm1">Hey Mochi, you feeling okay today? You seemed a little tired this morning.</div>
+      <div class="cm ai" id="cm2">
+        <div class="cm-av">✦</div>
+        <div class="cm-body">*wags tail slowly* I'm okay… just a little low on energy. Maybe a snack would help?</div>
+      </div>
+      <div class="cm" id="cm3">Sure! Do you want to go to the park later?</div>
+      <div class="cm ai" id="cm4">
+        <div class="cm-av">✦</div>
+        <div class="cm-body">*jumps up* YES. Yes yes yes. I've been waiting ALL day for you to ask that.<span class="cm-badge">Happiness +15</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TESTIMONIAL ══════ -->
+<div id="s-testi" class="sec">
+  <div class="pin">
+    <div class="testi-inner">
+      <p class="testi-q" id="tq">"To access our pet simulation, HELIX provides a secure sign-in experience using Firebase Authentication, allowing users to log in instantly with their Google account. This connects directly to our Cloud Firestore database, where we store user profiles, pet stats, and transaction arrays — each scoped to the individual user, so your progress stays synced across every device."</p>
+      <div class="testi-who" id="tw">
+        <span class="testi-name">Rayan Hossain,</span>
+        <span>Co-Founder of HELIX</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ NEWS ══════ -->
+<div id="s-news" class="sec">
+  <div class="pin">
+    <div class="news-left">
+      <p class="news-tag">3D Model</p>
+      <h2 class="news-h2">Step Into Your <br>Pet's <em>Word.</em></h2>
+      <a href="#" class="news-read">
+Blender-crafted, AR-powered, ridiculously real.
+Your pet isn't just cute on screen drop it into your living room and watch it take over the place. Every fur detail, every idle animation, every little head tilt was sculpted by hand in Blender. Point your camera, tap once, and suddenly it's just there sitting on your couch, wandering your kitchen floor, existing in your world like it always belonged.</a>
+    </div>
+    <div class="news-photo">
+      <div class="news-photo-img"></div>
+      <div class="np-ov">
+        <img src="ar.jpeg" alt="AR pet on living room floor" style="width:100%;height:100%;object-fit:cover;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════ FOOTER ══════ -->
+<div id="s-footer">
+  <div class="footer-in">
+    <div class="f-logo">
+      Helix
+    </div>
+    <div class="f-links">
+      <span class="f-sep">|</span>
+      <a href="privacy.html" class="f-link">Privacy</a>
+      <a href="support.html" class="f-link">Terms</a>
+    </div>
+  </div>
+</div>
+
+
+
+</div><!-- #rail -->
+<!-- ══════ AUTH MODAL ══════ -->
+<div class="auth-modal" id="authModal">
+  <div class="modal-overlay" onclick="closeAuthModal()"></div>
+  <div class="circular-auth-container">
+    <div class="auth-circle">
+      <button class="close-modal" onclick="closeAuthModal()">&times;</button>
+      <!-- Login -->
+      <div class="auth-view active" id="loginView">
+        <div class="auth-icon">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h2>Welcome Back</h2>
+        <form id="loginForm" class="auth-form">
+          <div class="input-group"><input type="email" id="loginEmail" placeholder="Email" required></div>
+          <div class="input-group"><input type="password" id="loginPassword" placeholder="Password" required></div>
+          <button type="submit" class="btn-submit">Log In</button>
+        </form>
+        <div class="auth-divider">or</div>
+        <button class="btn-google" onclick="handleGoogleAuth('login')">
+          <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Sign in with Google
+        </button>
+        <div class="switch-view"><a href="#" onclick="switchView('signup');return false;">Create an account →</a></div>
+      </div>
+      <!-- Signup -->
+      <div class="auth-view" id="signupView">
+        <div class="auth-icon">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        </div>
+        <h2>Join HELIX</h2>
+        <form id="signupForm" class="auth-form">
+          <div class="input-group"><input type="text" id="signupName" placeholder="Full Name" required></div>
+          <div class="input-group"><input type="email" id="signupEmail" placeholder="Email" required></div>
+          <div class="input-group"><input type="password" id="signupPassword" placeholder="Password" required></div>
+          <button type="submit" class="btn-submit">Sign Up</button>
+        </form>
+        <div class="auth-divider">or</div>
+        <button class="btn-google" onclick="handleGoogleAuth('signup')">
+          <svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Sign up with Google
+        </button>
+        <div class="switch-view"><a href="#" onclick="switchView('login');return false;">Already have an account? →</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="loading.js"></script>
+<script src="app.js"></script>
+<script>
+  // Update nav based on auth state
+  function updateLucyNav(user) {
+    const btns = document.querySelector('.nav-auth-buttons');
+    if (!btns) return;
+    if (user) {
+      btns.innerHTML = `
+        <button class="nreq" onclick="window.location.href='homepage.html'">Homepage</button>
+        <button class="nreq" style="background:var(--text);color:white;border-color:var(--text);" onclick="handleLogout()">Log Out</button>`;
+    } else {
+      btns.innerHTML = `
+        <button class="nreq" onclick="openAuthModal('login')">Log In</button>
+        <button class="nreq" style="background:var(--text);color:white;border-color:var(--text);" onclick="openAuthModal('signup')">Sign Up</button>`;
+    }
+  }
+  // Override app.js's updateUI functions to use Lucy nav
+  function updateUIForAuthenticatedUser(user) { updateLucyNav(user); }
+  function updateUIForUnauthenticatedUser() { updateLucyNav(null); }
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeAuthModal(); });
+</script>
+<script>
+// ══════════════════════════════════════════════════════════════
+//  PET ICON PATTERN — uses Lucide CDN SVG icons, diagonal grid
+// ══════════════════════════════════════════════════════════════
+
+// Professional Lucide SVG paths (viewBox 0 0 24 24, stroke-based)
+const LUCIDE_ICONS = {
+  'paw-print': `<circle cx="11" cy="4" r="2"/><circle cx="18" cy="4" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="4" cy="12" r="2"/><path d="M15 18c0-2.21-1.79-4-4-4s-4 1.79-4 4c0 2.21 2.68 4.5 4 4.5s4-2.29 4-4.5z"/>`,
+  'bone': `<path d="M17 10c.7-.7 1.69 0 2.5 0a2.5 2.5 0 1 0 0-5 .5.5 0 0 1-.5-.5 2.5 2.5 0 1 0-5 0c0 .81.7 1.8 0 2.5l-7 7c-.7.7-1.69 0-2.5 0a2.5 2.5 0 0 0 0 5c.28 0 .5.22.5.5a2.5 2.5 0 1 0 5 0c0-.81-.7-1.8 0-2.5L17 10z"/>`,
+  'heart': `<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>`,
+  'scissors': `<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>`,
+  'syringe': `<path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/>`,
+  'stethoscope': `<path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v3a6 6 0 0 0 6 6 6 6 0 0 0 6-6 4 4 0 0 0 4-4V4a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v4H9V4a2 2 0 0 0-2-2z"/><circle cx="20" cy="13" r="2"/>`,
+  'fish': `<path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/><path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 3.5-.08 6.5 2.27 8.5l1.36-1"/><path d="m10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4"/><circle cx="11.5" cy="12.5" r="1.5"/>`,
+  'scissors-line-dashed': `<path d="M5.42 9.42 8 12"/><circle cx="4" cy="8" r="2"/><path d="m14 6-8.58 8.58"/><circle cx="4" cy="16" r="2"/><path d="M10.8 14.8 14 18l6-6"/><path d="M20 10h-6"/><path d="M20 6h-2.2"/>`,
+  'star': `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>`,
+  'shield-check': `<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>`,
+  'tag': `<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/>`,
+  'house': `<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>`,
+};
+
+const ICON_KEYS = Object.keys(LUCIDE_ICONS);
+
+function buildPetPattern() {
+  const container = document.getElementById('pet-pattern-canvas');
+  container.innerHTML = '';
+
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+
+  // Diagonal grid: offset every other row by half a cell
+  const ICON_SIZE = 36;
+  const GAP_X = 110;
+  const GAP_Y = 90;
+
+  // Rotation angles for variety — all diagonal-ish
+  const ROTATIONS = [-45, -30, -15, 15, 30, 45, -60, 60, 0, -45, 30, -30];
+  const OPACITIES = [0.13, 0.10, 0.16, 0.11, 0.14, 0.09, 0.15, 0.12];
+
+  // How many columns and rows to cover the viewport (with bleed)
+  const cols = Math.ceil(W / GAP_X) + 2;
+  const rows = Math.ceil(H / GAP_Y) + 2;
+
+  let iconIdx = 0;
+  for (let row = -1; row < rows; row++) {
+    for (let col = -1; col < cols; col++) {
+      // Diagonal offset: shift each row by half gap
+      const offsetX = (row % 2 === 0) ? 0 : GAP_X / 2;
+      const x = col * GAP_X + offsetX;
+      const y = row * GAP_Y;
+
+      const icon = LUCIDE_ICONS[ICON_KEYS[iconIdx % ICON_KEYS.length]];
+      iconIdx++;
+
+      const rot   = ROTATIONS[(col * 3 + row * 5) % ROTATIONS.length];
+      const op    = OPACITIES[(col + row * 2) % OPACITIES.length];
+
+      const el = document.createElement('div');
+      el.className = 'pet-icon-el';
+      el.style.cssText = `
+        left: ${x}px;
+        top: ${y}px;
+        width: ${ICON_SIZE}px;
+        height: ${ICON_SIZE}px;
+        transform: rotate(${rot}deg);
+        opacity: ${op};
+        color: #8a9e9e;
+      `;
+
+      el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
+
+      container.appendChild(el);
+    }
+  }
+}
+
+buildPetPattern();
+window.addEventListener('resize', buildPetPattern);
+
+// Fade out pattern as hero scrolls away
+function updatePatternOpacity(sy) {
+  const heroEl = document.getElementById('s-hero');
+  if (!heroEl) return;
+  const heroH = heroEl.offsetHeight;
+  // Fade out in the last 30% of hero scroll
+  const fadeStart = heroH * 0.15;
+  const fadeEnd   = heroH * 0.45;
+  const t = Math.max(0, Math.min(1, (sy - fadeStart) / (fadeEnd - fadeStart)));
+  document.getElementById('pet-pattern').style.opacity = (1 - t).toFixed(3);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BABYLON — idle01.glb
+// ══════════════════════════════════════════════════════════════
+const CFG = {
+  glbUrl: './idle01.glb',
+  wireColor: { r:0.286, g:0.651, b:0.651 },
+  modelScale: 3.8,
+  positionOffset: { x:0, y:0, z:0 },
+  heroCamera: { alpha:-Math.PI/2, beta:1.35, radius:3.2, tx:-0.6, ty:0.3 },
+  sections:[
+    { alpha:-Math.PI/2, beta:1.35, radius:3.2, tx:-0.6,  ty:0.3  },
+    { alpha:-Math.PI/2, beta:1.35, radius:3.5, tx:0,    ty:0.3  },
+    { alpha:-1.3,       beta:1.55, radius:3.8, tx:0.9,  ty:-0.1 },
+    { alpha:-1.57,      beta:1.25, radius:3.1, tx:-0.5, ty:0.4  },
+    { alpha:-1.57,      beta:1.6,  radius:4.8, tx:0.4,  ty:-0.3 },
+    { alpha:-1.5,       beta:1.5,  radius:4.5, tx:0.5,  ty:0    },
+    { alpha:-1.4,       beta:1.3,  radius:2.8, tx:-1.0, ty:0.4  },
+  ]
+};
+
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer:true, stencil:true, antialias:true });
+let scrollProgress=0, babylonSmooth=0;
+let heroAnimProgress=0, heroAnimSmooth=0;
+
+const createScene = async () => {
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+  scene.ambientColor = new BABYLON.Color3(0.05, 0.1, 0.1);
+
+  const camCfg = CFG.heroCamera;
+  const camera = new BABYLON.ArcRotateCamera('cam',
+    camCfg.alpha, camCfg.beta, camCfg.radius,
+    new BABYLON.Vector3(camCfg.tx, camCfg.ty, 0), scene);
+  camera.inputs.clear(); camera.minZ = 0.01;
+
+  const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0,1,0), scene);
+  hemi.intensity = 0.2; hemi.diffuse = new BABYLON.Color3(0.3,0.6,0.6);
+
+  const keyLight = new BABYLON.PointLight('key', new BABYLON.Vector3(2,3,-1), scene);
+  keyLight.intensity = 1.5;
+  keyLight.diffuse = new BABYLON.Color3(CFG.wireColor.r, CFG.wireColor.g, CFG.wireColor.b);
+
+  const rimLight = new BABYLON.PointLight('rim', new BABYLON.Vector3(-3,0,3), scene);
+  rimLight.intensity = 0.8; rimLight.diffuse = new BABYLON.Color3(0.15,0.35,0.35);
+
+  const botLight = new BABYLON.PointLight('bot', new BABYLON.Vector3(0,-3,0), scene);
+  botLight.intensity = 0.4;
+  botLight.diffuse = new BABYLON.Color3(CFG.wireColor.r*0.5, CFG.wireColor.g*0.5, CFG.wireColor.b*0.5);
+
+  const wireMat = new BABYLON.StandardMaterial('wire', scene);
+  wireMat.wireframe = true;
+  wireMat.emissiveColor = new BABYLON.Color3(CFG.wireColor.r, CFG.wireColor.g, CFG.wireColor.b);
+  wireMat.diffuseColor  = new BABYLON.Color3(CFG.wireColor.r*0.4, CFG.wireColor.g*0.4, CFG.wireColor.b*0.4);
+  wireMat.alpha = 0.9; wireMat.backFaceCulling = false;
+
+  const glow = new BABYLON.GlowLayer('glow', scene, { mainTextureFixedSize:512, blurKernelSize:64 });
+  glow.intensity = 0;
+
+  let rootMesh=null;
+
+  try {
+    const res = await BABYLON.SceneLoader.ImportMeshAsync('','',CFG.glbUrl,scene);
+    rootMesh = res.meshes[0];
+    res.meshes.forEach(m=>{ if(m.getTotalVertices&&m.getTotalVertices()>0) m.material=wireMat; });
+    rootMesh.computeWorldMatrix(true);
+    let b = rootMesh.getHierarchyBoundingVectors(true);
+    const sz = b.max.subtract(b.min);
+    const sc = CFG.modelScale / Math.max(sz.x,sz.y,sz.z);
+    rootMesh.scaling = new BABYLON.Vector3(sc,sc,sc);
+    rootMesh.computeWorldMatrix(true);
+    b = rootMesh.getHierarchyBoundingVectors(true);
+    const c = b.min.add(b.max).scale(0.5);
+    rootMesh.position.x = -c.x + CFG.positionOffset.x;
+    rootMesh.position.y = -c.y + CFG.positionOffset.y;
+    rootMesh.position.z = -c.z + CFG.positionOffset.z;
+    rootMesh.rotation.y = -Math.PI / 2;
+    if (res.animationGroups && res.animationGroups.length > 0) {
+      res.animationGroups[0].start(true);
+    }
+    camera.target = new BABYLON.Vector3(camCfg.tx, camCfg.ty, 0);
+  } catch(e) {
+    console.warn('GLB load failed, using fallback:', e.message);
+    rootMesh = new BABYLON.TransformNode('root', scene);
+    const head=BABYLON.MeshBuilder.CreateSphere('head',{diameterX:2,diameterY:2.6,diameterZ:2.2,segments:28},scene);
+    head.material=wireMat; head.position.y=0.8; head.parent=rootMesh;
+    const neck=BABYLON.MeshBuilder.CreateCylinder('neck',{height:0.8,diameterTop:0.9,diameterBottom:1.1,tessellation:18},scene);
+    neck.material=wireMat; neck.position.y=-0.7; neck.parent=rootMesh;
+    const torso=BABYLON.MeshBuilder.CreateSphere('torso',{diameterX:3.5,diameterY:2.0,diameterZ:2.0,segments:22},scene);
+    torso.material=wireMat; torso.position.y=-1.8; torso.parent=rootMesh;
+    rootMesh.rotation.y = -Math.PI / 2;
+    camera.target = new BABYLON.Vector3(camCfg.tx, camCfg.ty, 0);
+  }
+
+  let camTarget = {...CFG.sections[0]};
+  let smoothCam = {...CFG.sections[0]};
+  window._setCam = idx => { camTarget={...CFG.sections[Math.min(idx,CFG.sections.length-1)]}; };
+
+  scene.registerBeforeRender(() => {
+    if (!rootMesh) return;
+    if (!rootMesh._isMesh) {
+      const now = Date.now() * 0.001;
+      rootMesh.rotation.x = Math.sin(now * 0.7) * 0.04;
+      rootMesh.position.y = Math.sin(now * 0.5) * 0.06;
+    }
+    heroAnimSmooth += (heroAnimProgress - heroAnimSmooth) * 0.06;
+    const t = heroAnimSmooth;
+    const targetRadius = CFG.heroCamera.radius - t * (CFG.heroCamera.radius - 1.2);
+
+    // Smoothly interpolate camTarget so section changes don't snap
+    const lf = 0.045;
+    smoothCam.alpha  += (camTarget.alpha  - smoothCam.alpha)  * lf;
+    smoothCam.beta   += (camTarget.beta   - smoothCam.beta)   * lf;
+    smoothCam.radius += (camTarget.radius - smoothCam.radius) * lf;
+    smoothCam.tx     += (camTarget.tx     - smoothCam.tx)     * lf;
+    smoothCam.ty     += (camTarget.ty     - smoothCam.ty)     * lf;
+
+    const activeRadius = (lastSec === 0) ? targetRadius : smoothCam.radius;
+    camera.alpha    += (smoothCam.alpha  - camera.alpha)    * 0.05;
+    camera.beta     += (smoothCam.beta   - camera.beta)     * 0.05;
+    camera.radius   += (activeRadius     - camera.radius)   * 0.05;
+    camera.target.x += (smoothCam.tx    - camera.target.x) * 0.05;
+    camera.target.y += (smoothCam.ty    - camera.target.y) * 0.05;
+    glow.intensity = t * 0.15;
+  });
+
+  return scene;
+};
+
+// ══════════════════════════════════════════════════════════════
+//  SMOOTH SCROLL ENGINE
+// ══════════════════════════════════════════════════════════════
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const lerp  = (a,b,t) => a+(b-a)*t;
+const eOut  = t => 1-(1-t)**3;
+const eIO   = t => t<.5?2*t*t:-1+(4-2*t)*t;
+
+let sT=0, sC=0, maxScroll=0;
+const EASE=0.085;
+
+function buildBodyHeight() {
+  let h=0;
+  document.querySelectorAll('#rail > *').forEach(el => h+=el.offsetHeight);
+  document.body.style.height = h+'px';
+  maxScroll = Math.max(0, h-innerHeight);
+}
+
+window.addEventListener('scroll',()=>{ sT=clamp(window.scrollY,0,maxScroll); },{passive:true});
+
+// ── Two-phase section lock ──────────────────────────────────
+// Phase 1: entry lock — freeze page scroll for ENTRY_HOLD ms when landing on a section
+// Phase 2: inner scroll — route wheel into the pin's internal scroller
+// Phase 3: release — pass scroll to page once inner hits bottom/top
+const LOCKED_SECTIONS = ['s-hero','s-osvid','s-adapts','s-chat','s-testi','s-news','s-cta'];
+const ENTRY_HOLD = 700; // ms to hold on entry before allowing inner scroll
+
+// Track per-section state
+const secState = {};
+LOCKED_SECTIONS.forEach(id => {
+  secState[id] = {
+    entryLockUntil: 0,   // timestamp when entry lock expires
+    lastSeenInSec: false // was user in this section last frame?
+  };
+});
+
+function getActiveSec(sy) {
+  let active = null;
+  for (const id of LOCKED_SECTIONS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (sy >= el.offsetTop - 2 && sy < el.offsetTop + el.offsetHeight) {
+      active = id;
+    }
+  }
+  return active;
+}
+
+// When scroll position crosses into a new section, arm its entry lock
+let _lastActiveSec = null;
+function checkSectionEntry(sy) {
+  const active = getActiveSec(sy);
+  if (active && active !== _lastActiveSec) {
+    // Reset inner scroll to top and arm entry lock
+    const pin = document.getElementById(active)?.querySelector('.pin');
+    if (pin) pin.scrollTop = 0;
+    secState[active].entryLockUntil = performance.now() + ENTRY_HOLD;
+    _lastActiveSec = active;
+  }
+}
+
+function handleDelta(delta) {
+  const sy = sC;
+  const now = performance.now();
+  const activeId = getActiveSec(sy);
+  if (!activeId) { sT = clamp(sT + delta, 0, maxScroll); return; }
+
+  const state = secState[activeId];
+  const sec   = document.getElementById(activeId);
+  const pin   = sec?.querySelector('.pin');
+
+  // Phase 1 — entry lock: absorb all scroll, go nowhere
+  if (now < state.entryLockUntil) return;
+
+  // Phase 2 — inner scroll (skip for sections with no real inner content to scroll)
+  const NO_INNER_SCROLL = ['s-adapts','s-chat','s-testi','s-news','s-cta','s-hero'];
+  if (pin && !NO_INNER_SCROLL.includes(activeId)) {
+    const maxInner = pin.scrollHeight - pin.clientHeight;
+    if (maxInner > 20) { // only engage inner scroll if there's meaningful content
+      const atBottom = pin.scrollTop >= maxInner - 10;
+      const atTop    = pin.scrollTop <= 2;
+
+      if (delta > 0 && !atBottom) {
+        pin.scrollTop = Math.min(pin.scrollTop + delta, maxInner); // cap to prevent overshoot
+        return;
+      }
+      if (delta < 0 && !atTop) {
+        pin.scrollTop = Math.max(pin.scrollTop + delta, 0);
+        return;
+      }
+    }
+  }
+
+  // Phase 3 — release to page
+  sT = clamp(sT + delta, 0, maxScroll);
+}
+
+window.addEventListener('wheel', e => {
+  e.preventDefault();
+  handleDelta(e.deltaY);
+}, {passive:false});
+
+let _ty=0;
+window.addEventListener('touchstart', e => { _ty = e.touches[0].clientY; }, {passive:true});
+window.addEventListener('touchmove', e => {
+  const d = _ty - e.touches[0].clientY;
+  _ty = e.touches[0].clientY;
+  handleDelta(d * 1.4);
+}, {passive:true});
+
+function updatePins(sy) {
+  document.querySelectorAll('#rail .sec').forEach(sec => {
+    const pin = sec.querySelector('.pin'); if(!pin) return;
+    const top=sec.offsetTop, h=sec.offsetHeight;
+    pin.style.transform=`translate3d(0,${clamp(sy-top,0,h-innerHeight)}px,0)`;
+  });
+}
+
+function updateHero(sy) {
+  const sec=document.getElementById('s-hero');
+  const h=sec.offsetHeight;
+  const sr=clamp(sy/h,0,1);
+  const wT=clamp((sr-.70)/.30,0,1);
+  document.getElementById('hero-ww').style.opacity = eIO(wT);
+  document.getElementById('hero-os').style.opacity = eOut(clamp((wT-.35)/.65,0,1));
+  document.getElementById('hero-btm').style.opacity= clamp(1-(sr-.38)/.12,0,1);
+  updatePatternOpacity(sy);
+}
+
+function updateAdapts(sy) {
+  const sec = document.getElementById('s-adapts');
+  const inner = document.getElementById('adapts-inner');
+  if (!sec || !inner) return;
+  const secTop = sec.offsetTop;
+  const scrollable = sec.offsetHeight - innerHeight; // 300vh of travel
+  const progress = clamp(sy - secTop, 0, scrollable);
+  const contentOverflow = inner.scrollHeight - innerHeight;
+  const translateY = -clamp(progress / scrollable * contentOverflow, 0, contentOverflow);
+  inner.style.transform = `translate3d(0,${translateY}px,0)`;
+}
+
+function updateChat(sy) {
+  const sec=document.getElementById('s-chat');
+  const prog=clamp((sy-sec.offsetTop)/(sec.offsetHeight-innerHeight),0,1);
+  ['cm1','cm2','cm3','cm4'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('show',prog>i*.20+.05);
+  });
+}
+
+function updateTesti(sy) {
+  const sec=document.getElementById('s-testi');
+  const prog=clamp((sy-sec.offsetTop)/(sec.offsetHeight-innerHeight),0,1);
+  document.getElementById('tq').classList.toggle('vis',prog>.05);
+  document.getElementById('tw').classList.toggle('vis',prog>.15);
+}
+
+const lightSecs=['s-osvid','s-adapts'];
+const whiteSecs=['s-chat','s-testi','s-news','s-cta'];
+function updateNav(sy) {
+  const nav = document.getElementById('nav');
+
+  let isWhite = false, isLight = false;
+
+  whiteSecs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && sy >= el.offsetTop && sy < el.offsetTop + el.offsetHeight) isWhite = true;
+  });
+
+  lightSecs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && sy >= el.offsetTop && sy < el.offsetTop + el.offsetHeight) isLight = true;
+  });
+
+  // White sections take priority, then light, then default dark
+  if (isWhite) {
+    nav.classList.remove('dark');
+    nav.classList.add('white');
+  } else if (isLight) {
+    nav.classList.remove('white');
+    nav.classList.add('dark');
+  } else {
+    nav.classList.remove('white');
+    nav.classList.remove('dark');
+  }
+}
+
+const SECTION_IDS=['s-hero','s-osvid','s-adapts','s-chat','s-testi','s-news','s-cta'];
+let lastSec=-1;
+function updateBabylonCam(sy) {
+  const heroEl = document.getElementById('s-hero');
+  if (heroEl) {
+    const heroScrollable = heroEl.offsetHeight - innerHeight;
+    heroAnimProgress = clamp(sy / heroScrollable, 0, 1);
+  }
+
+  let activeSec=0;
+  SECTION_IDS.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el&&sy>=el.offsetTop-innerHeight*.35) activeSec=i;
+  });
+  if(activeSec!==lastSec){ lastSec=activeSec; if(window._setCam) window._setCam(activeSec); }
+
+  // Smoothly fade canvas out over a 200px window after the hero ends
+  if (heroEl) {
+    const heroEnd = heroEl.offsetHeight - innerHeight;
+    const fadeZone = 300;
+    const fadeT = clamp((sy - heroEnd) / fadeZone, 0, 1);
+    canvas.style.opacity = (1 - fadeT).toFixed(3);
+  }
+
+  scrollProgress=clamp(sy/maxScroll,0,1);
+}
+
+window.addEventListener('resize',()=>{ buildBodyHeight(); engine.resize(); buildPetPattern(); });
+requestAnimationFrame(()=>requestAnimationFrame(buildBodyHeight));
+
+(function loop(){
+  requestAnimationFrame(loop);
+  sC=lerp(sC,sT,EASE);
+  const sy=sC;
+  checkSectionEntry(sy);
+  document.getElementById('rail').style.transform=`translate3d(0,${-sy}px,0)`;
+  updatePins(sy);
+  updateHero(sy);
+  updateAdapts(sy);
+  updateChat(sy);
+  updateTesti(sy);
+  updateNav(sy);
+  updateBabylonCam(sy);
+})();
+
+(async()=>{
+  const scene = await createScene();
+  engine.runRenderLoop(()=>{ if(engine.scenes[0]) engine.scenes[0].render(); });
+  window.addEventListener('resize',()=>engine.resize());
+})();
+</script>
 </body>
 </html>

@@ -22,6 +22,51 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // ========================
+// LOADING OVERLAY
+// ========================
+
+function showLoading(message = 'Loading...') {
+    let overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 11, 11, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+        `;
+        overlay.innerHTML = `
+            <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#3a9090;border-radius:50%;animation:spin .8s linear infinite;"></div>
+            <p id="loadingMessage" style="font-size:15px;opacity:.7;">${message}</p>
+        `;
+        const spinStyle = document.createElement('style');
+        spinStyle.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+        document.head.appendChild(spinStyle);
+        document.body.appendChild(overlay);
+    } else {
+        const msg = overlay.querySelector('#loadingMessage');
+        if (msg) msg.textContent = message;
+        overlay.style.display = 'flex';
+    }
+}
+
+function hideLoading(delay = 0) {
+    setTimeout(() => {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }, delay);
+}
+
+// ========================
 // AUTH MODAL FUNCTIONS
 // ========================
 
@@ -30,10 +75,9 @@ function openAuthModal(viewType) {
     const loginView = document.getElementById('loginView');
     const signupView = document.getElementById('signupView');
     
-    modal.style.display = 'block';
+    modal.classList.add('open');
     document.body.style.overflow = 'hidden';
     
-    // Set the correct view
     if (viewType === 'login') {
         loginView.classList.add('active');
         signupView.classList.remove('active');
@@ -45,7 +89,7 @@ function openAuthModal(viewType) {
 
 function closeAuthModal() {
     const modal = document.getElementById('authModal');
-    modal.style.display = 'none';
+    modal.classList.remove('open');
     document.body.style.overflow = 'auto';
 }
 
@@ -80,7 +124,6 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
-    // Show loading
     showLoading('Logging in...');
 
     try {
@@ -89,7 +132,6 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
         console.log('User logged in:', user);
         showNotification(`Welcome back, ${user.displayName || user.email}!`, 'success');
         closeAuthModal();
-        // Keep loading while redirecting
         showLoading('Loading your homepage...');
         setTimeout(() => {
             window.location.href = 'homepage.html';
@@ -97,7 +139,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     } catch (error) {
         console.error('Login error:', error);
         showNotification(`Error: ${error.message}`, 'error');
-        hideLoading(); // Hide loading on error
+        hideLoading();
     }
 });
 
@@ -109,19 +151,16 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
 
-    // Show loading
     showLoading('Creating your account...');
 
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
         
-        // Update user profile with name
         await user.updateProfile({
             displayName: name
         });
 
-        // Store additional user data in Firestore
         await db.collection('users').doc(user.uid).set({
             name: name,
             email: email,
@@ -131,7 +170,6 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
         console.log('User registered:', user);
         showNotification(`Welcome, ${name}!`, 'success');
         closeAuthModal();
-        // Keep loading while redirecting
         showLoading('Setting up your homepage...');
         setTimeout(() => {
             window.location.href = 'homepage.html';
@@ -139,13 +177,12 @@ document.getElementById('signupForm')?.addEventListener('submit', async (e) => {
     } catch (error) {
         console.error('Signup error:', error);
         showNotification(`Error: ${error.message}`, 'error');
-        hideLoading(); // Hide loading on error
+        hideLoading();
     }
 });
 
 // Google Authentication
 async function handleGoogleAuth(type) {
-    // Show loading
     showLoading('Signing in with Google...');
     
     try {
@@ -153,7 +190,6 @@ async function handleGoogleAuth(type) {
         const result = await auth.signInWithPopup(provider);
         const user = result.user;
         
-        // If this is a new user, create their profile
         if (result.additionalUserInfo.isNewUser) {
             await db.collection('users').doc(user.uid).set({
                 name: user.displayName,
@@ -166,7 +202,6 @@ async function handleGoogleAuth(type) {
         console.log('Google auth successful:', user);
         showNotification(`Welcome, ${user.displayName}!`, 'success');
         closeAuthModal();
-        // Keep loading while redirecting
         showLoading('Loading your homepage...');
         setTimeout(() => {
             window.location.href = 'homepage.html';
@@ -174,7 +209,7 @@ async function handleGoogleAuth(type) {
     } catch (error) {
         console.error('Google auth error:', error);
         showNotification(`Error: ${error.message}`, 'error');
-        hideLoading(); // Hide loading on error
+        hideLoading();
     }
 }
 
@@ -256,28 +291,15 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Add notification animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideInRight {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
     @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
     }
 `;
 document.head.appendChild(style);
@@ -296,156 +318,5 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 block: 'start'
             });
         }
-    });
-});
-
-// ========================
-// 3D PET PREVIEW SCENES (BUBBLE SYSTEM)
-// ========================
-
-const PET_MODELS = {
-    dog: "idle02.glb",
-    cat: "Leopard_Hybrid_A2.glb",
-    bird: "Parrot_A4.glb"
-};
-
-let indexBubbleEngines = {};
-let indexBubbleScenes = {};
-let indexBubbleModels = {};
-
-function createIndexBubblePreview(petType, onLoadCallback) {
-    const canvasId = `indexBubbleCanvas_${petType}`;
-    const canvas = document.getElementById(canvasId);
-    
-    if (!canvas) {
-        console.error(`Canvas not found: ${canvasId}`);
-        if (onLoadCallback) onLoadCallback();
-        return;
-    }
-
-    // Create engine and scene
-    const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
-    indexBubbleEngines[petType] = engine;
-    
-    const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.29, 0.65, 0.65, 1); // Teal background (#49a6a6)
-    indexBubbleScenes[petType] = scene;
-    
-    // Camera setup - same as home.html bubbles
-    const camera = new BABYLON.ArcRotateCamera(
-        "camera", 
-        -Math.PI / 2, 
-        Math.PI / 2.5, 
-        4, 
-        BABYLON.Vector3.Zero(), 
-        scene
-    );
-    camera.lowerRadiusLimit = 3;
-    camera.upperRadiusLimit = 6;
-    
-    // Lighting - same as home.html
-    const light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-    light1.intensity = 0.7;
-    
-    const light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -2, -1), scene);
-    light2.position = new BABYLON.Vector3(5, 10, 5);
-    light2.intensity = 0.5;
-    
-    // Load model from local directory
-    const modelFile = PET_MODELS[petType];
-    BABYLON.SceneLoader.ImportMesh(
-        "",
-        "./",
-        modelFile,
-        scene,
-        (meshes) => {
-            const model = meshes[0];
-            indexBubbleModels[petType] = model;
-            
-            // Fix materials - same as home.html
-            model.getChildMeshes().forEach(mesh => {
-                if (mesh.material) {
-                    const mat = mesh.material;
-                    if (mat.getClassName() === "PBRMaterial") {
-                        if (mat.albedoTexture && mat.albedoTexture.hasAlpha) {
-                            mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;
-                            mat.alphaCutOff = 0.5;
-                            mat.useAlphaFromAlbedoTexture = true;
-                        } else {
-                            mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
-                        }
-                        if (!mat.metallicTexture) {
-                            mat.metallic = 0;
-                            mat.roughness = 1.0;
-                        }
-                        mat.backFaceCulling = true;
-                    }
-                }
-            });
-            
-            // Position model - same as home.html
-            const bounds = model.getHierarchyBoundingVectors();
-            const size = bounds.max.subtract(bounds.min);
-            const scale = 2.0 / Math.max(size.x, size.y, size.z);
-            model.scaling.setAll(scale);
-            model.computeWorldMatrix(true);
-            
-            const newBounds = model.getHierarchyBoundingVectors();
-            const center = BABYLON.Vector3.Center(newBounds.min, newBounds.max);
-            
-            // Position lower
-            model.position = new BABYLON.Vector3(-center.x, -newBounds.min.y - 0.5, -center.z);
-            
-            // Auto-rotate - same as home.html
-            scene.registerBeforeRender(() => {
-                model.rotation.y += 0.005;
-            });
-            
-            // Notify that this model is loaded
-            if (onLoadCallback) onLoadCallback();
-        },
-        null,
-        (scene, message, exception) => {
-            console.error(`Error loading ${petType} model:`, message);
-            // Even if error, call callback to prevent infinite loading
-            if (onLoadCallback) onLoadCallback();
-        }
-    );
-    
-    // Render loop
-    engine.runRenderLoop(() => scene.render());
-}
-
-// Initialize 3D previews when page loads
-window.addEventListener('load', () => {
-    // Show loading overlay
-    showLoading('Loading 3D models...');
-    
-    // Wait for DOM to be ready
-    setTimeout(() => {
-        let modelsLoaded = 0;
-        const totalModels = 3;
-        
-        // Track when models finish loading
-        const checkAllLoaded = () => {
-            modelsLoaded++;
-            if (modelsLoaded === totalModels) {
-                // All models loaded, hide loading after 500ms
-                hideLoading(500);
-            }
-        };
-        
-        // Pass callback to track loading
-        createIndexBubblePreview('dog', checkAllLoaded);
-        createIndexBubblePreview('cat', checkAllLoaded);
-        createIndexBubblePreview('bird', checkAllLoaded);
-    }, 500);
-});
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    Object.values(indexBubbleEngines).forEach(engine => {
-        engine.stopRenderLoop();
-        engine.dispose();
     });
 });

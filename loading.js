@@ -157,14 +157,18 @@
      * On mobile this is a no-op.
      * @param {number} delay - Optional delay in ms before hiding (default: 0)
      */
-    window.hideLoading = function(delay = 0) {
+window.hideLoading = function(delay = 0) {
         if (isMobile) return;   // ← bypass on mobile
         const overlay = document.getElementById('loadingOverlay');
-        if (!overlay) return;
+        const removeAll = () => {
+            if (overlay) overlay.classList.remove('active');
+            const init = document.getElementById('initialLoader');
+            if (init) init.remove();
+        };
         if (delay > 0) {
-            setTimeout(() => overlay.classList.remove('active'), delay);
+            setTimeout(removeAll, delay);
         } else {
-            overlay.classList.remove('active');
+            removeAll();
         }
     };
 
