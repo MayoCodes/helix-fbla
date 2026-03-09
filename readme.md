@@ -82,7 +82,6 @@ helix/
 | Babylon.js + Loaders | Latest | 3D pet rendering and GLB model loading |
 | Three.js + GLTFLoader + OrbitControls | r128 / 0.128.0 | 3D shop showcase with rotation |
 | Chart.js | 4.4.1 | Doughnut and radar charts on the dashboard |
-| Anthropic Claude API | claude-sonnet-4-20250514 | AI tasks and pet chat dialogue |
 | Google Fonts | N/A | Typography across all pages |
 
 > All UI layout, design, and code was written from scratch by the competing team. No templates or starter kits were used.
@@ -97,7 +96,6 @@ helix/
 | Babylon.js | Microsoft / Babylon.js contributors | Apache 2.0 | 3D pet rendering |
 | Three.js | Mr.doob and contributors | MIT | 3D shop showcase |
 | Chart.js | Chart.js contributors | MIT | Analytics charts |
-| Anthropic Claude API | Anthropic PBC | Commercial API ToS | AI features |
 | Google Fonts | Google LLC | SIL Open Font License | Typography |
 
 **FBLA Topic Partnership:** This topic was created by FBLA in partnership with [code.org](https://code.org).
