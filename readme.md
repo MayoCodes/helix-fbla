@@ -44,7 +44,7 @@ Pets earn XP from care actions and tasks. Leveling up gives 50 bonus coins, rest
 <details>
 <summary><strong>AI-Powered Features</strong></summary>
 
-Helix uses the Anthropic Claude API for an **AI Task Generator** that creates personalized daily tasks based on the pet's current stats, and an **AI Chat Panel** where the pet responds in character based on its live mood.
+Helix uses the Anthropic Claude API for an **AI Task Generator** that creates personalized daily tasks based on the pet's current stats, and an **AI Chat Panel** where the pet responds in character based on its live mood. Additionally, Helix integrates the **Cerebras API** running `llama-4-scout-17b-16e-instruct` for fast, low-latency AI inference on select features.
 
 </details>
 
@@ -83,6 +83,7 @@ helix/
 | Three.js + GLTFLoader + OrbitControls | r128 / 0.128.0 | 3D shop showcase with rotation |
 | Chart.js | 4.4.1 | Doughnut and radar charts on the dashboard |
 | Google Fonts | N/A | Typography across all pages |
+| Cerebras API (`llama-4-scout-17b-16e-instruct`) | Latest | Fast AI inference for select features |
 
 > All UI layout, design, and code was written from scratch by the competing team. No templates or starter kits were used.
 
@@ -97,6 +98,7 @@ helix/
 | Three.js | Mr.doob and contributors | MIT | 3D shop showcase |
 | Chart.js | Chart.js contributors | MIT | Analytics charts |
 | Google Fonts | Google LLC | SIL Open Font License | Typography |
+| Cerebras API | Cerebras Systems | Proprietary (API) | Fast AI inference (`llama-4-scout-17b-16e-instruct`) |
 
 **FBLA Topic Partnership:** This topic was created by FBLA in partnership with [code.org](https://code.org).
 
