@@ -1200,11 +1200,15 @@ async function loadUserData(uid) {
     const userDoc = await getDoc(doc(db, 'users', uid));
     if (!userDoc.exists()) { showEmpty(); return; }
     const data = userDoc.data();
+    // Store top-level user fields (coins, etc.) but NOT costTracking —
+    // that lives per-pet in the pets subcollection.
     userData = data.userData || {};
     currentPetId = data.currentPetId;
+
     const petsSnap = await getDocs(collection(db, 'users', uid, 'pets'));
     allPets = {};
     petsSnap.forEach(d => { allPets[d.id] = d.data(); });
+
     if (!currentPetId || !allPets[currentPetId]) {
       currentPetId = Object.keys(allPets)[0] || null;
     }
@@ -1228,13 +1232,23 @@ function buildPetSelector() {
   });
 }
 
-window.switchPet = (id) => { currentPetId = id; renderAll(); };
+// FIX #2 — switchPet now updates currentPetId then re-renders with that pet's data
+window.switchPet = (id) => {
+  currentPetId = id;
+  renderAll();
+};
 
 function renderAll() {
   if (!currentPetId || !allPets[currentPetId]) return;
   const pet = allPets[currentPetId];
-  const ct = userData?.costTracking || {};
-  renderOverview(pet, ct);
+
+  // Each pet carries its own costTracking; fall back to userData-level if absent
+  const ct = pet.costTracking || userData?.costTracking || {};
+
+  // Coins can be per-pet or global
+  const coins = pet.coins ?? userData?.coins ?? 0;
+
+  renderOverview(pet, ct, coins);
   renderFinancial(ct);
   renderHealth(pet, ct);
   renderAI(pet, ct);
@@ -1283,46 +1297,78 @@ function catIcon(cat) {
   return icons[cat] || icons.other;
 }
 
-function renderOverview(pet, ct) {
+// FIX #2 — added coins param so it reads from the correct pet
+function renderOverview(pet, ct, coins) {
   const totalSpent = ct.totalSpent || 0;
   const budgetRemaining = ct.budgetRemaining ?? (ct.monthlyBudget || 200) - totalSpent;
-  const coins = userData?.coins || 0;
   const txList = thisMonthTx(ct.transactions);
+
   document.getElementById('stat-total-spent').textContent = totalSpent.toFixed(2);
   document.getElementById('stat-budget-left').textContent = budgetRemaining.toFixed(2);
   document.getElementById('stat-happiness').textContent = Math.round(pet.happiness ?? 0);
   document.getElementById('stat-coins').textContent = coins;
+
   document.getElementById('welcome-pet-name').textContent = pet.name || 'Your Pet';
   document.getElementById('welcome-desc').innerHTML = `Your ${petTypeLabel(pet.type)} <strong>${pet.name}</strong> is ${statLabel(pet.health ?? 100).toLowerCase()} — health at <span style="color:var(--primary)">${Math.round(pet.health ?? 100)}%</span> and happiness at <span style="color:var(--primary)">${Math.round(pet.happiness ?? 100)}%</span>. Level ${pet.level || 1} with ${pet.experience || 0} XP.`;
+
   const budgetPct = Math.round((totalSpent / (ct.monthlyBudget || 200)) * 100);
   const insights = generateInsights(pet, ct, budgetPct);
   document.getElementById('insight-1').textContent = insights[0] || '';
   document.getElementById('insight-2').textContent = insights[1] || '';
   document.getElementById('insight-3').textContent = insights[2] || '';
+
   const foodSpent = ct.foodSpent || 0;
-  const vetSpent = ct.vetSpent || 0;
-  const toySpent = ct.toySpent || 0;
-  const otherSpent = totalSpent - foodSpent - vetSpent - toySpent;
+  const vetSpent  = ct.vetSpent  || 0;
+  const toySpent  = ct.toySpent  || 0;
+
   document.getElementById('mini-food').textContent = '$' + foodSpent.toFixed(0);
-  document.getElementById('mini-vet').textContent = '$' + vetSpent.toFixed(0);
-  document.getElementById('mini-toy').textContent = '$' + toySpent.toFixed(0);
+  document.getElementById('mini-vet').textContent  = '$' + vetSpent.toFixed(0);
+  document.getElementById('mini-toy').textContent  = '$' + toySpent.toFixed(0);
+
   destroyChart('spending-cat');
   const scCtx = document.getElementById('chart-spending-cat').getContext('2d');
   chartInstances['spending-cat'] = new Chart(scCtx, {
     type: 'bar',
-    data: { labels: ['Food', 'Vet', 'Toys', 'Other'], datasets: [{ data: [foodSpent, vetSpent, toySpent, Math.max(0, otherSpent)], backgroundColor: ['rgba(79,209,197,0.85)','rgba(252,129,129,0.85)','rgba(159,122,234,0.85)','rgba(99,179,237,0.85)'], borderRadius: 6, borderSkipped: false, barPercentage: 0.5 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } } } }
+    data: {
+      labels: ['Food', 'Vet', 'Toys'],
+      datasets: [{
+        data: [foodSpent, vetSpent, toySpent],
+        backgroundColor: ['rgba(79,209,197,0.85)','rgba(252,129,129,0.85)','rgba(159,122,234,0.85)'],
+        borderRadius: 6, borderSkipped: false, barPercentage: 0.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, border: { display: false } },
+        y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } }
+      }
+    }
   });
+
   destroyChart('stats-radar');
   const srCtx = document.getElementById('chart-stats-radar').getContext('2d');
   chartInstances['stats-radar'] = new Chart(srCtx, {
     type: 'radar',
-    data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: 'rgba(79,209,197,0.2)', borderColor: '#4FD1C5', borderWidth: 2, pointBackgroundColor: '#4FD1C5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4 }] },
-    options: { responsive: true, maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { display: true, color: 'rgba(0,0,0,0.05)' }, pointLabels: { font: { size: 11, weight: 700 }, color: '#718096' } } }, plugins: { legend: { display: false } } }
+    data: {
+      labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'],
+      datasets: [{
+        data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0],
+        backgroundColor: 'rgba(79,209,197,0.2)', borderColor: '#4FD1C5', borderWidth: 2,
+        pointBackgroundColor: '#4FD1C5', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { display: true, color: 'rgba(0,0,0,0.05)' }, pointLabels: { font: { size: 11, weight: 700 }, color: '#718096' } } },
+      plugins: { legend: { display: false } }
+    }
   });
+
   const tbody = document.getElementById('tx-table-body');
   const budget = ct.monthlyBudget || 200;
   document.getElementById('tx-count').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> ${txList.length} this month`;
+
   if (txList.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No transactions yet this month</td></tr>';
   } else {
@@ -1334,115 +1380,341 @@ function renderOverview(pet, ct) {
       return `<tr><td><div class="expense-category"><div class="expense-category-icon" style="background:${style.bg};color:${style.color}">${catIcon(cat)}</div>${cat.charAt(0).toUpperCase() + cat.slice(1)}</div></td><td>${tx.item || '—'}</td><td style="font-weight:800">$${(tx.amount||0).toFixed(2)}</td><td><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:var(--primary)"></div></div></td></tr>`;
     }).join('');
   }
+
   const tasks = pet.tasksCompleted || {};
   const taskKeys = Object.keys(tasks).filter(k => tasks[k]);
   const taskColors = ['var(--primary)','var(--orange)','var(--purple)','var(--green)','var(--red)','var(--blue)'];
-  const taskIcons = [`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 9a2 2 0 1 0 4 0"/><path d="M13 9a2 2 0 1 0 4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>`];
+  const taskIcons = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 9a2 2 0 1 0 4 0"/><path d="M13 9a2 2 0 1 0 4 0"/><path d="M3 17c.3-2.5 1.5-4 3.7-4.5"/><path d="M21 17c-.3-2.5-1.5-4-3.7-4.5"/><path d="M9 14.5C9.5 16 11 17 12 17s2.5-1 3-2.5"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>`
+  ];
+
   document.getElementById('tasks-subtitle').textContent = taskKeys.length + ' tasks completed today';
   const tasksList = document.getElementById('tasks-list');
   if (taskKeys.length === 0) {
     tasksList.innerHTML = '<li class="activity-item"><div class="activity-dot" style="background:var(--border);color:var(--text-secondary)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="activity-info"><h4>No tasks completed yet today</h4><p>Head to the app to care for your pet</p></div></li>';
   } else {
-    tasksList.innerHTML = taskKeys.map((k, i) => `<li class="activity-item"><div class="activity-dot" style="background:${taskColors[i % taskColors.length]};color:white">${taskIcons[i % taskIcons.length]}</div><div class="activity-info"><h4>${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h4><p>Completed today</p></div></li>`).join('');
+    tasksList.innerHTML = taskKeys.map((k, i) =>
+      `<li class="activity-item"><div class="activity-dot" style="background:${taskColors[i % taskColors.length]};color:white">${taskIcons[i % taskIcons.length]}</div><div class="activity-info"><h4>${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</h4><p>Completed today</p></div></li>`
+    ).join('');
   }
 }
 
 function renderFinancial(ct) {
-  const budget = ct.monthlyBudget || 200;
-  const totalSpent = ct.totalSpent || 0;
-  const foodSpent = ct.foodSpent || 0;
-  const vetSpent = ct.vetSpent || 0;
-  const toySpent = ct.toySpent || 0;
-  const remaining = ct.budgetRemaining ?? (budget - totalSpent);
-  const otherSpent = Math.max(0, totalSpent - foodSpent - vetSpent - toySpent);
-  const pct = Math.min(100, Math.round((totalSpent / budget) * 100));
-  const txList = thisMonthTx(ct.transactions);
+  const budget     = ct.monthlyBudget || 200;
+  const totalSpent = ct.totalSpent   || 0;
+  const foodSpent  = ct.foodSpent    || 0;
+  const vetSpent   = ct.vetSpent     || 0;
+  const toySpent   = ct.toySpent     || 0;
+  const remaining  = ct.budgetRemaining ?? (budget - totalSpent);
+  const pct        = Math.min(100, Math.round((totalSpent / budget) * 100));
+  const txList     = thisMonthTx(ct.transactions);
+
   document.getElementById('fin-budget').textContent = budget.toFixed(2);
-  document.getElementById('fin-food').textContent = foodSpent.toFixed(2);
-  document.getElementById('fin-vet').textContent = vetSpent.toFixed(2);
-  document.getElementById('fin-toy').textContent = toySpent.toFixed(2);
+  document.getElementById('fin-food').textContent   = foodSpent.toFixed(2);
+  document.getElementById('fin-vet').textContent    = vetSpent.toFixed(2);
+  document.getElementById('fin-toy').textContent    = toySpent.toFixed(2);
   document.getElementById('budget-subtitle').innerHTML = `$${totalSpent.toFixed(2)} of $${budget.toFixed(2)} spent (<span class="highlight">${pct}%</span>)`;
   document.getElementById('budget-usage-label').textContent = `$${totalSpent.toFixed(2)} of $${budget.toFixed(2)} spent`;
   document.getElementById('budget-pct').textContent = pct + '%';
   document.getElementById('budget-bar').style.width = pct + '%';
-  document.getElementById('budget-bar').style.background = pct > 90 ? 'linear-gradient(90deg,var(--orange),var(--red))' : 'linear-gradient(90deg,var(--primary),var(--green))';
+  document.getElementById('budget-bar').style.background = pct > 90
+    ? 'linear-gradient(90deg,var(--orange),var(--red))'
+    : 'linear-gradient(90deg,var(--primary),var(--green))';
+
+  // FIX #1 — "Other" removed; only Food, Vet, Toys + Remaining shown
   destroyChart('budget-donut');
   const bdCtx = document.getElementById('chart-budget-donut').getContext('2d');
-  chartInstances['budget-donut'] = new Chart(bdCtx, { type: 'doughnut', data: { labels: ['Food', 'Vet & Health', 'Toys', 'Other', 'Remaining'], datasets: [{ data: [foodSpent, vetSpent, toySpent, otherSpent, Math.max(0, remaining)], backgroundColor: ['#4FD1C5','#FC8181','#9F7AEA','#63B3ED','#EDF2F7'], borderWidth: 0, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } } });
+  chartInstances['budget-donut'] = new Chart(bdCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Food & Supplies', 'Vet & Health', 'Toys & Activities', 'Remaining'],
+      datasets: [{
+        data: [foodSpent, vetSpent, toySpent, Math.max(0, remaining)],
+        backgroundColor: ['#4FD1C5', '#FC8181', '#9F7AEA', '#EDF2F7'],
+        borderWidth: 0, hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: {
+          display: true, position: 'bottom',
+          labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } }
+        }
+      }
+    }
+  });
+
   destroyChart('tx-timeline');
   const tlCtx = document.getElementById('chart-tx-timeline').getContext('2d');
   const sorted = [...txList].sort((a,b) => a.date - b.date);
   let running = 0;
-  const tlData = sorted.map(tx => { running += tx.amount || 0; return { x: new Date(tx.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}), y: parseFloat(running.toFixed(2)) }; });
+  const tlData = sorted.map(tx => {
+    running += tx.amount || 0;
+    return { x: new Date(tx.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}), y: parseFloat(running.toFixed(2)) };
+  });
   if (tlData.length === 0) tlData.push({ x: 'No data', y: 0 });
-  chartInstances['tx-timeline'] = new Chart(tlCtx, { type: 'line', data: { labels: tlData.map(d => d.x), datasets: [{ label: 'Spending', data: tlData.map(d => d.y), borderColor: '#4FD1C5', backgroundColor: (ctx) => { const g = ctx.chart.ctx.createLinearGradient(0,0,0,260); g.addColorStop(0,'rgba(79,209,197,0.3)'); g.addColorStop(1,'rgba(79,209,197,0)'); return g; }, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#4FD1C5', pointBorderColor: 'white', pointBorderWidth: 2, borderWidth: 3 }, { data: tlData.map(() => budget), borderColor: '#FC8181', borderDash: [4,4], backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, label: 'Budget' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 10, weight: 600 } } } }, scales: { x: { ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#A0AEC0', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } } } } });
+
+  chartInstances['tx-timeline'] = new Chart(tlCtx, {
+    type: 'line',
+    data: {
+      labels: tlData.map(d => d.x),
+      datasets: [
+        {
+          label: 'Spending',
+          data: tlData.map(d => d.y),
+          borderColor: '#4FD1C5',
+          backgroundColor: (ctx) => {
+            const g = ctx.chart.ctx.createLinearGradient(0,0,0,280);
+            g.addColorStop(0,'rgba(79,209,197,0.3)');
+            g.addColorStop(1,'rgba(79,209,197,0)');
+            return g;
+          },
+          fill: true, tension: 0.4, pointRadius: 4,
+          pointBackgroundColor: '#4FD1C5', pointBorderColor: 'white', pointBorderWidth: 2, borderWidth: 3
+        },
+        {
+          data: tlData.map(() => budget),
+          borderColor: '#FC8181', borderDash: [4,4],
+          backgroundColor: 'transparent', borderWidth: 1.5,
+          pointRadius: 0, label: 'Budget Ceiling'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 10, weight: 600 } } }
+      },
+      scales: {
+        x: { ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
+        y: { ticks: { color: '#A0AEC0', font: { size: 10 }, callback: v => '$'+v }, border: { display: false } }
+      }
+    }
+  });
 }
 
 function renderHealth(pet, ct) {
-  setGauge('gauge-health-circle', 'gauge-health-val', 'gauge-health-label', pet.health ?? 100, '#48BB78');
+  setGauge('gauge-health-circle',    'gauge-health-val',    'gauge-health-label',    pet.health    ?? 100, '#48BB78');
   setGauge('gauge-happiness-circle', 'gauge-happiness-val', 'gauge-happiness-label', pet.happiness ?? 100, '#F6AD55');
-  setGauge('gauge-fullness-circle', 'gauge-fullness-val', 'gauge-fullness-label', pet.fullness ?? 100, '#4FD1C5');
-  setGauge('gauge-energy-circle', 'gauge-energy-val', 'gauge-energy-label', pet.energy ?? 100, '#9F7AEA');
-  setGauge('gauge-bond-circle', 'gauge-bond-val', 'gauge-bond-label', pet.bond ?? 0, '#FC8181');
+  setGauge('gauge-fullness-circle',  'gauge-fullness-val',  'gauge-fullness-label',  pet.fullness  ?? 100, '#4FD1C5');
+  setGauge('gauge-energy-circle',    'gauge-energy-val',    'gauge-energy-label',    pet.energy    ?? 100, '#9F7AEA');
+  setGauge('gauge-bond-circle',      'gauge-bond-val',      'gauge-bond-label',      pet.bond      ?? 0,   '#FC8181');
+
   const tasks = pet.tasksCompleted || {};
   const tasksDone = Object.values(tasks).filter(Boolean).length;
-  document.getElementById('health-streak').textContent = tasksDone;
-  document.getElementById('health-level').textContent = 'Level ' + (pet.level || 1);
+  document.getElementById('health-streak').textContent  = tasksDone;
+  document.getElementById('health-level').textContent   = 'Level ' + (pet.level || 1);
   document.getElementById('health-xp-label').textContent = `${pet.experience || 0} / ${pet.experienceToNextLevel || 100} XP`;
-  document.getElementById('health-days').textContent = daysSince(pet.adoptionDate);
+  document.getElementById('health-days').textContent    = daysSince(pet.adoptionDate);
+
   destroyChart('stats-bar');
   const sbCtx = document.getElementById('chart-stats-bar').getContext('2d');
-  chartInstances['stats-bar'] = new Chart(sbCtx, { type: 'bar', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderRadius: 8, borderSkipped: false, barPercentage: 0.6 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#718096', font: { size: 11, weight: 700 } }, border: { display: false } } } } });
+  chartInstances['stats-bar'] = new Chart(sbCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'],
+      datasets: [{
+        data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0],
+        backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'],
+        borderRadius: 8, borderSkipped: false, barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      scales: {
+        x: { min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
+        y: { ticks: { color: '#718096', font: { size: 11, weight: 700 } }, border: { display: false } }
+      }
+    }
+  });
+
   const txList = thisMonthTx(ct.transactions);
   const scatterData = txList.map(tx => ({ x: tx.amount || 0, y: pet.happiness ?? 0 }));
   if (scatterData.length === 0) scatterData.push({ x: 0, y: pet.happiness ?? 0 });
+
   destroyChart('spending-vs-happiness');
   const svhCtx = document.getElementById('chart-spending-vs-happiness').getContext('2d');
-  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, { type: 'scatter', data: { datasets: [{ data: scatterData, backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5', pointRadius: 7, pointHoverRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } } } } });
+  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        data: scatterData,
+        backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5',
+        pointRadius: 7, pointHoverRadius: 10
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
+        y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }
+      }
+    }
+  });
 }
 
 async function renderAI(pet, ct) {
-  const totalSpent = ct.totalSpent || 0;
-  const budget = ct.monthlyBudget || 200;
-  const budgetPct = Math.round((totalSpent / budget) * 100);
-  const txList = thisMonthTx(ct.transactions);
+  const totalSpent  = ct.totalSpent  || 0;
+  const budget      = ct.monthlyBudget || 200;
+  const budgetPct   = Math.round((totalSpent / budget) * 100);
+  const txList      = thisMonthTx(ct.transactions);
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
-  const dayOfMonth = new Date().getDate();
-  const projectedTotal = dayOfMonth > 0 ? (totalSpent / dayOfMonth) * daysInMonth : totalSpent;
+  const dayOfMonth  = new Date().getDate();
+  const projectedTotal     = dayOfMonth > 0 ? (totalSpent / dayOfMonth) * daysInMonth : totalSpent;
   const projectedRemaining = Math.max(0, budget - projectedTotal);
+
+  // FIX #3 — Spending Forecast: bar chart WITH a red dashed budget ceiling annotation
+  // We achieve the ceiling line via a Chart.js line dataset overlaid on the bar chart.
   destroyChart('ai-forecast');
   const afCtx = document.getElementById('chart-ai-forecast').getContext('2d');
-  chartInstances['ai-forecast'] = new Chart(afCtx, { type: 'bar', data: { labels: ['Spent So Far', 'Projected Additional', 'Remaining Budget'], datasets: [{ data: [totalSpent, Math.max(0, projectedTotal - totalSpent), projectedRemaining], backgroundColor: ['#4FD1C5', 'rgba(79,209,197,0.4)', '#EDF2F7'], borderRadius: 8, borderSkipped: false, barPercentage: 0.5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#A0AEC0', font: { size: 11 } }, border: { display: false } }, y: { ticks: { color: '#A0AEC0', font: { size: 11 }, callback: v => '$'+v }, border: { display: false } } } } });
-  document.getElementById('forecast-subtitle').innerHTML = projectedTotal <= budget ? `Projected to finish <span class="highlight">$${(budget - projectedTotal).toFixed(0)} under budget</span>` : `Projected to go <span style="color:var(--red);font-weight:700">$${(projectedTotal - budget).toFixed(0)} over budget</span>`;
+  chartInstances['ai-forecast'] = new Chart(afCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Spent So Far', 'Projected Additional', 'Remaining Budget'],
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Amount',
+          data: [totalSpent, Math.max(0, projectedTotal - totalSpent), projectedRemaining],
+          backgroundColor: ['#4FD1C5', 'rgba(79,209,197,0.4)', '#EDF2F7'],
+          borderRadius: 8, borderSkipped: false, barPercentage: 0.5,
+          order: 2
+        },
+        {
+          // Red dashed budget ceiling — rendered as a line across all bars
+          type: 'line',
+          label: 'Budget Ceiling ($' + budget.toFixed(0) + ')',
+          data: [budget, budget, budget],
+          borderColor: '#FC8181',
+          borderDash: [6, 4],
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true, position: 'bottom',
+          labels: {
+            padding: 12, usePointStyle: true, pointStyle: 'line',
+            font: { size: 11, weight: 600 },
+            filter: (item) => item.datasetIndex === 1  // Only show ceiling in legend
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#A0AEC0', font: { size: 11 } }, border: { display: false } },
+        y: {
+          ticks: { color: '#A0AEC0', font: { size: 11 }, callback: v => '$'+v },
+          border: { display: false },
+          // Make sure y-axis always goes high enough to show ceiling line clearly
+          suggestedMax: Math.max(budget * 1.15, projectedTotal * 1.1)
+        }
+      }
+    }
+  });
+
+  document.getElementById('forecast-subtitle').innerHTML = projectedTotal <= budget
+    ? `Projected to finish <span class="highlight">$${(budget - projectedTotal).toFixed(0)} under budget</span>`
+    : `Projected to go <span style="color:var(--red);font-weight:700">$${(projectedTotal - budget).toFixed(0)} over budget</span>`;
+
   destroyChart('ai-stats');
   const asCtx = document.getElementById('chart-ai-stats').getContext('2d');
-  chartInstances['ai-stats'] = new Chart(asCtx, { type: 'doughnut', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderWidth: 0, hoverOffset: 6 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { display: true, position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } } } } } });
+  chartInstances['ai-stats'] = new Chart(asCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'],
+      datasets: [{
+        data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0],
+        backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'],
+        borderWidth: 0, hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '50%',
+      plugins: {
+        legend: {
+          display: true, position: 'bottom',
+          labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: 600 } }
+        }
+      }
+    }
+  });
+
   await generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget);
 }
 
 async function generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget) {
-  const petData = { name: pet.name, type: petTypeLabel(pet.type), age: pet.age, health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0, experienceToNextLevel: pet.experienceToNextLevel||100, daysSinceAdoption: daysSince(pet.adoptionDate), tasksCompletedToday: Object.values(pet.tasksCompleted||{}).filter(Boolean).length, totalSpent: ct.totalSpent||0, budget, budgetPct, foodSpent: ct.foodSpent||0, vetSpent: ct.vetSpent||0, toySpent: ct.toySpent||0, transactionsThisMonth: txList.length, projectedMonthlyTotal: Math.round(projectedTotal) };
-  document.getElementById('ai-summary').textContent = 'Generating analysis...';
+  const petData = {
+    name: pet.name, type: petTypeLabel(pet.type), age: pet.age,
+    health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100),
+    fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100),
+    bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0,
+    experienceToNextLevel: pet.experienceToNextLevel||100,
+    daysSinceAdoption: daysSince(pet.adoptionDate),
+    tasksCompletedToday: Object.values(pet.tasksCompleted||{}).filter(Boolean).length,
+    totalSpent: ct.totalSpent||0, budget, budgetPct,
+    foodSpent: ct.foodSpent||0, vetSpent: ct.vetSpent||0, toySpent: ct.toySpent||0,
+    transactionsThisMonth: txList.length, projectedMonthlyTotal: Math.round(projectedTotal)
+  };
+
+  document.getElementById('ai-summary').textContent        = 'Generating analysis...';
   document.getElementById('ai-recommendations').textContent = 'Generating recommendations...';
-  document.getElementById('ai-alerts').textContent = 'Checking for alerts...';
+  document.getElementById('ai-alerts').textContent          = 'Checking for alerts...';
+
   try {
-    const res = await fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 1000, messages: [{ role: "system", content: `You are a pet care AI analyst. Given real pet data, return ONLY a JSON object (no markdown, no backticks) with these exact keys: {"summary": "2-3 sentence paragraph about the pet's overall condition and spending","recommendations": ["rec1", "rec2", "rec3", "rec4", "rec5"],"alerts": ["alert1", "alert2"],"insights": ["insight1", "insight2", "insight3"]} Be specific using the actual numbers provided. Be concise and actionable.` }, { role: "user", content: `Analyze this pet data: ${JSON.stringify(petData)}` }] }) });
+    const res = await fetch("/api/groq", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile", max_tokens: 1000,
+        messages: [
+          { role: "system", content: `You are a pet care AI analyst. Given real pet data, return ONLY a JSON object (no markdown, no backticks) with these exact keys: {"summary": "2-3 sentence paragraph about the pet's overall condition and spending","recommendations": ["rec1", "rec2", "rec3", "rec4", "rec5"],"alerts": ["alert1", "alert2"],"insights": ["insight1", "insight2", "insight3"]} Be specific using the actual numbers provided. Be concise and actionable.` },
+          { role: "user", content: `Analyze this pet data: ${JSON.stringify(petData)}` }
+        ]
+      })
+    });
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content || '{}';
     let parsed;
     try { parsed = JSON.parse(text.replace(/```json|```/g,'').trim()); } catch { parsed = null; }
     if (parsed) {
       document.getElementById('ai-summary').innerHTML = `<p>${parsed.summary || ''}</p>`;
-      document.getElementById('ai-recommendations').innerHTML = (parsed.recommendations||[]).map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
-      document.getElementById('ai-alerts').innerHTML = (parsed.alerts||[]).map(a => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>${a}</p>`).join('');
-      if (parsed.insights) { document.getElementById('insight-1').textContent = parsed.insights[0] || ''; document.getElementById('insight-2').textContent = parsed.insights[1] || ''; document.getElementById('insight-3').textContent = parsed.insights[2] || ''; }
+      document.getElementById('ai-recommendations').innerHTML = (parsed.recommendations||[]).map(r =>
+        `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`
+      ).join('');
+      document.getElementById('ai-alerts').innerHTML = (parsed.alerts||[]).map(a =>
+        `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>${a}</p>`
+      ).join('');
+      if (parsed.insights) {
+        document.getElementById('insight-1').textContent = parsed.insights[0] || '';
+        document.getElementById('insight-2').textContent = parsed.insights[1] || '';
+        document.getElementById('insight-3').textContent = parsed.insights[2] || '';
+      }
     } else { fallbackAIText(petData); }
   } catch(e) { fallbackAIText(petData); }
 }
 
 function fallbackAIText(d) {
   document.getElementById('ai-summary').innerHTML = `<p>${d.name} is at ${d.health}% health and ${d.happiness}% happiness. You've spent $${d.totalSpent.toFixed(2)} of your $${d.budget} budget (${d.budgetPct}%) this month across ${d.transactionsThisMonth} transactions.</p>`;
-  document.getElementById('ai-recommendations').innerHTML = [d.fullness < 60 ? `Feed ${d.name} soon — fullness is at ${d.fullness}%` : `${d.name}'s fullness looks good at ${d.fullness}%`, d.energy < 50 ? `Let ${d.name} rest — energy is low at ${d.energy}%` : `Keep up the activity — energy at ${d.energy}%`, d.bond < 50 ? `Spend more quality time to build the bond (currently ${d.bond}%)` : `Bond is growing well at ${d.bond}%`, d.budgetPct > 80 ? `Watch spending — ${d.budgetPct}% of budget used` : `Budget on track at ${d.budgetPct}% used`, `${d.name} is Level ${d.level} with ${d.experience}/${d.experienceToNextLevel} XP`].map(r => `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`).join('');
+  document.getElementById('ai-recommendations').innerHTML = [
+    d.fullness < 60 ? `Feed ${d.name} soon — fullness is at ${d.fullness}%` : `${d.name}'s fullness looks good at ${d.fullness}%`,
+    d.energy < 50   ? `Let ${d.name} rest — energy is low at ${d.energy}%`   : `Keep up the activity — energy at ${d.energy}%`,
+    d.bond < 50     ? `Spend more quality time to build the bond (currently ${d.bond}%)` : `Bond is growing well at ${d.bond}%`,
+    d.budgetPct > 80 ? `Watch spending — ${d.budgetPct}% of budget used` : `Budget on track at ${d.budgetPct}% used`,
+    `${d.name} is Level ${d.level} with ${d.experience}/${d.experienceToNextLevel} XP`
+  ].map(r =>
+    `<p style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" style="flex-shrink:0;margin-top:3px" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg>${r}</p>`
+  ).join('');
   document.getElementById('ai-alerts').innerHTML = `<p>No connection to AI — showing basic stats for ${d.name}.</p>`;
 }
 
@@ -1452,11 +1724,14 @@ function generateInsights(pet, ct, budgetPct) {
   if (budgetPct < 80) insights.push(`Spending is ${100-budgetPct}% under budget — $${budgetRemaining.toFixed(2)} remaining`);
   else if (budgetPct >= 100) insights.push(`Budget exceeded — $${Math.abs(budgetRemaining).toFixed(2)} over limit`);
   else insights.push(`${budgetPct}% of budget used — $${budgetRemaining.toFixed(2)} remaining`);
+
   if (pet.happiness < 70) insights.push(`${pet.name}'s happiness is low (${Math.round(pet.happiness)}%) — try more play sessions`);
   else insights.push(`${pet.name} is happy at ${Math.round(pet.happiness ?? 100)}% happiness`);
+
   if (pet.fullness < 50) insights.push(`${pet.name} is getting hungry — fullness at ${Math.round(pet.fullness)}%`);
   else if (pet.energy < 50) insights.push(`${pet.name} is low energy — consider rest or a lighter activity`);
   else insights.push(`Health looking great at ${Math.round(pet.health ?? 100)}%`);
+
   return insights;
 }
 
@@ -1472,7 +1747,9 @@ window.switchTab = (tabId, e) => {
   document.getElementById('tab-' + tabId).classList.add('active');
   if (e && e.target) {
     e.target.classList.add('active');
-    document.querySelectorAll('.sidebar-nav li a').forEach(a => { if (a.getAttribute('onclick') && a.getAttribute('onclick').includes(tabId)) a.classList.add('active'); });
+    document.querySelectorAll('.sidebar-nav li a').forEach(a => {
+      if (a.getAttribute('onclick') && a.getAttribute('onclick').includes(tabId)) a.classList.add('active');
+    });
   }
 };
 
@@ -1487,11 +1764,31 @@ window.sendChat = async (presetMsg) => {
   messagesDiv.innerHTML += `<div class="chat-msg user">${msg}</div>`;
   messagesDiv.innerHTML += `<div class="chat-msg loading" id="loading-msg">Thinking...</div>`;
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
   const pet = currentPetId ? allPets[currentPetId] : null;
-  const ct = userData?.costTracking || {};
-  const context = pet ? { name: pet.name, type: petTypeLabel(pet.type), health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100), fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100), bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0, totalSpent: ct.totalSpent||0, budget: ct.monthlyBudget||200, budgetRemaining: ct.budgetRemaining??((ct.monthlyBudget||200)-(ct.totalSpent||0)), coins: userData?.coins||0, transactionsThisMonth: thisMonthTx(ct.transactions).length } : {};
+  const ct  = pet?.costTracking || userData?.costTracking || {};
+  const context = pet ? {
+    name: pet.name, type: petTypeLabel(pet.type),
+    health: Math.round(pet.health??100), happiness: Math.round(pet.happiness??100),
+    fullness: Math.round(pet.fullness??100), energy: Math.round(pet.energy??100),
+    bond: Math.round(pet.bond??0), level: pet.level||1, experience: pet.experience||0,
+    totalSpent: ct.totalSpent||0, budget: ct.monthlyBudget||200,
+    budgetRemaining: ct.budgetRemaining ?? ((ct.monthlyBudget||200) - (ct.totalSpent||0)),
+    coins: pet.coins ?? userData?.coins ?? 0,
+    transactionsThisMonth: thisMonthTx(ct.transactions).length
+  } : {};
+
   try {
-    const res = await fetch("/api/groq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "llama-3.3-70b-versatile", max_tokens: 1000, messages: [{ role: "system", content: `You are a helpful HELIX AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}` }, { role: "user", content: msg }] }) });
+    const res = await fetch("/api/groq", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile", max_tokens: 1000,
+        messages: [
+          { role: "system", content: `You are a helpful HELIX AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}` },
+          { role: "user", content: msg }
+        ]
+      })
+    });
     const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't process that.";
     document.getElementById('loading-msg')?.remove();
@@ -1505,5 +1802,3 @@ window.sendChat = async (presetMsg) => {
 </script>
 </body>
 </html>
-
-
