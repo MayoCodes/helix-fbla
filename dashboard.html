@@ -345,6 +345,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700;
 }
 
+.svh-header { padding: 20px 20px 4px; }
+.svh-label  { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-secondary);margin-bottom:4px; }
+.svh-title  { font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:2px; }
+.svh-sub    { font-size:12px;color:var(--text-secondary);font-weight:500; }
+
 @media (max-width: 1100px) { .stat-cards { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } .bottom-row { grid-template-columns: 1fr; } .banner-row { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(3,1fr); } }
 @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } .stat-cards { grid-template-columns: 1fr; } .gauge-grid { grid-template-columns: repeat(2,1fr); } .docs-layout { flex-direction: column; } .docs-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); } }
 </style>
@@ -631,14 +636,28 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
           <p class="chart-subtitle">Current values</p>
         </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-area" style="height:260px"><canvas id="chart-spending-vs-happiness"></canvas></div>
-        <div class="chart-card-body">
-          <h3>Spending vs Happiness <span class="info-tip" data-tip="Does more spending lead to a happier pet?">i</span></h3>
-          <p class="chart-subtitle">Based on your transactions</p>
-        </div>
-      </div>
+      <!-- SPENDING VS HAPPINESS — combo chart matching the screenshot -->
+<div class="chart-card">
+  <div class="svh-header">
+    <div class="svh-label">Spending vs Happiness</div>
+    <div class="svh-title">Does Spoiling Them Actually Work?</div>
+    <div class="svh-sub">Based on your transactions</div>
+  </div>
+  <div class="chart-area" style="height:220px;padding-top:8px;">
+    <canvas id="chart-spending-vs-happiness"></canvas>
+  </div>
+  <div style="display:flex;gap:20px;padding:0 20px 16px;align-items:center;">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="width:14px;height:14px;border-radius:4px;background:rgba(79,209,197,0.55);"></div>
+      <span style="font-size:11px;font-weight:700;color:var(--text-secondary);">Spending</span>
     </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="width:14px;height:3px;border-radius:2px;background:#F6AD55;margin-right:-4px;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#F6AD55;"></div>
+      <span style="font-size:11px;font-weight:700;color:var(--text-secondary);">Happiness %</span>
+    </div>
+  </div>
+</div>
 
     <div class="stat-cards" style="grid-template-columns:repeat(3,1fr);margin-top:20px;">
       <div class="stat-card" style="flex-direction:column;align-items:center;gap:6px;padding:24px;">
@@ -1531,29 +1550,69 @@ function renderHealth(pet, ct) {
     }
   });
 
-  const txList = thisMonthTx(ct.transactions);
-  const scatterData = txList.map(tx => ({ x: tx.amount || 0, y: pet.happiness ?? 0 }));
-  if (scatterData.length === 0) scatterData.push({ x: 0, y: pet.happiness ?? 0 });
 
-  destroyChart('spending-vs-happiness');
+destroyChart('spending-vs-happiness');
   const svhCtx = document.getElementById('chart-spending-vs-happiness').getContext('2d');
+  const svhTx = thisMonthTx(ct.transactions)
+    .slice().sort((a, b) => a.date - b.date).slice(-12);
+  const svhLabels    = svhTx.map(tx => { const d = new Date(tx.date); return `${d.toLocaleString('default',{month:'short'})} ${d.getDate()}`; });
+  const svhSpending  = svhTx.map(tx => tx.amount || 0);
+  const svhHappiness = svhTx.map(tx => tx.happiness ?? null);
+  if (svhTx.length === 0) {
+    svhLabels.push('No data'); svhSpending.push(0); svhHappiness.push(pet.happiness ?? 0);
+  }
   chartInstances['spending-vs-happiness'] = new Chart(svhCtx, {
-    type: 'scatter',
     data: {
-      datasets: [{
-        data: scatterData,
-        backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5',
-        pointRadius: 7, pointHoverRadius: 10
-      }]
+      labels: svhLabels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Spending',
+          data: svhSpending,
+          backgroundColor: 'rgba(79,209,197,0.55)',
+          borderRadius: 6,
+          barPercentage: 0.55,
+          yAxisID: 'ySpend',
+          order: 2
+        },
+        {
+          type: 'line',
+          label: 'Happiness %',
+          data: svhHappiness,
+          borderColor: '#F6AD55',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: '#F6AD55',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          tension: 0.35,
+          fill: false,
+          yAxisID: 'yHappy',
+          spanGaps: true,
+          order: 1
+        }
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'white', titleColor: '#2D3748', bodyColor: '#718096',
+          borderColor: '#E2E8F0', borderWidth: 1, padding: 10,
+          callbacks: { label: ctx => ctx.dataset.label === 'Spending' ? ` $${ctx.parsed.y.toFixed(2)}` : ` ${ctx.parsed.y}% happy` }
+        }
+      },
       scales: {
-        x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } },
-        y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }
+        x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10, weight: '700' }, color: '#A0AEC0', maxRotation: 0 } },
+        ySpend: { type: 'linear', position: 'left', beginAtZero: true, grid: { color: '#EDF2F7' }, border: { display: false }, ticks: { font: { size: 10 }, color: '#A0AEC0', callback: v => `$${v}` } },
+        yHappy: { type: 'linear', position: 'right', min: 0, max: 100, grid: { display: false }, border: { display: false }, ticks: { font: { size: 10 }, color: '#F6AD55', callback: v => `${v}%` } }
       }
     }
   });
+  renderSpendingVsHappiness(ct);
 }
 
 async function renderAI(pet, ct) {

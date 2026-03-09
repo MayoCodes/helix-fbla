@@ -990,8 +990,9 @@ async function savePetData() {
 // UI
 // ═══════════════════════════════════════════
 function updateUI() {
-   document.getElementById('trainerName').textContent=currentUser?.displayName||currentUser?.email?.split('@')[0]||'Trainer';
-   document.getElementById('trainerCoins').textContent=Math.max(0,userData.costTracking.budgetRemaining||0);
+const _ct=petData.costTracking||userData.costTracking||{};
+document.getElementById('trainerCoins').textContent=Math.max(0,_ct.budgetRemaining||0);
+document.getElementById('sbCoins').textContent=Math.max(0,_ct.budgetRemaining||0);
 document.getElementById('sbCoins').textContent=Math.max(0,userData.costTracking.budgetRemaining||0);
    document.getElementById('sbName').textContent=petData.name;
    document.getElementById('sbLv').textContent=petData.level||1;
@@ -1017,9 +1018,9 @@ document.getElementById('sbCoins').textContent=Math.max(0,userData.costTracking.
    else mood='😐';
    document.getElementById('sbMood').textContent=mood;
 
-   const ct=userData.costTracking||{};
-   document.getElementById('sbSpent').textContent=ct.totalSpent||0;
-   document.getElementById('sbBudget').textContent=ct.monthlyBudget||500;
+const ct=petData.costTracking||userData.costTracking||{};
+document.getElementById('sbSpent').textContent=ct.totalSpent||0;
+document.getElementById('sbBudget').textContent=ct.monthlyBudget||500;
    document.getElementById('petName').childNodes[0].textContent=petData.name+' ';
 const m=getMastery(petData.bond||0);
 const mb=document.getElementById('masteryBadge');
@@ -1049,7 +1050,7 @@ mb.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11
 }
 
 function updateBudgetUI() {
-   const ct=userData.costTracking||{};
+   const ct=petData.costTracking||userData.costTracking||{};
    const budg=ct.monthlyBudget||500, rem=Math.max(0,ct.budgetRemaining||budg);
    const pct=(rem/budg)*100, low=pct<20;
    document.getElementById('sbSpent').textContent=ct.totalSpent||0;
@@ -1321,7 +1322,8 @@ async function savePetSetup() {
        health:100, happiness:100, fullness:100, energy:100, bond:0,
        personality: PET_TRAITS[selectedPetType]?.defaultPersonality || "friendly and curious",
        tasksCompleted:{}, aiTasks:[], usingAITasks:false,
-       lastTaskReset:Date.now(), adoptionDate:Date.now(), lastUpdated:Date.now()
+lastTaskReset:Date.now(), adoptionDate:Date.now(), lastUpdated:Date.now(),
+costTracking:{totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()}
    };
    userPets[nid]=np; currentPetId=nid; petData=np;
    chatHistory=[];
@@ -1432,14 +1434,16 @@ if(r.ok){
 // ═══════════════════════════════════════════
 // CARE ACTIONS
 // ═══════════════════════════════════════════
-function ensureCT(){if(!userData.costTracking)userData.costTracking={totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()};}
+function ensureCT(){
+   if(!petData.costTracking) petData.costTracking={totalSpent:0,foodSpent:0,vetSpent:0,toySpent:0,monthlyBudget:500,budgetRemaining:500,transactions:[],lastMonthReset:Date.now()};
+}
 function spend(amt,cat){
-   const ct=userData.costTracking;
-   ct.totalSpent+=amt; ct.budgetRemaining-=amt;
+   const ct=petData.costTracking;
+   ct.totalSpent+=amt; ct.budgetRemaining=Math.max(0,ct.budgetRemaining-amt);
    if(cat==='food') ct.foodSpent+=amt;
    else if(cat==='vet') ct.vetSpent+=amt;
    else if(cat==='toy') ct.toySpent+=amt;
-   ct.transactions.push({id:Date.now().toString(),category:cat,amount:amt,date:Date.now()});
+   ct.transactions.push({id:Date.now().toString(),category:cat,amount:amt,date:Date.now(),happiness:Math.round(petData.happiness)});
 }
 
 //this function is called when user presses Feed Button
@@ -1448,7 +1452,7 @@ function feedPet(){
    //check if user has enough money and if pet isnt already full
    if(userData.coins<C){showAlert('Not enough money!','error');return;}
 
-   if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
+   if((petData.costTracking||userData.costTracking).budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.fullness>80){showAlert('Your pet is already full!','warning');return;}
 
    //updates coints
@@ -1463,7 +1467,7 @@ function feedPet(){
 function playWithPet(){
    const C=2; ensureCT();
    if(userData.coins<C){showAlert('Not enough money!','error');return;}
-   if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
+   if((petData.costTracking||userData.costTracking).budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.energy<20){showAlert('Your pet is too tired to play!','warning');return;}
    spend(C,'toy');
    petData.happiness=Math.min(100,petData.happiness+20);
@@ -1480,7 +1484,7 @@ function restPet(){
 function healthCheck(){
    const C=50; ensureCT();
    if(userData.coins<C){showAlert('Need $50 for a vet visit!','error');return;}
-   if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
+   if((petData.costTracking||userData.costTracking).budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    spend(C,'vet');
    petData.health=100; gainXP(20); updateUI(); savePetData();
    let msg="Vet check complete! ✅ Your pet is healthy!";
