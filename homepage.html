@@ -966,11 +966,21 @@ if(userData.costTracking.monthlyBudget < 500) {
 }
 
 async function savePetData() {
+    //save when we made a change
    petData.lastUpdated=Date.now();
-   if(userData.costTracking.budgetRemaining<0) userData.costTracking.budgetRemaining=0;
-   if(currentPetId) userPets[currentPetId]=petData;
-   if(!currentUser) return;
+   //cant have negative budget so make sure it stays at 0
+   if(userData.costTracking.budgetRemaining<0)
+    userData.costTracking.budgetRemaining=0;
+
+    //make sure we sync the current pet data back to the userPets object before saving to Firestore
+   if(currentPetId) 
+   userPets[currentPetId]=petData;
+
+
+   if(!currentUser) 
+    return;
    try {
+        // save the entire pets collection and user data in one go to ensure consistency
        await db.collection('users').doc(currentUser.uid).collection('pets').doc(currentPetId).set(petData);
        await db.collection('users').doc(currentUser.uid).set({currentPetId,userData},{merge:true});
    } catch(e){console.error("Save error:",e);}
@@ -1431,15 +1441,23 @@ function spend(amt,cat){
    else if(cat==='toy') ct.toySpent+=amt;
    ct.transactions.push({id:Date.now().toString(),category:cat,amount:amt,date:Date.now()});
 }
+
+//this function is called when user presses Feed Button
 function feedPet(){
-   const C=2; ensureCT();
+   const C=2; ensureCT();//how much it costs
+   //check if user has enough money and if pet isnt already full
    if(userData.coins<C){showAlert('Not enough money!','error');return;}
+
    if(userData.costTracking.budgetRemaining<C){showAlert('Monthly budget exceeded!','error');return;}
    if(petData.fullness>80){showAlert('Your pet is already full!','warning');return;}
+
+   //updates coints
    spend(C,'food');
+   //updates happiness, health, and fullness metrics 
    petData.fullness=Math.min(100,petData.fullness+30);
    petData.health=Math.min(100,petData.health+5);
    petData.happiness=Math.min(100,petData.happiness+10);
+   //updates xp, ui and documents the transaction in Firestore
    gainXP(10); updateUI(); savePetData();
 }
 function playWithPet(){
