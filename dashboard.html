@@ -1394,11 +1394,100 @@ function renderHealth(pet, ct) {
   const sbCtx = document.getElementById('chart-stats-bar').getContext('2d');
   chartInstances['stats-bar'] = new Chart(sbCtx, { type: 'bar', data: { labels: ['Health', 'Happiness', 'Fullness', 'Energy', 'Bond'], datasets: [{ data: [pet.health??0, pet.happiness??0, pet.fullness??0, pet.energy??0, pet.bond??0], backgroundColor: ['#48BB78','#F6AD55','#4FD1C5','#9F7AEA','#FC8181'], borderRadius: 8, borderSkipped: false, barPercentage: 0.6 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { ticks: { color: '#718096', font: { size: 11, weight: 700 } }, border: { display: false } } } } });
   const txList = thisMonthTx(ct.transactions);
-  const scatterData = txList.map(tx => ({ x: tx.amount || 0, y: pet.happiness ?? 0 }));
-  if (scatterData.length === 0) scatterData.push({ x: 0, y: pet.happiness ?? 0 });
+  // Build time-bucketed data: group transactions by date, sum spending, track happiness
+  const buckets = {};
+  txList.forEach(tx => {
+    const d = tx.date ? new Date(tx.date) : new Date();
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (!buckets[label]) buckets[label] = { spending: 0, happiness: pet.happiness ?? 0 };
+    buckets[label].spending += tx.amount || 0;
+  });
+  // If no transactions, show a few placeholder points
+  if (Object.keys(buckets).length === 0) {
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i * 5);
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      buckets[label] = { spending: 0, happiness: pet.happiness ?? 0 };
+    }
+  }
+  const svhLabels = Object.keys(buckets);
+  const svhSpending = svhLabels.map(l => buckets[l].spending);
+  const svhHappiness = svhLabels.map(l => buckets[l].happiness);
   destroyChart('spending-vs-happiness');
   const svhCtx = document.getElementById('chart-spending-vs-happiness').getContext('2d');
-  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, { type: 'scatter', data: { datasets: [{ data: scatterData, backgroundColor: 'rgba(79,209,197,0.7)', borderColor: '#4FD1C5', pointRadius: 7, pointHoverRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Transaction Amount ($)', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } }, y: { title: { display: true, text: 'Happiness %', font: { size: 11, weight: 700 }, color: '#A0AEC0' }, min: 0, max: 100, ticks: { color: '#A0AEC0', font: { size: 10 } }, border: { display: false } } } } });
+  chartInstances['spending-vs-happiness'] = new Chart(svhCtx, {
+    data: {
+      labels: svhLabels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Spending',
+          data: svhSpending,
+          backgroundColor: 'rgba(79,209,197,0.45)',
+          borderColor: 'rgba(79,209,197,0)',
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.55,
+          yAxisID: 'y'
+        },
+        {
+          type: 'line',
+          label: 'Happiness %',
+          data: svhHappiness,
+          borderColor: '#F6AD55',
+          backgroundColor: 'rgba(246,173,85,0)',
+          pointBackgroundColor: '#F6AD55',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 2.5,
+          tension: 0.35,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            padding: 16,
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            font: { size: 11, weight: 700 },
+            color: '#718096'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#A0AEC0', font: { size: 10 } },
+          grid: { display: false },
+          border: { display: false }
+        },
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          ticks: { color: '#A0AEC0', font: { size: 10 }, callback: v => '$' + v },
+          grid: { color: '#EDF2F7', lineWidth: 1 },
+          border: { display: false }
+        },
+        y1: {
+          position: 'right',
+          min: 0, max: 100,
+          ticks: { color: '#A0AEC0', font: { size: 10 } },
+          grid: { drawOnChartArea: false },
+          border: { display: false }
+        }
+      }
+    }
+  });
 }
 
 async function renderAI(pet, ct) {
