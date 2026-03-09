@@ -1615,6 +1615,7 @@ destroyChart('spending-vs-happiness');
 }
 
 async function renderAI(pet, ct) {
+  try {
   const totalSpent  = ct.totalSpent  || 0;
   const budget      = ct.monthlyBudget || 200;
   const budgetPct   = Math.round((totalSpent / budget) * 100);
@@ -1710,6 +1711,8 @@ async function renderAI(pet, ct) {
   });
 
   await generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget);
+
+  } catch(e) { console.error('renderAI crashed:', e); }
 }
 
 async function generateAIText(pet, ct, budgetPct, txList, projectedTotal, budget) {
