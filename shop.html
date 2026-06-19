@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pet Accessories — 3D Collection</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -163,7 +166,7 @@
     <span class="chip-icon">💳</span>
     <div>
         <span class="chip-label">Balance</span>
-        <span class="chip-amount" id="balanceDisplay">$150.00</span>
+        <span class="chip-amount" id="balanceDisplay">$0.00</span>
     </div>
 </div>
 
@@ -216,7 +219,7 @@
             </div>
             <div class="modal-row">
                 <span class="modal-row-label">Current Balance</span>
-                <span class="modal-row-value" id="modalCurrentBalance">$150.00</span>
+                <span class="modal-row-value" id="modalCurrentBalance">$0.00</span>
             </div>
             <hr class="modal-divider">
             <div class="modal-row">
@@ -247,11 +250,54 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="overlay.js"></script>
 <script>
+// ─── FIREBASE INIT ────────────────────────────────────────────────────────────
+var firebaseConfig = {
+    apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+    authDomain: "helix-fbla.firebaseapp.com",
+    projectId: "helix-fbla",
+    storageBucket: "helix-fbla.firebasestorage.app",
+    messagingSenderId: "154951525413",
+    appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc"
+};
+var auth, db, currentUser = null, userData = null;
+try {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db   = firebase.firestore();
+} catch(e) { console.error('Firebase init error:', e); }
+
 // ─── WALLET ───────────────────────────────────────────────────────────────────
-var balance = 150.00;
-function formatMoney(n) { return '$' + n.toFixed(2); }
+var balance = 0;
+function formatMoney(n) { return '$' + Number(n).toFixed(2); }
 function updateBalanceDisplay() {
     document.getElementById('balanceDisplay').textContent = formatMoney(balance);
+}
+
+// Load budget from Firestore once the user is authenticated
+auth.onAuthStateChanged(function(user) {
+    if (!user) { window.location.href = 'index.html'; return; }
+    currentUser = user;
+    db.collection('users').doc(currentUser.uid).get().then(function(doc) {
+        if (doc.exists && doc.data().userData) {
+            userData = doc.data().userData;
+            balance  = Math.max(0, userData.costTracking.budgetRemaining || 0);
+        }
+        updateBalanceDisplay();
+    }).catch(function(e) { console.error('Error loading budget:', e); });
+});
+
+// Save updated budget back to Firestore (mirrors homepage savePetData pattern)
+async function saveBudgetToFirestore() {
+    if (!currentUser || !userData) return;
+    if (userData.costTracking.budgetRemaining < 0) userData.costTracking.budgetRemaining = 0;
+    try {
+        await db.collection('users').doc(currentUser.uid).set({ userData: userData }, { merge: true });
+    } catch(e) { console.error('Budget save error:', e); }
+}
+
+// Initialise accessory in localStorage if not already set
+if (localStorage.getItem('currentAccessory') === null) {
+    localStorage.setItem('currentAccessory', 'none');
 }
 
 // ─── MODAL LOGIC ──────────────────────────────────────────────────────────────
@@ -282,7 +328,17 @@ function closeModal() {
 
 function confirmPurchase() {
     if (balance < currentProductPrice) return;
+    // Deduct from in-memory balance and userData
     balance -= currentProductPrice;
+    if (userData && userData.costTracking) {
+        userData.costTracking.budgetRemaining = balance;
+        userData.costTracking.totalSpent = (userData.costTracking.totalSpent || 0) + currentProductPrice;
+    }
+    // Save accessory to localStorage
+    localStorage.setItem('currentAccessory', currentProductName);
+    // Persist to Firestore
+    saveBudgetToFirestore();
+    // Update UI
     document.getElementById('modalBody').classList.add('hide');
     document.getElementById('modalSuccess').classList.add('show');
     document.getElementById('successBalanceText').textContent = 'Remaining balance: ' + formatMoney(balance);
