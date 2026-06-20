@@ -397,90 +397,109 @@
             /* ── RADIAL PET DIAL ── */
             .radial-dial {
                 position: fixed;
-                bottom: 52px;
+                bottom: 96px;
                 left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
+                transform: translateX(-50%) translateY(12px);
                 z-index: 95;
                 pointer-events: none;
+                opacity: 0;
+                transition:
+                    opacity 0.3s ease,
+                    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 0;
+                padding: 10px 0 24px;
             }
             .radial-dial.open {
                 pointer-events: auto;
-            }
-            .radial-connector {
-                position: absolute;
-                left: 50%;
-                top: 0;
-                width: 2px;
-                height: 0;
-                margin-left: -1px;
-                background: linear-gradient(
-                    180deg,
-                    rgba(0, 210, 255, 0.7),
-                    rgba(0, 210, 255, 0)
-                );
-                transform-origin: top center;
-                transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-                opacity: 0;
-            }
-            .radial-dial.open .radial-connector {
                 opacity: 1;
+                transform: translateX(-50%) translateY(0);
             }
-            .radial-orb {
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                width: 50px;
-                height: 50px;
-                margin-left: -25px;
-                margin-top: -25px;
+            .radial-dial-track {
+                display: flex;
+                align-items: flex-end;
+                gap: 18px;
+                padding: 0 20px;
+                overflow-x: auto;
+                overflow-y: visible;
+                scroll-behavior: smooth;
+                scrollbar-width: none;
+                max-width: min(420px, calc(100vw - 40px));
+                -webkit-overflow-scrolling: touch;
+            }
+            .radial-dial-track::-webkit-scrollbar {
+                display: none;
+            }
+            .radial-dial-orb {
+                position: relative;
+                flex-shrink: 0;
+                width: 64px;
+                height: 64px;
                 border-radius: 50%;
                 background: rgba(20, 20, 20, 0.95);
-                border: 2px solid rgba(73, 166, 166, 0.4);
+                border: 2px solid rgba(73, 166, 166, 0.35);
                 backdrop-filter: blur(10px);
                 cursor: pointer;
-                pointer-events: auto;
                 overflow: hidden;
                 box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
                 opacity: 0;
-                transform: scale(0.3);
-                transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-                z-index: 96;
+                transform: scale(0.5) translateY(20px);
+                transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
             }
-            .radial-dial.open .radial-orb {
+            .radial-dial.open .radial-dial-orb {
                 opacity: 1;
-                transform: scale(1);
+                transform: scale(1) translateY(0);
             }
-            .radial-orb:hover {
-                transform: scale(1.15);
+            .radial-dial-orb:hover {
+                transform: scale(1.12) translateY(-4px);
                 border-color: #00d2ff;
-                box-shadow: 0 0 18px rgba(0, 210, 255, 0.4);
-                z-index: 97;
+                box-shadow: 0 0 20px rgba(0, 210, 255, 0.35);
             }
-            .radial-orb canvas {
+            .radial-dial-orb.active {
+                border-color: #00d2ff;
+                box-shadow: 0 0 16px rgba(0, 210, 255, 0.45);
+            }
+            .radial-dial-orb canvas {
                 width: 100%;
                 height: 100%;
                 border-radius: 50%;
                 display: block;
             }
-            .radial-orb-lbl {
+            .radial-dial-name {
                 position: absolute;
-                bottom: -16px;
+                bottom: -20px;
                 left: 50%;
                 transform: translateX(-50%);
-                font-size: 0.55rem;
+                font-size: 0.6rem;
                 font-weight: 800;
-                color: rgba(255, 255, 255, 0.75);
+                color: rgba(255, 255, 255, 0.85);
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
                 white-space: nowrap;
                 text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
                 pointer-events: none;
                 opacity: 0;
-                transition: opacity 0.3s ease 0.2s;
+                transition: opacity 0.25s ease 0.15s;
             }
-            .radial-dial.open .radial-orb-lbl {
+            .radial-dial.open .radial-dial-name {
+                opacity: 1;
+            }
+            .radial-dial-arrow {
+                position: absolute;
+                bottom: -10px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 10px solid transparent;
+                border-right: 10px solid transparent;
+                border-top: 10px solid rgba(20, 20, 20, 0.95);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .radial-dial.open .radial-dial-arrow {
                 opacity: 1;
             }
             .yeap-badge-wrap {
@@ -2488,7 +2507,10 @@
         </div>
 
         <!-- RADIAL PET DIAL -->
-        <div class="radial-dial" id="radialDial"></div>
+        <div class="radial-dial" id="radialDial">
+            <div class="radial-dial-track" id="radialDialTrack"></div>
+            <div class="radial-dial-arrow"></div>
+        </div>
 
         <!-- BOTTOM-CENTER PET SLOTS -->
         <div class="pet-slots" id="petSlots" style="display: none"></div>
@@ -3260,10 +3282,8 @@
 
             function buildRadialDial() {
                 const dial = document.getElementById("radialDial");
-                // clear old
-                dial.querySelectorAll(".radial-orb, .radial-connector").forEach(
-                    (el) => el.remove(),
-                );
+                const track = document.getElementById("radialDialTrack");
+                track.innerHTML = "";
                 Object.values(radialEngs).forEach((e) => {
                     try {
                         e.stopRenderLoop();
@@ -3273,35 +3293,16 @@
                 radialEngs = {};
 
                 const pets = Object.keys(userPets);
-                const count = pets.length;
-                if (count <= 1) {
+                if (pets.length === 0) {
                     dial.classList.add("open");
                     return;
                 }
 
-                const radius = Math.min(120, 70 + count * 10);
-                const angleStep = (2 * Math.PI) / count;
-                const startAngle = -Math.PI / 2; // start at top
-
                 pets.forEach((pid, i) => {
-                    const angle = startAngle + angleStep * i;
-                    const x = Math.cos(angle) * radius;
-                    const y = Math.sin(angle) * radius;
-
-                    // connector line from center to orb
-                    const conn = document.createElement("div");
-                    conn.className = "radial-connector";
-                    const len = Math.sqrt(x * x + y * y);
-                    const rot = (Math.atan2(y, x) * 180) / Math.PI + 90;
-                    conn.style.height = len + "px";
-                    conn.style.transform = `rotate(${rot}deg)`;
-                    conn.style.transitionDelay = `${i * 0.03}s`;
-                    dial.appendChild(conn);
-
                     const orb = document.createElement("div");
-                    orb.className = "radial-orb";
-                    orb.style.left = `calc(50% + ${x}px - 25px)`;
-                    orb.style.top = `calc(50% + ${y}px - 25px)`;
+                    orb.className =
+                        "radial-dial-orb" +
+                        (pid === currentPetId ? " active" : "");
                     orb.style.transitionDelay = `${i * 0.05}s`;
                     orb.onclick = (e) => {
                         e.stopPropagation();
@@ -3314,11 +3315,11 @@
                     orb.appendChild(cvs);
 
                     const lbl = document.createElement("div");
-                    lbl.className = "radial-orb-lbl";
+                    lbl.className = "radial-dial-name";
                     lbl.textContent = userPets[pid].name;
                     orb.appendChild(lbl);
 
-                    dial.appendChild(orb);
+                    track.appendChild(orb);
 
                     setTimeout(() => {
                         const res = loadBubblePreview(
@@ -3331,15 +3332,26 @@
                 });
 
                 dial.classList.add("open");
+                setTimeout(() => {
+                    const activeOrb = track.querySelector(
+                        ".radial-dial-orb.active",
+                    );
+                    if (activeOrb) {
+                        const trackRect = track.getBoundingClientRect();
+                        const orbRect = activeOrb.getBoundingClientRect();
+                        track.scrollLeft +=
+                            orbRect.left +
+                            orbRect.width / 2 -
+                            (trackRect.left + trackRect.width / 2);
+                    }
+                }, 100);
             }
 
             function closeRadialDial() {
                 const dial = document.getElementById("radialDial");
                 dial.classList.remove("open");
                 setTimeout(() => {
-                    dial.querySelectorAll(
-                        ".radial-orb, .radial-connector",
-                    ).forEach((el) => el.remove());
+                    document.getElementById("radialDialTrack").innerHTML = "";
                     Object.values(radialEngs).forEach((e) => {
                         try {
                             e.stopRenderLoop();
