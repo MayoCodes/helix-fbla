@@ -334,6 +334,7 @@
                 font-family: "Inter", sans-serif;
             }
             .yeap-nav-main {
+                position: relative;
                 width: 56px;
                 height: 56px;
                 border-radius: 50%;
@@ -345,6 +346,15 @@
                 margin: 0 8px;
                 box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
                 cursor: pointer;
+                overflow: hidden;
+                transition:
+                    transform 0.3s ease,
+                    box-shadow 0.3s ease;
+                z-index: 100;
+            }
+            .yeap-nav-main:hover {
+                transform: scale(1.08);
+                box-shadow: 0 0 30px rgba(0, 210, 255, 0.5);
             }
             .yeap-nav-main-inner {
                 width: 44px;
@@ -359,99 +369,118 @@
                 border-radius: 50%;
                 display: block;
             }
-            /* ── RADIAL PET POPUP ── */
-            .radial-popup {
+            .yeap-nav-main-ring {
+                position: absolute;
+                inset: -5px;
+                border-radius: 50%;
+                border: 1.5px solid rgba(0, 210, 255, 0);
+                transition: border-color 0.3s ease;
+                pointer-events: none;
+            }
+            .radial-dial.open
+                ~ .yeap-bottom-nav
+                .yeap-nav-main
+                .yeap-nav-main-ring,
+            .yeap-nav-main.active .yeap-nav-main-ring {
+                border-color: rgba(0, 210, 255, 0.5);
+                animation: hubPulse 2s ease-in-out infinite;
+            }
+            @keyframes hubPulse {
+                0%,
+                100% {
+                    box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.3);
+                }
+                50% {
+                    box-shadow: 0 0 0 8px rgba(0, 210, 255, 0);
+                }
+            }
+            /* ── RADIAL PET DIAL ── */
+            .radial-dial {
                 position: fixed;
-                bottom: 24px;
+                bottom: 52px;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 320px;
-                height: 320px;
+                width: 0;
+                height: 0;
+                z-index: 95;
                 pointer-events: none;
-                z-index: 150;
-                display: none;
             }
-            .radial-popup.open {
-                display: block;
+            .radial-dial.open {
+                pointer-events: auto;
             }
-            .radial-item {
+            .radial-connector {
                 position: absolute;
-                width: 56px;
-                height: 56px;
+                left: 50%;
+                top: 0;
+                width: 2px;
+                height: 0;
+                margin-left: -1px;
+                background: linear-gradient(
+                    180deg,
+                    rgba(0, 210, 255, 0.7),
+                    rgba(0, 210, 255, 0)
+                );
+                transform-origin: top center;
+                transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                opacity: 0;
+            }
+            .radial-dial.open .radial-connector {
+                opacity: 1;
+            }
+            .radial-orb {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 50px;
+                height: 50px;
+                margin-left: -25px;
+                margin-top: -25px;
                 border-radius: 50%;
-                background: rgba(30, 30, 30, 0.92);
-                border: 2px solid rgba(73, 166, 166, 0.35);
-                backdrop-filter: blur(12px);
+                background: rgba(20, 20, 20, 0.95);
+                border: 2px solid rgba(73, 166, 166, 0.4);
+                backdrop-filter: blur(10px);
                 cursor: pointer;
                 pointer-events: auto;
-                transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
                 overflow: hidden;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
                 opacity: 0;
-                transform: scale(0.5);
+                transform: scale(0.3);
+                transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                z-index: 96;
             }
-            .radial-popup.open .radial-item {
+            .radial-dial.open .radial-orb {
                 opacity: 1;
                 transform: scale(1);
             }
-            .radial-item:hover {
-                transform: scale(1.18);
+            .radial-orb:hover {
+                transform: scale(1.15);
                 border-color: #00d2ff;
-                box-shadow: 0 0 24px rgba(0, 210, 255, 0.35);
-                z-index: 10;
+                box-shadow: 0 0 18px rgba(0, 210, 255, 0.4);
+                z-index: 97;
             }
-            .radial-item canvas {
+            .radial-orb canvas {
                 width: 100%;
                 height: 100%;
                 border-radius: 50%;
                 display: block;
             }
-            .radial-item-lbl {
+            .radial-orb-lbl {
                 position: absolute;
-                bottom: -18px;
+                bottom: -16px;
                 left: 50%;
                 transform: translateX(-50%);
                 font-size: 0.55rem;
                 font-weight: 800;
-                color: rgba(255, 255, 255, 0.7);
+                color: rgba(255, 255, 255, 0.75);
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
                 white-space: nowrap;
-                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
                 pointer-events: none;
-            }
-            .radial-center {
-                position: absolute;
-                left: 50%;
-                top: 50%;
-                transform: translate(-50%, -50%);
-                width: 56px;
-                height: 56px;
-                border-radius: 50%;
-                background: #1a1a1a;
-                border: 2px solid #00d2ff;
-                box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
-                z-index: 2;
-                overflow: hidden;
-            }
-            .radial-center canvas {
-                width: 100%;
-                height: 100%;
-                border-radius: 50%;
-                display: block;
-            }
-            .radial-backdrop {
-                position: fixed;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.4);
-                backdrop-filter: blur(4px);
-                z-index: 140;
-                display: none;
                 opacity: 0;
-                transition: opacity 0.3s ease;
+                transition: opacity 0.3s ease 0.2s;
             }
-            .radial-backdrop.open {
-                display: block;
+            .radial-dial.open .radial-orb-lbl {
                 opacity: 1;
             }
             .yeap-badge-wrap {
@@ -2198,8 +2227,9 @@
             <div
                 class="yeap-nav-main"
                 id="yeapNavMain"
-                onclick="toggleRadialMenu()"
+                onclick="toggleRadialDial()"
             >
+                <div class="yeap-nav-main-ring"></div>
                 <div class="yeap-nav-main-inner" id="yeapNavMainInner">
                     <canvas id="mainPetCanvas"></canvas>
                 </div>
@@ -2457,17 +2487,8 @@
             </div>
         </div>
 
-        <!-- RADIAL PET POPUP -->
-        <div
-            class="radial-backdrop"
-            id="radialBackdrop"
-            onclick="closeRadialMenu()"
-        ></div>
-        <div class="radial-popup" id="radialPopup">
-            <div class="radial-center" id="radialCenter">
-                <canvas id="radialCenterCanvas"></canvas>
-            </div>
-        </div>
+        <!-- RADIAL PET DIAL -->
+        <div class="radial-dial" id="radialDial"></div>
 
         <!-- BOTTOM-CENTER PET SLOTS -->
         <div class="pet-slots" id="petSlots" style="display: none"></div>
@@ -3237,13 +3258,12 @@
                 mainPetSc = res.sc;
             }
 
-            function buildRadialMenu() {
-                const popup = document.getElementById("radialPopup");
-                const backdrop = document.getElementById("radialBackdrop");
-                // clear old items (keep center)
-                popup
-                    .querySelectorAll(".radial-item")
-                    .forEach((el) => el.remove());
+            function buildRadialDial() {
+                const dial = document.getElementById("radialDial");
+                // clear old
+                dial.querySelectorAll(".radial-orb, .radial-connector").forEach(
+                    (el) => el.remove(),
+                );
                 Object.values(radialEngs).forEach((e) => {
                     try {
                         e.stopRenderLoop();
@@ -3254,37 +3274,51 @@
 
                 const pets = Object.keys(userPets);
                 const count = pets.length;
-                if (count === 0) return;
+                if (count <= 1) {
+                    dial.classList.add("open");
+                    return;
+                }
 
-                const radius = count === 1 ? 0 : Math.min(110, 60 + count * 12);
-                const angleStep = (2 * Math.PI) / Math.max(count, 1);
+                const radius = Math.min(120, 70 + count * 10);
+                const angleStep = (2 * Math.PI) / count;
+                const startAngle = -Math.PI / 2; // start at top
 
                 pets.forEach((pid, i) => {
-                    const angle = angleStep * i - Math.PI / 2;
+                    const angle = startAngle + angleStep * i;
                     const x = Math.cos(angle) * radius;
                     const y = Math.sin(angle) * radius;
 
-                    const item = document.createElement("div");
-                    item.className = "radial-item";
-                    item.style.left = `calc(50% + ${x}px - 28px)`;
-                    item.style.top = `calc(50% + ${y}px - 28px)`;
-                    item.style.transitionDelay = `${i * 0.04}s`;
-                    item.onclick = (e) => {
+                    // connector line from center to orb
+                    const conn = document.createElement("div");
+                    conn.className = "radial-connector";
+                    const len = Math.sqrt(x * x + y * y);
+                    const rot = (Math.atan2(y, x) * 180) / Math.PI + 90;
+                    conn.style.height = len + "px";
+                    conn.style.transform = `rotate(${rot}deg)`;
+                    conn.style.transitionDelay = `${i * 0.03}s`;
+                    dial.appendChild(conn);
+
+                    const orb = document.createElement("div");
+                    orb.className = "radial-orb";
+                    orb.style.left = `calc(50% + ${x}px - 25px)`;
+                    orb.style.top = `calc(50% + ${y}px - 25px)`;
+                    orb.style.transitionDelay = `${i * 0.05}s`;
+                    orb.onclick = (e) => {
                         e.stopPropagation();
                         selectPet(pid);
-                        closeRadialMenu();
+                        closeRadialDial();
                     };
 
                     const cvs = document.createElement("canvas");
                     cvs.id = "radialCvs_" + pid;
-                    item.appendChild(cvs);
+                    orb.appendChild(cvs);
 
                     const lbl = document.createElement("div");
-                    lbl.className = "radial-item-lbl";
+                    lbl.className = "radial-orb-lbl";
                     lbl.textContent = userPets[pid].name;
-                    item.appendChild(lbl);
+                    orb.appendChild(lbl);
 
-                    popup.appendChild(item);
+                    dial.appendChild(orb);
 
                     setTimeout(() => {
                         const res = loadBubblePreview(
@@ -3292,31 +3326,20 @@
                             cvs,
                             null,
                         );
-                        radialEngs[pid] = res.eng;
-                    }, 60);
+                        if (res && res.eng) radialEngs[pid] = res.eng;
+                    }, 80);
                 });
 
-                // update center preview
-                const centerCvs = document.getElementById("radialCenterCanvas");
-                if (centerCvs && currentPetId && userPets[currentPetId]) {
-                    const res = loadBubblePreview(
-                        userPets[currentPetId].type,
-                        centerCvs,
-                        null,
-                    );
-                    if (res && res.eng) radialEngs["__center__"] = res.eng;
-                }
-
-                backdrop.classList.add("open");
-                popup.classList.add("open");
+                dial.classList.add("open");
             }
 
-            function closeRadialMenu() {
-                document.getElementById("radialPopup").classList.remove("open");
-                document
-                    .getElementById("radialBackdrop")
-                    .classList.remove("open");
+            function closeRadialDial() {
+                const dial = document.getElementById("radialDial");
+                dial.classList.remove("open");
                 setTimeout(() => {
+                    dial.querySelectorAll(
+                        ".radial-orb, .radial-connector",
+                    ).forEach((el) => el.remove());
                     Object.values(radialEngs).forEach((e) => {
                         try {
                             e.stopRenderLoop();
@@ -3324,27 +3347,27 @@
                         } catch (err) {}
                     });
                     radialEngs = {};
-                }, 350);
+                }, 400);
             }
 
-            function toggleRadialMenu() {
-                const popup = document.getElementById("radialPopup");
-                if (popup.classList.contains("open")) {
-                    closeRadialMenu();
+            function toggleRadialDial() {
+                const dial = document.getElementById("radialDial");
+                if (dial.classList.contains("open")) {
+                    closeRadialDial();
                 } else {
-                    buildRadialMenu();
+                    buildRadialDial();
                 }
             }
 
             document.addEventListener("click", (e) => {
-                const popup = document.getElementById("radialPopup");
+                const dial = document.getElementById("radialDial");
                 const main = document.getElementById("yeapNavMain");
                 if (
-                    popup.classList.contains("open") &&
-                    !popup.contains(e.target) &&
+                    dial.classList.contains("open") &&
+                    !dial.contains(e.target) &&
                     !(main && main.contains(e.target))
                 ) {
-                    closeRadialMenu();
+                    closeRadialDial();
                 }
             });
             function selectPet(pid) {
