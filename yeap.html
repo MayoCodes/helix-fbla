@@ -351,6 +351,108 @@
                 height: 44px;
                 border-radius: 50%;
                 background: #000;
+                overflow: hidden;
+            }
+            .yeap-nav-main-inner canvas {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                display: block;
+            }
+            /* ── RADIAL PET POPUP ── */
+            .radial-popup {
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 320px;
+                height: 320px;
+                pointer-events: none;
+                z-index: 150;
+                display: none;
+            }
+            .radial-popup.open {
+                display: block;
+            }
+            .radial-item {
+                position: absolute;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: rgba(30, 30, 30, 0.92);
+                border: 2px solid rgba(73, 166, 166, 0.35);
+                backdrop-filter: blur(12px);
+                cursor: pointer;
+                pointer-events: auto;
+                transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+                overflow: hidden;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            .radial-popup.open .radial-item {
+                opacity: 1;
+                transform: scale(1);
+            }
+            .radial-item:hover {
+                transform: scale(1.18);
+                border-color: #00d2ff;
+                box-shadow: 0 0 24px rgba(0, 210, 255, 0.35);
+                z-index: 10;
+            }
+            .radial-item canvas {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                display: block;
+            }
+            .radial-item-lbl {
+                position: absolute;
+                bottom: -18px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 0.55rem;
+                font-weight: 800;
+                color: rgba(255, 255, 255, 0.7);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+                pointer-events: none;
+            }
+            .radial-center {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #1a1a1a;
+                border: 2px solid #00d2ff;
+                box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+                z-index: 2;
+                overflow: hidden;
+            }
+            .radial-center canvas {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                display: block;
+            }
+            .radial-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(4px);
+                z-index: 140;
+                display: none;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .radial-backdrop.open {
+                display: block;
+                opacity: 1;
             }
             .yeap-badge-wrap {
                 position: relative;
@@ -2093,8 +2195,14 @@
                 </svg>
                 <span>Chat</span>
             </div>
-            <div class="yeap-nav-main" onclick="togglePanel('carePanel')">
-                <div class="yeap-nav-main-inner"></div>
+            <div
+                class="yeap-nav-main"
+                id="yeapNavMain"
+                onclick="toggleRadialMenu()"
+            >
+                <div class="yeap-nav-main-inner" id="yeapNavMainInner">
+                    <canvas id="mainPetCanvas"></canvas>
+                </div>
             </div>
             <div
                 class="yeap-nav-btn yeap-badge-wrap"
@@ -2349,8 +2457,20 @@
             </div>
         </div>
 
+        <!-- RADIAL PET POPUP -->
+        <div
+            class="radial-backdrop"
+            id="radialBackdrop"
+            onclick="closeRadialMenu()"
+        ></div>
+        <div class="radial-popup" id="radialPopup">
+            <div class="radial-center" id="radialCenter">
+                <canvas id="radialCenterCanvas"></canvas>
+            </div>
+        </div>
+
         <!-- BOTTOM-CENTER PET SLOTS -->
-        <div class="pet-slots" id="petSlots"></div>
+        <div class="pet-slots" id="petSlots" style="display: none"></div>
 
         <!-- MASTERY TRACK POPUP -->
         <div class="mastery-track-popup" id="masteryTrackPopup">
@@ -2879,6 +2999,7 @@
                         }
                         updateUI();
                         buildPetSlots();
+                        updateMainPetPreview();
                         loadModel(getModelForPet(petData.type), () =>
                             hideLoading(),
                         );
@@ -3090,7 +3211,142 @@
                     );
                     if (lbl) lbl.textContent = userPets[pid].name;
                 });
+                updateMainPetPreview();
             }
+
+            let mainPetEng = null,
+                mainPetSc = null;
+            let radialEngs = {};
+            function updateMainPetPreview() {
+                if (mainPetEng) {
+                    try {
+                        mainPetEng.stopRenderLoop();
+                        mainPetEng.dispose();
+                    } catch (e) {}
+                    mainPetEng = null;
+                    mainPetSc = null;
+                }
+                const cvs = document.getElementById("mainPetCanvas");
+                if (!cvs || !currentPetId || !userPets[currentPetId]) return;
+                const res = loadBubblePreview(
+                    userPets[currentPetId].type,
+                    cvs,
+                    null,
+                );
+                mainPetEng = res.eng;
+                mainPetSc = res.sc;
+            }
+
+            function buildRadialMenu() {
+                const popup = document.getElementById("radialPopup");
+                const backdrop = document.getElementById("radialBackdrop");
+                // clear old items (keep center)
+                popup
+                    .querySelectorAll(".radial-item")
+                    .forEach((el) => el.remove());
+                Object.values(radialEngs).forEach((e) => {
+                    try {
+                        e.stopRenderLoop();
+                        e.dispose();
+                    } catch (err) {}
+                });
+                radialEngs = {};
+
+                const pets = Object.keys(userPets);
+                const count = pets.length;
+                if (count === 0) return;
+
+                const radius = count === 1 ? 0 : Math.min(110, 60 + count * 12);
+                const angleStep = (2 * Math.PI) / Math.max(count, 1);
+
+                pets.forEach((pid, i) => {
+                    const angle = angleStep * i - Math.PI / 2;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+
+                    const item = document.createElement("div");
+                    item.className = "radial-item";
+                    item.style.left = `calc(50% + ${x}px - 28px)`;
+                    item.style.top = `calc(50% + ${y}px - 28px)`;
+                    item.style.transitionDelay = `${i * 0.04}s`;
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        selectPet(pid);
+                        closeRadialMenu();
+                    };
+
+                    const cvs = document.createElement("canvas");
+                    cvs.id = "radialCvs_" + pid;
+                    item.appendChild(cvs);
+
+                    const lbl = document.createElement("div");
+                    lbl.className = "radial-item-lbl";
+                    lbl.textContent = userPets[pid].name;
+                    item.appendChild(lbl);
+
+                    popup.appendChild(item);
+
+                    setTimeout(() => {
+                        const res = loadBubblePreview(
+                            userPets[pid].type,
+                            cvs,
+                            null,
+                        );
+                        radialEngs[pid] = res.eng;
+                    }, 60);
+                });
+
+                // update center preview
+                const centerCvs = document.getElementById("radialCenterCanvas");
+                if (centerCvs && currentPetId && userPets[currentPetId]) {
+                    const res = loadBubblePreview(
+                        userPets[currentPetId].type,
+                        centerCvs,
+                        null,
+                    );
+                    if (res && res.eng) radialEngs["__center__"] = res.eng;
+                }
+
+                backdrop.classList.add("open");
+                popup.classList.add("open");
+            }
+
+            function closeRadialMenu() {
+                document.getElementById("radialPopup").classList.remove("open");
+                document
+                    .getElementById("radialBackdrop")
+                    .classList.remove("open");
+                setTimeout(() => {
+                    Object.values(radialEngs).forEach((e) => {
+                        try {
+                            e.stopRenderLoop();
+                            e.dispose();
+                        } catch (err) {}
+                    });
+                    radialEngs = {};
+                }, 350);
+            }
+
+            function toggleRadialMenu() {
+                const popup = document.getElementById("radialPopup");
+                if (popup.classList.contains("open")) {
+                    closeRadialMenu();
+                } else {
+                    buildRadialMenu();
+                }
+            }
+
+            document.addEventListener("click", (e) => {
+                const popup = document.getElementById("radialPopup");
+                const main = document.getElementById("yeapNavMain");
+                if (
+                    popup.classList.contains("open") &&
+                    !popup.contains(e.target) &&
+                    !(main && main.contains(e.target))
+                ) {
+                    closeRadialMenu();
+                }
+            });
             function selectPet(pid) {
                 if (pid === currentPetId) return;
                 showLoading("Loading " + userPets[pid].name + "…");
@@ -3446,6 +3702,7 @@ RULES:
                 await savePetData();
                 updateUI();
                 buildPetSlots();
+                updateMainPetPreview();
                 loadModel(getModelForPet(selectedPetType), () => hideLoading());
             }
 
