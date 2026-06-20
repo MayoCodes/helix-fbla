@@ -2038,6 +2038,20 @@
             <div class="al-class" id="yeapPetClass">
                 Class: Cyber-Hound (V.2)
             </div>
+            <div style="margin-top: 8px">
+                <span class="mastery-badge mastery-iron" id="yeapMasteryBadge">
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="11"
+                        height="11"
+                    >
+                        <path
+                            d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
+                        /></svg
+                    >Iron
+                </span>
+            </div>
 
             <div class="stats-grid">
                 <div class="stat-ring">
@@ -2275,6 +2289,24 @@
                 >
                     !
                 </div>
+            </div>
+            <div
+                class="yeap-nav-btn"
+                id="yeapNavAdd"
+                onclick="openSetupModal()"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Add Pet</span>
             </div>
             <div
                 class="yeap-nav-btn"
@@ -3114,9 +3146,31 @@
                 document.getElementById("lblFd").textContent = fd + "% FD";
                 document.getElementById("lblJoy").textContent = joy + "% JOY";
 
+                // Mastery badge
+                const m = getMastery(petData.bond || 0);
+                const mb = document.getElementById("yeapMasteryBadge");
+                if (mb) {
+                    mb.className = "mastery-badge " + m.cls;
+                    mb.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>${m.label}`;
+                }
+
+                // Burn rate (stats decay per hour)
+                const burnRate = (
+                    (100 - petData.health) * 0.02 +
+                    (100 - petData.happiness) * 0.03 +
+                    (100 - petData.fullness) * 0.04 +
+                    (100 - petData.energy) * 0.02
+                ).toFixed(1);
+                document.getElementById("yeapBurnRate").textContent =
+                    "-" + burnRate + " / hr";
+
                 // ── Original UI updates (kept for functionality) ──
                 document.getElementById("speechBubble").textContent =
                     getMoodBubble();
+
+                // Update chat header if open
+                if (chatOpen) updateChatHeader();
+
                 updateBudgetUI();
                 loadPetTasks();
                 updateSlotHighlight();
@@ -3431,6 +3485,10 @@
                     document
                         .getElementById("yeapNavTasks")
                         .classList.add("active");
+                else if (key === "add")
+                    document
+                        .getElementById("yeapNavAdd")
+                        .classList.add("active");
                 else if (key === "info")
                     document
                         .getElementById("yeapNavInfo")
@@ -3465,6 +3523,13 @@
                     personality;
                 document.getElementById("chatPetName").textContent =
                     petData.name || "—";
+                // Update mastery badge in active-link panel
+                const m = getMastery(petData.bond || 0);
+                const mb = document.getElementById("yeapMasteryBadge");
+                if (mb) {
+                    mb.className = "mastery-badge " + m.cls;
+                    mb.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>${m.label}`;
+                }
             }
 
             function toggleChatPanel() {
