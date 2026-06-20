@@ -327,6 +327,36 @@
                 font-family: "Inter", sans-serif;
             }
 
+            .vitals-stats-row {
+                display: flex;
+                justify-content: space-between;
+                gap: 8px;
+                margin-top: 16px;
+                padding-top: 14px;
+                border-top: 1px solid rgba(0, 0, 0, 0.06);
+            }
+            .vitals-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                flex: 1;
+            }
+            .vitals-stat-val {
+                font-size: 1rem;
+                font-weight: 800;
+                color: #1a1a1a;
+                font-family: "Inter", sans-serif;
+            }
+            .vitals-stat-lbl {
+                font-size: 0.6rem;
+                font-weight: 700;
+                color: #999;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-family: "Inter", sans-serif;
+            }
+
             /* Menu card */
             .menu-card {
                 background: rgba(245, 245, 245, 0.96);
@@ -1537,6 +1567,102 @@
                 transform: none;
             }
 
+            /* ═══════════════════════════════════════════
+               PET PICKER STRIP (above navbar)
+               ═══════════════════════════════════════════ */
+            .pet-picker-strip {
+                position: fixed;
+                left: 50%;
+                bottom: 88px;
+                transform: translateX(-50%);
+                z-index: 95;
+                width: min(520px, calc(100vw - 48px));
+                background: rgba(255, 255, 255, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 20px;
+                padding: 12px 16px;
+                border: 1px solid rgba(0, 210, 255, 0.15);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+                display: none;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .pet-picker-strip.open {
+                display: flex;
+            }
+            .pet-picker-strip-title {
+                font-size: 0.7rem;
+                font-weight: 700;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-family: "Inter", sans-serif;
+                text-align: center;
+            }
+            .pet-picker-scroll {
+                display: flex;
+                gap: 12px;
+                overflow-x: auto;
+                scroll-behavior: smooth;
+                scrollbar-width: none;
+                padding-bottom: 4px;
+            }
+            .pet-picker-scroll::-webkit-scrollbar {
+                display: none;
+            }
+            .pet-picker-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+                padding: 6px;
+                border-radius: 14px;
+                transition: all 0.2s;
+                min-width: 72px;
+                border: 2px solid transparent;
+            }
+            .pet-picker-item:hover {
+                background: rgba(0, 210, 255, 0.06);
+            }
+            .pet-picker-item.active {
+                border-color: #00bcd4;
+                background: rgba(0, 210, 255, 0.08);
+            }
+            .pet-picker-avatar {
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                overflow: hidden;
+                background: #f0f0f0;
+                border: 2px solid #e0e0e0;
+                position: relative;
+            }
+            .pet-picker-item.active .pet-picker-avatar {
+                border-color: #00bcd4;
+                box-shadow: 0 0 12px rgba(0, 188, 212, 0.3);
+            }
+            .pet-picker-avatar canvas {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                display: block;
+            }
+            .pet-picker-name {
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: #555;
+                font-family: "Inter", sans-serif;
+                white-space: nowrap;
+                text-align: center;
+                max-width: 72px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .pet-picker-item.active .pet-picker-name {
+                color: #00acc1;
+            }
+
             /* ── MASTERY TRACK POPUP ── */
             .mastery-track-popup {
                 position: fixed;
@@ -2290,6 +2416,25 @@
                     <div class="vitals-footer-label">Health Care</div>
                     <div class="vitals-footer-pct" id="vitalsPct">95%</div>
                 </div>
+                <!-- Individual stat values -->
+                <div class="vitals-stats-row">
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsHp">100</div>
+                        <div class="vitals-stat-lbl">Health</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsNrg">100</div>
+                        <div class="vitals-stat-lbl">Energy</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsFd">100</div>
+                        <div class="vitals-stat-lbl">Fullness</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsJoy">100</div>
+                        <div class="vitals-stat-lbl">Happiness</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Menu card -->
@@ -2732,11 +2877,10 @@
             </div>
         </div>
 
-        <!-- RADIAL PET DIAL -->
-        <div class="radial-dial" id="radialDial"></div>
-
-        <!-- BOTTOM-CENTER PET SLOTS -->
-        <div class="pet-slots" id="petSlots" style="display: none"></div>
+        <!-- PET PICKER STRIP (above navbar) -->
+        <div class="pet-picker-strip" id="petPickerStrip">
+            <div class="pet-picker-scroll" id="petPickerScroll"></div>
+        </div>
 
         <!-- MASTERY TRACK POPUP -->
         <div class="mastery-track-popup" id="masteryTrackPopup">
@@ -3336,6 +3480,7 @@
 
                 // Concentric rings (outer=health, middle=fullness, inner=happiness)
                 const hp = Math.round(petData.health || 0);
+                const nrg = Math.round(petData.energy || 0);
                 const fd = Math.round(petData.fullness || 0);
                 const joy = Math.round(petData.happiness || 0);
                 const C_HP = 490,
@@ -3348,10 +3493,14 @@
                 document.getElementById("vRingJoy").style.strokeDashoffset =
                     C_JOY * (1 - joy / 100);
 
+                // Individual stat values
+                document.getElementById("vitalsHp").textContent = hp;
+                document.getElementById("vitalsNrg").textContent = nrg;
+                document.getElementById("vitalsFd").textContent = fd;
+                document.getElementById("vitalsJoy").textContent = joy;
+
                 // Average vitality percentage
-                const avg = Math.round(
-                    (hp + fd + joy + Math.round(petData.energy || 0)) / 4,
-                );
+                const avg = Math.round((hp + fd + joy + nrg) / 4);
                 document.getElementById("vitalsPct").textContent = avg + "%";
 
                 // Care Center notification dot (show if pet needs attention)
@@ -3502,7 +3651,7 @@
 
             let mainPetEng = null,
                 mainPetSc = null;
-            let radialEngs = {};
+            let pickerEngs = {};
             function updateMainPetPreview() {
                 if (mainPetEng) {
                     try {
@@ -3523,116 +3672,97 @@
                 mainPetSc = res.sc;
             }
 
-            function buildRadialDial() {
-                const dial = document.getElementById("radialDial");
-                dial.innerHTML = "";
-                Object.values(radialEngs).forEach((e) => {
+            function buildPetPicker() {
+                const strip = document.getElementById("petPickerStrip");
+                const scroll = document.getElementById("petPickerScroll");
+                scroll.innerHTML = "";
+                Object.values(pickerEngs).forEach((e) => {
                     try {
                         e.stopRenderLoop();
                         e.dispose();
                     } catch (err) {}
                 });
-                radialEngs = {};
+                pickerEngs = {};
 
                 const pets = Object.keys(userPets);
                 if (pets.length === 0) {
-                    dial.classList.add("open");
+                    strip.classList.add("open");
                     return;
                 }
 
-                const count = pets.length;
-                const radius = count <= 3 ? 90 : Math.min(130, 80 + count * 8);
-                const angleStep = (2 * Math.PI) / Math.max(count, 1);
-                const startAngle = -Math.PI / 2;
+                const title = document.createElement("div");
+                title.className = "pet-picker-strip-title";
+                title.textContent = "Your Pets";
+                scroll.appendChild(title);
 
-                pets.forEach((pid, i) => {
-                    const angle = startAngle + angleStep * i;
-                    const x = Math.cos(angle) * radius;
-                    const y = Math.sin(angle) * radius;
-
-                    const conn = document.createElement("div");
-                    conn.className = "radial-connector";
-                    const len = Math.sqrt(x * x + y * y);
-                    const rot = (Math.atan2(y, x) * 180) / Math.PI + 90;
-                    conn.style.height = len + "px";
-                    conn.style.transform = `translate(0px, 0px) rotate(${rot}deg)`;
-                    conn.style.transitionDelay = `${i * 0.03}s`;
-                    dial.appendChild(conn);
-
-                    const orb = document.createElement("div");
-                    orb.className =
-                        "radial-orb" + (pid === currentPetId ? " active" : "");
-                    orb.style.transform = `translate(${x}px, ${y}px) scale(0.3)`;
-                    orb.style.transitionDelay = `${i * 0.05}s`;
-                    orb.onclick = (e) => {
+                pets.forEach((pid) => {
+                    const pet = userPets[pid];
+                    const item = document.createElement("div");
+                    item.className =
+                        "pet-picker-item" +
+                        (pid === currentPetId ? " active" : "");
+                    item.onclick = (e) => {
                         e.stopPropagation();
                         selectPet(pid);
-                        closeRadialDial();
+                        closePetPicker();
                     };
 
-                    const circle = document.createElement("div");
-                    circle.className = "radial-orb-circle";
-
+                    const avatar = document.createElement("div");
+                    avatar.className = "pet-picker-avatar";
                     const cvs = document.createElement("canvas");
-                    cvs.id = "radialCvs_" + pid;
-                    circle.appendChild(cvs);
-                    orb.appendChild(circle);
+                    cvs.id = "pickerCvs_" + pid;
+                    avatar.appendChild(cvs);
 
                     const lbl = document.createElement("div");
-                    lbl.className = "radial-orb-name";
-                    lbl.textContent = userPets[pid].name;
-                    orb.appendChild(lbl);
+                    lbl.className = "pet-picker-name";
+                    lbl.textContent = pet.name;
 
-                    dial.appendChild(orb);
+                    item.appendChild(avatar);
+                    item.appendChild(lbl);
+                    scroll.appendChild(item);
 
                     setTimeout(() => {
-                        const res = loadBubblePreview(
-                            userPets[pid].type,
-                            cvs,
-                            null,
-                        );
-                        if (res && res.eng) radialEngs[pid] = res.eng;
+                        const res = loadBubblePreview(pet.type, cvs, null);
+                        if (res && res.eng) pickerEngs[pid] = res.eng;
                     }, 80);
                 });
 
-                // force reflow then animate
-                dial.offsetHeight;
-                dial.classList.add("open");
+                strip.classList.add("open");
             }
 
-            function closeRadialDial() {
-                const dial = document.getElementById("radialDial");
-                dial.classList.remove("open");
+            function closePetPicker() {
+                const strip = document.getElementById("petPickerStrip");
+                strip.classList.remove("open");
                 setTimeout(() => {
-                    dial.innerHTML = "";
-                    Object.values(radialEngs).forEach((e) => {
+                    document.getElementById("petPickerScroll").innerHTML = "";
+                    Object.values(pickerEngs).forEach((e) => {
                         try {
                             e.stopRenderLoop();
                             e.dispose();
                         } catch (err) {}
                     });
-                    radialEngs = {};
-                }, 400);
+                    pickerEngs = {};
+                }, 300);
             }
 
             function toggleRadialDial() {
-                const dial = document.getElementById("radialDial");
-                if (dial.classList.contains("open")) {
-                    closeRadialDial();
+                const strip = document.getElementById("petPickerStrip");
+                if (strip.classList.contains("open")) {
+                    closePetPicker();
                 } else {
-                    buildRadialDial();
+                    buildPetPicker();
                 }
             }
 
             document.addEventListener("click", (e) => {
-                const dial = document.getElementById("radialDial");
+                const strip = document.getElementById("petPickerStrip");
                 const main = document.getElementById("yeapNavMain");
                 if (
-                    dial.classList.contains("open") &&
-                    !dial.contains(e.target) &&
+                    strip.classList.contains("open") &&
+                    !strip.contains(e.target) &&
                     !(main && main.contains(e.target))
                 ) {
-                    closeRadialDial();
+                    closePetPicker();
                 }
             });
             function selectPet(pid) {
