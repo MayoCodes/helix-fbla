@@ -155,137 +155,257 @@
             }
 
             /* ── LEFT ACTIVE-LINK PANEL ── */
-            .active-link-panel {
+            /* ═══════════════════════════════════════════
+               LEFT CARD STACK (new design)
+               ═══════════════════════════════════════════ */
+            .left-card-stack {
                 position: fixed;
                 left: 24px;
                 top: 50%;
                 transform: translateY(-50%);
                 z-index: 100;
-                width: 240px;
-                background: rgba(30, 30, 30, 0.85);
+                width: 280px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            /* Profile mini card */
+            .profile-mini-card {
+                background: rgba(245, 245, 245, 0.96);
                 backdrop-filter: blur(20px);
                 border-radius: 20px;
-                padding: 24px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-            }
-            .al-header {
+                padding: 12px 16px;
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                margin-bottom: 8px;
+                gap: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             }
-            .al-dot {
-                width: 6px;
-                height: 6px;
-                background: #00d2ff;
+            .pmc-avatar {
+                width: 44px;
+                height: 44px;
                 border-radius: 50%;
-                box-shadow: 0 0 8px #00d2ff;
+                overflow: hidden;
+                border: 2px solid #e91e63;
+                flex-shrink: 0;
             }
-            .al-label {
-                font-size: 0.6rem;
-                font-weight: 700;
-                color: #00d2ff;
-                text-transform: uppercase;
-                letter-spacing: 1.5px;
-                font-family: "Inter", sans-serif;
+            .pmc-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
-            .al-name {
-                font-size: 1.6rem;
+            .pmc-info {
+                flex: 1;
+                min-width: 0;
+            }
+            .pmc-name {
+                font-size: 1rem;
                 font-weight: 800;
-                color: #fff;
-                margin-bottom: 4px;
+                color: #1a1a1a;
                 font-family: "Inter", sans-serif;
+                line-height: 1.2;
             }
-            .al-class {
-                font-size: 0.75rem;
-                color: rgba(255, 255, 255, 0.5);
-                margin-bottom: 24px;
+            .pmc-sub {
+                font-size: 0.72rem;
+                color: #888;
+                font-weight: 600;
+                font-family: "Inter", sans-serif;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 2px;
+            }
+            .pmc-coins {
+                font-size: 0.95rem;
+                font-weight: 800;
+                color: #f4a020;
                 font-family: "Inter", sans-serif;
             }
 
-            .stats-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                margin-bottom: 20px;
+            /* Vitals card */
+            .vitals-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 24px;
+                padding: 20px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             }
-            .stat-ring {
+            .vitals-header {
                 display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
+                align-items: flex-start;
+                justify-content: space-between;
+                margin-bottom: 4px;
             }
-            .ring-wrap {
-                position: relative;
-                width: 60px;
-                height: 60px;
+            .vitals-name {
+                font-size: 1.15rem;
+                font-weight: 800;
+                color: #1a1a1a;
+                font-family: "Inter", sans-serif;
+                cursor: pointer;
             }
-            .ring-svg {
-                width: 60px;
-                height: 60px;
-                transform: rotate(-90deg);
-            }
-            .ring-bg {
-                fill: none;
-                stroke: rgba(255, 255, 255, 0.1);
-                stroke-width: 4;
-            }
-            .ring-fill {
-                fill: none;
-                stroke-width: 4;
-                stroke-linecap: round;
-                transition: stroke-dashoffset 0.6s ease;
-            }
-            .ring-fill.hp {
-                stroke: #00d2ff;
-            }
-            .ring-fill.nrg {
-                stroke: #f4c430;
-            }
-            .ring-fill.fd {
-                stroke: #ff6b35;
-            }
-            .ring-fill.joy {
-                stroke: #4ecdc4;
-            }
-            .stat-icon {
-                position: absolute;
-                inset: 0;
-                margin: auto;
-                width: 24px;
-                height: 24px;
+            .vitals-menu-btn {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                background: rgba(0, 0, 0, 0.03);
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                cursor: pointer;
+                color: #888;
+                font-size: 1rem;
+                transition: all 0.2s;
             }
-            .stat-label {
-                font-size: 0.7rem;
+            .vitals-menu-btn:hover {
+                background: rgba(0, 0, 0, 0.06);
+            }
+            .vitals-sub {
+                font-size: 0.6rem;
                 font-weight: 700;
-                color: rgba(255, 255, 255, 0.6);
+                color: #aaa;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
                 font-family: "Inter", sans-serif;
+                margin-bottom: 20px;
             }
-
-            .burn-rate {
+            .vitals-rings {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                width: 180px;
+                height: 180px;
+                margin: 0 auto 16px;
+            }
+            .vitals-rings svg {
+                transform: rotate(-90deg);
+            }
+            .vitals-center {
+                position: absolute;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            }
+            .vitals-center svg {
+                width: 24px;
+                height: 24px;
+                transform: none;
+                color: #e91e63;
+            }
+            .vitals-footer {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                background: rgba(0, 0, 0, 0.3);
-                border-radius: 10px;
-                padding: 10px 14px;
+                padding: 0 4px;
             }
-            .burn-label {
+            .vitals-footer-label {
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: #e91e63;
+                font-family: "Inter", sans-serif;
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                font-size: 0.7rem;
-                color: rgba(255, 255, 255, 0.5);
+            }
+            .vitals-footer-label::before {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #e91e63;
+            }
+            .vitals-footer-pct {
+                font-size: 0.95rem;
+                font-weight: 800;
+                color: #1a1a1a;
                 font-family: "Inter", sans-serif;
             }
-            .burn-val {
-                font-size: 0.85rem;
+
+            /* Menu card */
+            .menu-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 24px;
+                padding: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .menu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 14px;
+                border-radius: 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+                position: relative;
+                border: none;
+                background: transparent;
+                width: 100%;
+                text-align: left;
+            }
+            .menu-item:hover {
+                background: rgba(0, 0, 0, 0.04);
+            }
+            .menu-item.active {
+                background: rgba(233, 30, 99, 0.08);
+            }
+            .menu-item.active .menu-item-icon {
+                color: #e91e63;
+            }
+            .menu-item.active .menu-item-label {
+                color: #e91e63;
                 font-weight: 700;
-                color: #fff;
+            }
+            .menu-item-icon {
+                width: 20px;
+                height: 20px;
+                color: #666;
+                flex-shrink: 0;
+            }
+            .menu-item-label {
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: #555;
                 font-family: "Inter", sans-serif;
+                flex: 1;
+            }
+            .menu-item-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #ff6b6b;
+                flex-shrink: 0;
+            }
+            .expand-family-btn {
+                width: 100%;
+                padding: 14px;
+                border-radius: 16px;
+                border: none;
+                background: linear-gradient(135deg, #1abc9c, #16a085);
+                color: #fff;
+                font-size: 0.9rem;
+                font-weight: 700;
+                font-family: "Inter", sans-serif;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.2s;
+                margin-top: 4px;
+            }
+            .expand-family-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4);
             }
 
             /* ── BOTTOM NAV ── */
@@ -2022,186 +2142,251 @@
             </div>
         </div>
 
-        <!-- LEFT ACTIVE-LINK PANEL -->
-        <div class="active-link-panel">
-            <div class="al-header">
-                <div class="al-dot"></div>
-                <div class="al-label">Active Link</div>
+        <!-- LEFT CARD STACK -->
+        <div class="left-card-stack">
+            <!-- Profile mini card -->
+            <div class="profile-mini-card">
+                <div class="pmc-avatar">
+                    <img src="https://i.pravatar.cc/150?img=12" alt="avatar" />
+                </div>
+                <div class="pmc-info">
+                    <div class="pmc-name" id="pmcName">Emilia V.</div>
+                    <div class="pmc-sub">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="#f4a020"
+                            stroke="none"
+                        >
+                            <path
+                                d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
+                            />
+                        </svg>
+                        <span id="pmcSub">Lv. 5 Trainer</span>
+                    </div>
+                </div>
+                <div class="pmc-coins" id="pmcCoins">$433</div>
             </div>
-            <div
-                class="al-name"
-                id="yeapPetName"
-                onclick="toggleMasteryTrack()"
-            >
-                —
-            </div>
-            <div class="al-class" id="yeapPetClass">
-                Class: Cyber-Hound (V.2)
-            </div>
-            <div style="margin-top: 8px">
-                <span class="mastery-badge mastery-iron" id="yeapMasteryBadge">
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        width="11"
-                        height="11"
+
+            <!-- Vitals card -->
+            <div class="vitals-card">
+                <div class="vitals-header">
+                    <div
+                        class="vitals-name"
+                        id="vitalsPetName"
+                        onclick="toggleMasteryTrack()"
                     >
-                        <path
-                            d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
-                        /></svg
-                    >Iron
-                </span>
-            </div>
+                        Skullu
+                    </div>
+                    <button
+                        class="vitals-menu-btn"
+                        onclick="toggleMasteryTrack()"
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="19" cy="12" r="1" />
+                            <circle cx="5" cy="12" r="1" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="vitals-sub">VITALS SYNC</div>
 
-            <div class="stats-grid">
-                <div class="stat-ring">
-                    <div class="ring-wrap">
-                        <svg class="ring-svg" viewBox="0 0 60 60">
-                            <circle class="ring-bg" cx="30" cy="30" r="26" />
-                            <circle
-                                class="ring-fill hp"
-                                id="ringHp"
-                                cx="30"
-                                cy="30"
-                                r="26"
-                                stroke-dasharray="163.36"
-                                stroke-dashoffset="163.36"
+                <div class="vitals-rings">
+                    <svg width="180" height="180" viewBox="0 0 180 180">
+                        <!-- Outer ring (Health - pink/red) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="78"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingHp"
+                            cx="90"
+                            cy="90"
+                            r="78"
+                            fill="none"
+                            stroke="#ff5a7e"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="490"
+                            stroke-dashoffset="490"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <!-- Middle ring (Fullness - orange) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="60"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingFd"
+                            cx="90"
+                            cy="90"
+                            r="60"
+                            fill="none"
+                            stroke="#ffa726"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="377"
+                            stroke-dashoffset="377"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <!-- Inner ring (Happiness - green) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="42"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingJoy"
+                            cx="90"
+                            cy="90"
+                            r="42"
+                            fill="none"
+                            stroke="#26a69a"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="264"
+                            stroke-dashoffset="264"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                    </svg>
+                    <div class="vitals-center">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                             />
                         </svg>
-                        <div class="stat-icon">
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#00d2ff"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                />
-                            </svg>
-                        </div>
                     </div>
-                    <div class="stat-label" id="lblHp">0% HP</div>
                 </div>
-                <div class="stat-ring">
-                    <div class="ring-wrap">
-                        <svg class="ring-svg" viewBox="0 0 60 60">
-                            <circle class="ring-bg" cx="30" cy="30" r="26" />
-                            <circle
-                                class="ring-fill nrg"
-                                id="ringNrg"
-                                cx="30"
-                                cy="30"
-                                r="26"
-                                stroke-dasharray="163.36"
-                                stroke-dashoffset="163.36"
-                            />
-                        </svg>
-                        <div class="stat-icon">
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#f4c430"
-                                stroke-width="2.5"
-                            >
-                                <polygon
-                                    points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
-                                />
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="stat-label" id="lblNrg">0% NRG</div>
-                </div>
-                <div class="stat-ring">
-                    <div class="ring-wrap">
-                        <svg class="ring-svg" viewBox="0 0 60 60">
-                            <circle class="ring-bg" cx="30" cy="30" r="26" />
-                            <circle
-                                class="ring-fill fd"
-                                id="ringFd"
-                                cx="30"
-                                cy="30"
-                                r="26"
-                                stroke-dasharray="163.36"
-                                stroke-dashoffset="163.36"
-                            />
-                        </svg>
-                        <div class="stat-icon">
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#ff6b35"
-                                stroke-width="2.5"
-                            >
-                                <path
-                                    d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"
-                                />
-                                <line x1="6" y1="1" x2="6" y2="4" />
-                                <line x1="10" y1="1" x2="10" y2="4" />
-                                <line x1="14" y1="1" x2="14" y2="4" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="stat-label" id="lblFd">0% FD</div>
-                </div>
-                <div class="stat-ring">
-                    <div class="ring-wrap">
-                        <svg class="ring-svg" viewBox="0 0 60 60">
-                            <circle class="ring-bg" cx="30" cy="30" r="26" />
-                            <circle
-                                class="ring-fill joy"
-                                id="ringJoy"
-                                cx="30"
-                                cy="30"
-                                r="26"
-                                stroke-dasharray="163.36"
-                                stroke-dashoffset="163.36"
-                            />
-                        </svg>
-                        <div class="stat-icon">
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#4ecdc4"
-                                stroke-width="2.5"
-                            >
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                                <line x1="9" y1="9" x2="9.01" y2="9" />
-                                <line x1="15" y1="9" x2="15.01" y2="9" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="stat-label" id="lblJoy">0% JOY</div>
+
+                <div class="vitals-footer">
+                    <div class="vitals-footer-label">Health Care</div>
+                    <div class="vitals-footer-pct" id="vitalsPct">95%</div>
                 </div>
             </div>
 
-            <div class="burn-rate">
-                <div class="burn-label">
+            <!-- Menu card -->
+            <div class="menu-card">
+                <button class="menu-item active" id="menuBaseCamp">
                     <svg
-                        width="14"
-                        height="14"
+                        class="menu-item-icon"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                     >
                         <path
-                            d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
                         />
-                        <path d="M12 6v6l4 2" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
-                    Burn Rate
-                </div>
-                <div class="burn-val" id="yeapBurnRate">-12.5 / hr</div>
+                    <span class="menu-item-label">Base Camp</span>
+                </button>
+                <button
+                    class="menu-item"
+                    id="menuCareCenter"
+                    onclick="togglePanel('carePanel')"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                    <span class="menu-item-label">Care Center</span>
+                    <span
+                        class="menu-item-dot"
+                        id="careCenterDot"
+                        style="display: none"
+                    ></span>
+                </button>
+                <button class="menu-item" id="menuNutrition">
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                        />
+                    </svg>
+                    <span class="menu-item-label">Nutrition</span>
+                </button>
+                <button class="menu-item" id="menuMoments">
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect
+                            x="3"
+                            y="3"
+                            width="18"
+                            height="18"
+                            rx="2"
+                            ry="2"
+                        />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span class="menu-item-label">Moments</span>
+                </button>
+                <button class="expand-family-btn" onclick="openSetupModal()">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Expand Family
+                </button>
             </div>
         </div>
 
@@ -3120,49 +3305,38 @@
                     document.getElementById("yeapProfileName").textContent =
                         currentUser.displayName || "Trainer";
                 }
-                document.getElementById("yeapPetName").textContent =
-                    petData.name || "—";
-                const traits = PET_TRAITS[petData.type];
-                document.getElementById("yeapPetClass").textContent = traits
-                    ? `Class: ${traits.name} (V.2)`
-                    : "Class: Cyber-Hound (V.2)";
 
-                // Circular rings
-                const C = 163.36;
+                // Profile mini card
+                document.getElementById("pmcName").textContent =
+                    currentUser?.displayName || "Trainer";
+                document.getElementById("pmcSub").textContent =
+                    "Lv. " + (petData.level || 1) + " Trainer";
+                document.getElementById("pmcCoins").textContent =
+                    "$" + Math.max(0, _ct.budgetRemaining || 0);
+
+                // Vitals card
+                document.getElementById("vitalsPetName").textContent =
+                    petData.name || "—";
+
+                // Concentric rings (outer=health, middle=fullness, inner=happiness)
                 const hp = Math.round(petData.health || 0);
-                const nrg = Math.round(petData.energy || 0);
                 const fd = Math.round(petData.fullness || 0);
                 const joy = Math.round(petData.happiness || 0);
-                document.getElementById("ringHp").style.strokeDashoffset =
-                    C * (1 - hp / 100);
-                document.getElementById("ringNrg").style.strokeDashoffset =
-                    C * (1 - nrg / 100);
-                document.getElementById("ringFd").style.strokeDashoffset =
-                    C * (1 - fd / 100);
-                document.getElementById("ringJoy").style.strokeDashoffset =
-                    C * (1 - joy / 100);
-                document.getElementById("lblHp").textContent = hp + "% HP";
-                document.getElementById("lblNrg").textContent = nrg + "% NRG";
-                document.getElementById("lblFd").textContent = fd + "% FD";
-                document.getElementById("lblJoy").textContent = joy + "% JOY";
+                const C_HP = 490,
+                    C_FD = 377,
+                    C_JOY = 264;
+                document.getElementById("vRingHp").style.strokeDashoffset =
+                    C_HP * (1 - hp / 100);
+                document.getElementById("vRingFd").style.strokeDashoffset =
+                    C_FD * (1 - fd / 100);
+                document.getElementById("vRingJoy").style.strokeDashoffset =
+                    C_JOY * (1 - joy / 100);
 
-                // Mastery badge
-                const m = getMastery(petData.bond || 0);
-                const mb = document.getElementById("yeapMasteryBadge");
-                if (mb) {
-                    mb.className = "mastery-badge " + m.cls;
-                    mb.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>${m.label}`;
-                }
-
-                // Burn rate (stats decay per hour)
-                const burnRate = (
-                    (100 - petData.health) * 0.02 +
-                    (100 - petData.happiness) * 0.03 +
-                    (100 - petData.fullness) * 0.04 +
-                    (100 - petData.energy) * 0.02
-                ).toFixed(1);
-                document.getElementById("yeapBurnRate").textContent =
-                    "-" + burnRate + " / hr";
+                // Average vitality percentage
+                const avg = Math.round(
+                    (hp + fd + joy + Math.round(petData.energy || 0)) / 4,
+                );
+                document.getElementById("vitalsPct").textContent = avg + "%";
 
                 // ── Original UI updates (kept for functionality) ──
                 document.getElementById("speechBubble").textContent =
@@ -3523,13 +3697,6 @@
                     personality;
                 document.getElementById("chatPetName").textContent =
                     petData.name || "—";
-                // Update mastery badge in active-link panel
-                const m = getMastery(petData.bond || 0);
-                const mb = document.getElementById("yeapMasteryBadge");
-                if (mb) {
-                    mb.className = "mastery-badge " + m.cls;
-                    mb.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>${m.label}`;
-                }
             }
 
             function toggleChatPanel() {
@@ -4382,7 +4549,7 @@ Coins 5-15, Bond 10-30, Duration 5-30 min. Make them specific to a ${traits.name
                 if (!popup.classList.contains("open")) return;
                 if (
                     !popup.contains(e.target) &&
-                    !e.target.closest(".active-link-panel")
+                    !e.target.closest(".vitals-card")
                 ) {
                     popup.classList.remove("open");
                 }
