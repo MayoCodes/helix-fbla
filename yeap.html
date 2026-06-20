@@ -408,7 +408,7 @@
                 box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4);
             }
 
-            /* ── BOTTOM NAV ── */
+            /* ── BOTTOM NAV (white / cyan) ── */
             .yeap-bottom-nav {
                 position: fixed;
                 bottom: 24px;
@@ -417,37 +417,41 @@
                 z-index: 100;
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                background: rgba(40, 40, 40, 0.9);
+                gap: 6px;
+                background: rgba(255, 255, 255, 0.95);
                 backdrop-filter: blur(20px);
                 border-radius: 24px;
-                padding: 8px 16px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 8px 14px;
+                border: 1px solid rgba(0, 210, 255, 0.15);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             }
             .yeap-nav-btn {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                gap: 4px;
-                padding: 8px 16px;
+                gap: 3px;
+                padding: 8px 14px;
                 border-radius: 16px;
                 cursor: pointer;
                 transition: all 0.2s;
-                color: rgba(255, 255, 255, 0.5);
+                color: #889;
+                background: transparent;
+                border: none;
             }
             .yeap-nav-btn:hover {
-                background: rgba(255, 255, 255, 0.05);
-                color: #fff;
+                background: rgba(0, 210, 255, 0.08);
+                color: #00bcd4;
             }
             .yeap-nav-btn.active {
-                color: #fff;
+                background: rgba(0, 210, 255, 0.12);
+                color: #00acc1;
             }
             .yeap-nav-btn svg {
                 width: 20px;
                 height: 20px;
             }
             .yeap-nav-btn span {
-                font-size: 0.6rem;
+                font-size: 0.58rem;
                 font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
@@ -458,13 +462,13 @@
                 width: 56px;
                 height: 56px;
                 border-radius: 50%;
-                background: #1a1a1a;
-                border: 2px solid #00d2ff;
+                background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+                border: 2px solid #00bcd4;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 margin: 0 8px;
-                box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+                box-shadow: 0 0 20px rgba(0, 188, 212, 0.25);
                 cursor: pointer;
                 overflow: hidden;
                 transition:
@@ -474,13 +478,13 @@
             }
             .yeap-nav-main:hover {
                 transform: scale(1.08);
-                box-shadow: 0 0 30px rgba(0, 210, 255, 0.5);
+                box-shadow: 0 0 30px rgba(0, 188, 212, 0.4);
             }
             .yeap-nav-main-inner {
                 width: 44px;
                 height: 44px;
                 border-radius: 50%;
-                background: #000;
+                background: #fff;
                 overflow: hidden;
             }
             .yeap-nav-main-inner canvas {
@@ -493,7 +497,7 @@
                 position: absolute;
                 inset: -5px;
                 border-radius: 50%;
-                border: 1.5px solid rgba(0, 210, 255, 0);
+                border: 1.5px solid rgba(0, 188, 212, 0);
                 transition: border-color 0.3s ease;
                 pointer-events: none;
             }
@@ -502,16 +506,16 @@
                 .yeap-nav-main
                 .yeap-nav-main-ring,
             .yeap-nav-main.active .yeap-nav-main-ring {
-                border-color: rgba(0, 210, 255, 0.5);
+                border-color: rgba(0, 188, 212, 0.5);
                 animation: hubPulse 2s ease-in-out infinite;
             }
             @keyframes hubPulse {
                 0%,
                 100% {
-                    box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.3);
+                    box-shadow: 0 0 0 0 rgba(0, 188, 212, 0.3);
                 }
                 50% {
-                    box-shadow: 0 0 0 8px rgba(0, 210, 255, 0);
+                    box-shadow: 0 0 0 8px rgba(0, 188, 212, 0);
                 }
             }
             /* ── RADIAL PET DIAL ── */
@@ -2290,7 +2294,11 @@
 
             <!-- Menu card -->
             <div class="menu-card">
-                <button class="menu-item active" id="menuBaseCamp">
+                <button
+                    class="menu-item active"
+                    id="menuBaseCamp"
+                    onclick="goBaseCamp()"
+                >
                     <svg
                         class="menu-item-icon"
                         viewBox="0 0 24 24"
@@ -2310,7 +2318,7 @@
                 <button
                     class="menu-item"
                     id="menuCareCenter"
-                    onclick="togglePanel('carePanel')"
+                    onclick="goCareCenter()"
                 >
                     <svg
                         class="menu-item-icon"
@@ -2330,7 +2338,11 @@
                         style="display: none"
                     ></span>
                 </button>
-                <button class="menu-item" id="menuNutrition">
+                <button
+                    class="menu-item"
+                    id="menuNutrition"
+                    onclick="goNutrition()"
+                >
                     <svg
                         class="menu-item-icon"
                         viewBox="0 0 24 24"
@@ -2348,7 +2360,11 @@
                     </svg>
                     <span class="menu-item-label">Nutrition</span>
                 </button>
-                <button class="menu-item" id="menuMoments">
+                <button
+                    class="menu-item"
+                    id="menuMoments"
+                    onclick="goMoments()"
+                >
                     <svg
                         class="menu-item-icon"
                         viewBox="0 0 24 24"
@@ -3338,6 +3354,15 @@
                 );
                 document.getElementById("vitalsPct").textContent = avg + "%";
 
+                // Care Center notification dot (show if pet needs attention)
+                const needsCare =
+                    petData.health < 50 ||
+                    petData.fullness < 30 ||
+                    petData.happiness < 40 ||
+                    petData.energy < 25;
+                document.getElementById("careCenterDot").style.display =
+                    needsCare ? "block" : "none";
+
                 // ── Original UI updates (kept for functionality) ──
                 document.getElementById("speechBubble").textContent =
                     getMoodBubble();
@@ -3627,6 +3652,52 @@
             }
 
             // ═══════════════════════════════════════════
+            // LEFT MENU NAVIGATION
+            // ═══════════════════════════════════════════
+            function setMenuActive(id) {
+                document
+                    .querySelectorAll(".menu-item")
+                    .forEach((n) => n.classList.remove("active"));
+                const el = document.getElementById(id);
+                if (el) el.classList.add("active");
+            }
+            function goBaseCamp() {
+                setMenuActive("menuBaseCamp");
+                document
+                    .querySelectorAll(".overlay-panel")
+                    .forEach((p) => p.classList.remove("open"));
+                document.getElementById("chatPanel").classList.remove("open");
+                chatOpen = false;
+            }
+            function goCareCenter() {
+                setMenuActive("menuCareCenter");
+                document
+                    .querySelectorAll(".overlay-panel")
+                    .forEach((p) => p.classList.remove("open"));
+                document.getElementById("chatPanel").classList.remove("open");
+                chatOpen = false;
+                document.getElementById("carePanel").classList.add("open");
+            }
+            function goNutrition() {
+                setMenuActive("menuNutrition");
+                document
+                    .querySelectorAll(".overlay-panel")
+                    .forEach((p) => p.classList.remove("open"));
+                document.getElementById("chatPanel").classList.remove("open");
+                chatOpen = false;
+                showAlert("Nutrition panel coming soon! 🍎", "info");
+            }
+            function goMoments() {
+                setMenuActive("menuMoments");
+                document
+                    .querySelectorAll(".overlay-panel")
+                    .forEach((p) => p.classList.remove("open"));
+                document.getElementById("chatPanel").classList.remove("open");
+                chatOpen = false;
+                showAlert("Moments gallery coming soon! 📸", "info");
+            }
+
+            // ═══════════════════════════════════════════
             // PANELS
             // ═══════════════════════════════════════════
             function togglePanel(id) {
@@ -3640,11 +3711,16 @@
                         .getElementById("chatPanel")
                         .classList.remove("open");
                     chatOpen = false;
+                    p.classList.add("open");
+                    if (id === "carePanel") setMenuActive("menuCareCenter");
+                    else if (id === "tasksPanel") setMenuActive("menuBaseCamp");
+                } else {
+                    setMenuActive("menuBaseCamp");
                 }
-                if (!open) p.classList.add("open");
             }
             function closePanel(id) {
                 document.getElementById(id).classList.remove("open");
+                setMenuActive("menuBaseCamp");
             }
 
             function setYeapNav(key) {
@@ -3679,7 +3755,9 @@
                         .getElementById("chatPanel")
                         .classList.remove("open");
                     chatOpen = false;
+                    setMenuActive("menuBaseCamp");
                 }
+                if (key === "chat") setMenuActive("menuBaseCamp");
             }
 
             // ═══════════════════════════════════════════
@@ -3707,6 +3785,7 @@
                         .querySelectorAll(".overlay-panel")
                         .forEach((x) => x.classList.remove("open"));
                     panel.classList.add("open");
+                    setMenuActive("menuBaseCamp");
                     updateChatHeader();
                     if (chatHistory.length === 0) {
                         const traits = PET_TRAITS[petData.type];
