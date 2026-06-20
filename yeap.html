@@ -1577,27 +1577,13 @@
                 transform: translateX(-50%);
                 z-index: 95;
                 width: min(520px, calc(100vw - 48px));
-                background: rgba(255, 255, 255, 0.96);
-                backdrop-filter: blur(20px);
-                border-radius: 20px;
-                padding: 12px 16px;
-                border: 1px solid rgba(0, 210, 255, 0.15);
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
                 display: none;
                 flex-direction: column;
                 gap: 8px;
+                pointer-events: none;
             }
             .pet-picker-strip.open {
                 display: flex;
-            }
-            .pet-picker-strip-title {
-                font-size: 0.7rem;
-                font-weight: 700;
-                color: #888;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                font-family: "Inter", sans-serif;
-                text-align: center;
             }
             .pet-picker-scroll {
                 display: flex;
@@ -1605,7 +1591,8 @@
                 overflow-x: auto;
                 scroll-behavior: smooth;
                 scrollbar-width: none;
-                padding-bottom: 4px;
+                padding: 8px 4px;
+                pointer-events: auto;
             }
             .pet-picker-scroll::-webkit-scrollbar {
                 display: none;
@@ -1619,43 +1606,44 @@
                 padding: 6px;
                 border-radius: 14px;
                 transition: all 0.2s;
-                min-width: 72px;
+                min-width: 64px;
                 border: 2px solid transparent;
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(12px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             }
             .pet-picker-item:hover {
-                background: rgba(0, 210, 255, 0.06);
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
             }
             .pet-picker-item.active {
                 border-color: #00bcd4;
-                background: rgba(0, 210, 255, 0.08);
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 0 16px rgba(0, 188, 212, 0.25);
             }
             .pet-picker-avatar {
-                width: 56px;
-                height: 56px;
+                width: 48px;
+                height: 48px;
                 border-radius: 50%;
-                overflow: hidden;
-                background: #f0f0f0;
-                border: 2px solid #e0e0e0;
-                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.8rem;
+                background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+                border: 2px solid rgba(0, 188, 212, 0.2);
             }
             .pet-picker-item.active .pet-picker-avatar {
                 border-color: #00bcd4;
                 box-shadow: 0 0 12px rgba(0, 188, 212, 0.3);
             }
-            .pet-picker-avatar canvas {
-                width: 100%;
-                height: 100%;
-                border-radius: 50%;
-                display: block;
-            }
             .pet-picker-name {
-                font-size: 0.72rem;
+                font-size: 0.68rem;
                 font-weight: 700;
                 color: #555;
                 font-family: "Inter", sans-serif;
                 white-space: nowrap;
                 text-align: center;
-                max-width: 72px;
+                max-width: 64px;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
@@ -3654,7 +3642,6 @@
 
             let mainPetEng = null,
                 mainPetSc = null;
-            let pickerEngs = {};
             function updateMainPetPreview() {
                 if (mainPetEng) {
                     try {
@@ -3679,13 +3666,6 @@
                 const strip = document.getElementById("petPickerStrip");
                 const scroll = document.getElementById("petPickerScroll");
                 scroll.innerHTML = "";
-                Object.values(pickerEngs).forEach((e) => {
-                    try {
-                        e.stopRenderLoop();
-                        e.dispose();
-                    } catch (err) {}
-                });
-                pickerEngs = {};
 
                 const pets = Object.keys(userPets);
                 if (pets.length === 0) {
@@ -3693,13 +3673,9 @@
                     return;
                 }
 
-                const title = document.createElement("div");
-                title.className = "pet-picker-strip-title";
-                title.textContent = "Your Pets";
-                scroll.appendChild(title);
-
                 pets.forEach((pid) => {
                     const pet = userPets[pid];
+                    const traits = PET_TRAITS[pet.type];
                     const item = document.createElement("div");
                     item.className =
                         "pet-picker-item" +
@@ -3712,9 +3688,7 @@
 
                     const avatar = document.createElement("div");
                     avatar.className = "pet-picker-avatar";
-                    const cvs = document.createElement("canvas");
-                    cvs.id = "pickerCvs_" + pid;
-                    avatar.appendChild(cvs);
+                    avatar.textContent = traits?.emoji || "🐾";
 
                     const lbl = document.createElement("div");
                     lbl.className = "pet-picker-name";
@@ -3723,11 +3697,6 @@
                     item.appendChild(avatar);
                     item.appendChild(lbl);
                     scroll.appendChild(item);
-
-                    setTimeout(() => {
-                        const res = loadBubblePreview(pet.type, cvs, null);
-                        if (res && res.eng) pickerEngs[pid] = res.eng;
-                    }, 80);
                 });
 
                 strip.classList.add("open");
@@ -3738,13 +3707,6 @@
                 strip.classList.remove("open");
                 setTimeout(() => {
                     document.getElementById("petPickerScroll").innerHTML = "";
-                    Object.values(pickerEngs).forEach((e) => {
-                        try {
-                            e.stopRenderLoop();
-                            e.dispose();
-                        } catch (err) {}
-                    });
-                    pickerEngs = {};
                 }, 300);
             }
 
