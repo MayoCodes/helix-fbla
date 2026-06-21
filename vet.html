@@ -1,0 +1,1518 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>City Vet Simulator - Patient Treatment Plan</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    "Inter",
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+                background: linear-gradient(
+                    135deg,
+                    #dce3eb 0%,
+                    #eef1f5 40%,
+                    #e2e6ec 100%
+                );
+                min-height: 100vh;
+                display: flex;
+                overflow: hidden;
+                color: #1f2937;
+            }
+
+            /* Background atmosphere */
+            .bg-atmosphere {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                overflow: hidden;
+            }
+
+            .blob {
+                position: absolute;
+                border-radius: 50%;
+                filter: blur(90px);
+                opacity: 0.35;
+            }
+
+            .blob-1 {
+                width: 500px;
+                height: 500px;
+                background: #cbd5e1;
+                top: -10%;
+                right: 10%;
+            }
+
+            .blob-2 {
+                width: 400px;
+                height: 400px;
+                background: #d1d5db;
+                bottom: -5%;
+                left: 30%;
+            }
+
+            /* Left Sidebar */
+            .sidebar {
+                width: 320px;
+                min-width: 320px;
+                background: #e8ecf1;
+                padding: 32px 24px;
+                display: flex;
+                flex-direction: column;
+                z-index: 1;
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.03);
+            }
+
+            .sidebar-header {
+                margin-bottom: 28px;
+            }
+
+            .sidebar-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #94a3b8;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                margin-bottom: 6px;
+            }
+
+            .sidebar-title-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .sidebar-title {
+                font-size: 24px;
+                font-weight: 800;
+                color: #111827;
+                letter-spacing: -0.02em;
+            }
+
+            .case-badge {
+                font-size: 10px;
+                font-weight: 700;
+                color: #9ca3af;
+                background: #dfe4ea;
+                padding: 4px 10px;
+                border-radius: 6px;
+                letter-spacing: 0.05em;
+            }
+
+            .cards-stack {
+                position: relative;
+                height: 420px;
+                width: 100%;
+            }
+
+            .patient-card {
+                background: white;
+                border-radius: 16px;
+                padding: 20px;
+                box-shadow:
+                    0 4px 20px rgba(0, 0, 0, 0.06),
+                    0 1px 2px rgba(0, 0, 0, 0.04);
+                position: absolute;
+                width: 100%;
+                left: 0;
+                transition:
+                    transform 0.25s ease,
+                    box-shadow 0.25s ease,
+                    z-index 0s;
+                cursor: pointer;
+            }
+
+            .patient-card:nth-child(1) {
+                top: 0;
+                left: 0;
+                transform: rotate(-2deg);
+                z-index: 4;
+            }
+
+            .patient-card:nth-child(2) {
+                top: 68px;
+                left: 4px;
+                transform: rotate(-2deg);
+                z-index: 3;
+            }
+
+            .patient-card:nth-child(3) {
+                top: 136px;
+                left: 8px;
+                transform: rotate(-2deg);
+                z-index: 2;
+            }
+
+            .patient-card:nth-child(4) {
+                top: 204px;
+                left: 12px;
+                transform: rotate(-2deg);
+                z-index: 1;
+            }
+
+            .patient-card:hover {
+                transform: rotate(0deg) translateY(-6px);
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+                z-index: 10;
+            }
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 12px;
+            }
+
+            .pet-name {
+                font-size: 16px;
+                font-weight: 700;
+                color: #111827;
+            }
+
+            .pet-number {
+                font-size: 11px;
+                color: #9ca3af;
+                font-weight: 600;
+                margin-left: 4px;
+            }
+
+            .card-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+
+            .card-field-label {
+                font-size: 9px;
+                font-weight: 700;
+                color: #cbd5e1;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                margin-bottom: 4px;
+            }
+
+            .card-field-value {
+                font-size: 13px;
+                color: #374151;
+                font-weight: 500;
+            }
+
+            .urgent-badge {
+                font-size: 9px;
+                font-weight: 800;
+                color: #ef4444;
+                background: #fee2e2;
+                padding: 3px 8px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+
+            .card-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 16px;
+                padding-top: 12px;
+                border-top: 1px solid #f3f4f6;
+            }
+
+            .assigned-to {
+                font-size: 9px;
+                font-weight: 700;
+                color: #cbd5e1;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+            }
+
+            .arrow-btn {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: #f9fafb;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #9ca3af;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .arrow-btn:hover {
+                background: #f3f4f6;
+                color: #6b7280;
+            }
+
+            .placeholder-card {
+                min-height: auto;
+                display: block;
+            }
+
+            .placeholder-card .card-header {
+                margin-bottom: 0;
+            }
+
+            /* Main Content Area */
+            .main {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 40px;
+                position: relative;
+                z-index: 1;
+                background: url("clipbg.png") no-repeat center center;
+                background-size: cover;
+            }
+
+            /* Clipboard Card */
+            .clipboard-wrapper {
+                position: relative;
+                width: 100%;
+                max-width: 920px;
+            }
+
+            .clipboard-clip {
+                position: absolute;
+                top: -28px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 280px;
+                height: 56px;
+                background: linear-gradient(
+                    180deg,
+                    #f1f5f9 0%,
+                    #e2e8f0 40%,
+                    #cbd5e1 45%,
+                    #f8fafc 100%
+                );
+                border-radius: 12px 12px 6px 6px;
+                box-shadow:
+                    0 10px 25px -5px rgba(0, 0, 0, 0.15),
+                    0 4px 6px -2px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                border: 1px solid #94a3b8;
+                z-index: 10;
+            }
+
+            .clipboard-clip::after {
+                content: "";
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 60px;
+                height: 14px;
+                background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+                border-radius: 4px;
+                box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+                border: 1px solid #94a3b8;
+            }
+
+            .treatment-card {
+                background: white;
+                border-radius: 32px;
+                box-shadow:
+                    0 25px 50px -12px rgba(0, 0, 0, 0.12),
+                    0 0 0 1px rgba(0, 0, 0, 0.04);
+                padding: 48px 40px 36px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            /* Card Header */
+            .card-top-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 8px;
+            }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .brand-icon {
+                width: 20px;
+                height: 20px;
+                color: #0ea5e9;
+            }
+
+            .brand-text {
+                font-size: 11px;
+                font-weight: 700;
+                color: #64748b;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+            }
+
+            .funds-section {
+                text-align: right;
+            }
+
+            .funds-label {
+                font-size: 9px;
+                font-weight: 700;
+                color: #94a3b8;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                margin-bottom: 6px;
+            }
+
+            .funds-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                background: #111827;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 999px;
+                font-size: 18px;
+                font-weight: 700;
+                letter-spacing: -0.01em;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+
+            .funds-icon {
+                width: 18px;
+                height: 18px;
+                color: #14b8a6;
+            }
+
+            .plan-title {
+                font-size: 28px;
+                font-weight: 800;
+                color: #111827;
+                margin-bottom: 8px;
+                letter-spacing: -0.02em;
+            }
+
+            .plan-meta {
+                font-size: 12px;
+                color: #94a3b8;
+                font-weight: 500;
+                letter-spacing: 0.02em;
+                margin-bottom: 24px;
+            }
+
+            .divider {
+                height: 1px;
+                background: linear-gradient(
+                    to right,
+                    transparent,
+                    #e5e7eb,
+                    transparent
+                );
+                margin-bottom: 28px;
+            }
+
+            .content-grid {
+                display: grid;
+                grid-template-columns: 1fr 1.3fr;
+                gap: 40px;
+            }
+
+            /* Patient Info */
+            .patient-info-header {
+                display: flex;
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+
+            .patient-avatar-wrap {
+                position: relative;
+                flex-shrink: 0;
+                width: 88px;
+                height: 88px;
+            }
+
+            .patient-avatar {
+                width: 88px;
+                height: 88px;
+                border-radius: 16px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                background: #f3f4f6;
+                overflow: hidden;
+            }
+            .patient-avatar canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+            .critical-badge {
+                position: absolute;
+                bottom: -6px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #ef4444;
+                color: white;
+                font-size: 9px;
+                font-weight: 800;
+                padding: 3px 10px;
+                border-radius: 999px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                border: 2px solid white;
+                box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+                white-space: nowrap;
+            }
+
+            .patient-details h2 {
+                font-size: 22px;
+                font-weight: 800;
+                color: #111827;
+                margin-bottom: 4px;
+                letter-spacing: -0.01em;
+            }
+
+            .patient-subtitle {
+                font-size: 13px;
+                color: #6b7280;
+                margin-bottom: 10px;
+                font-weight: 500;
+            }
+
+            .patient-tags {
+                display: flex;
+                gap: 8px;
+            }
+
+            .tag {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                background: #f3f4f6;
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 11px;
+                color: #4b5563;
+                font-weight: 600;
+            }
+
+            .tag svg {
+                width: 12px;
+                height: 12px;
+                color: #9ca3af;
+            }
+
+            /* Section Labels */
+            .section-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #cbd5e1;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                margin-bottom: 10px;
+            }
+
+            .section-divider {
+                height: 1px;
+                background: #f3f4f6;
+                margin-bottom: 14px;
+            }
+
+            /* Vitals */
+            .vitals-row {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 24px;
+            }
+
+            .vital-card {
+                flex: 1;
+                border: 1px solid #f3f4f6;
+                border-radius: 14px;
+                padding: 14px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: #fafafa;
+            }
+
+            .vital-card.alert {
+                background: #fef2f2;
+                border-color: #fecaca;
+            }
+
+            .vital-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+
+            .vital-icon.heart {
+                background: #fce7f3;
+                color: #ec4899;
+            }
+
+            .vital-icon.temp {
+                background: #fee2e2;
+                color: #ef4444;
+            }
+
+            .vital-icon svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .vital-content {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .vital-label {
+                font-size: 9px;
+                font-weight: 700;
+                color: #cbd5e1;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 2px;
+            }
+
+            .vital-value {
+                font-size: 20px;
+                font-weight: 800;
+                color: #111827;
+                line-height: 1;
+            }
+
+            .vital-unit {
+                font-size: 11px;
+                color: #9ca3af;
+                font-weight: 600;
+                margin-left: 2px;
+            }
+
+            .vital-card.alert .vital-value,
+            .vital-card.alert .vital-unit {
+                color: #dc2626;
+            }
+
+            /* Symptoms */
+            .symptom-list {
+                list-style: none;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .symptom-item {
+                display: flex;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .symptom-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                margin-top: 5px;
+                flex-shrink: 0;
+            }
+
+            .symptom-dot.yellow {
+                background: #f59e0b;
+            }
+
+            .symptom-dot.red {
+                background: #ef4444;
+            }
+
+            .symptom-text {
+                font-size: 13px;
+                color: #4b5563;
+                line-height: 1.5;
+                font-weight: 500;
+            }
+
+            /* Interventions */
+            .interventions-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .interventions-title {
+                font-size: 17px;
+                font-weight: 800;
+                color: #111827;
+            }
+
+            .authorize-btn {
+                font-size: 11px;
+                font-weight: 600;
+                color: #9ca3af;
+                background: #f9fafb;
+                border: 1px solid #f3f4f6;
+                padding: 6px 14px;
+                border-radius: 999px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .authorize-btn:hover {
+                background: #f3f4f6;
+                color: #6b7280;
+            }
+
+            .intervention-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .intervention-item {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 16px;
+                border: 1px solid #f3f4f6;
+                border-radius: 16px;
+                background: white;
+                transition: all 0.2s;
+            }
+
+            .intervention-item:hover {
+                border-color: #e5e7eb;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            }
+
+            .intervention-check {
+                width: 22px;
+                height: 22px;
+                border: 2px solid #e5e7eb;
+                border-radius: 6px;
+                flex-shrink: 0;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .intervention-check:hover {
+                border-color: #9ca3af;
+            }
+
+            .intervention-info {
+                flex: 1;
+            }
+
+            .intervention-name {
+                font-size: 14px;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 3px;
+            }
+
+            .intervention-desc {
+                font-size: 12px;
+                color: #9ca3af;
+                font-weight: 500;
+            }
+
+            .intervention-price {
+                font-size: 15px;
+                font-weight: 800;
+                color: #374151;
+                white-space: nowrap;
+            }
+
+            /* Responsive */
+            @media (max-width: 1024px) {
+                .content-grid {
+                    grid-template-columns: 1fr;
+                }
+                body {
+                    flex-direction: column;
+                    overflow: auto;
+                }
+                .sidebar {
+                    width: 100%;
+                }
+            }
+        </style>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    </head>
+    <body>
+        <div class="bg-atmosphere">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+        </div>
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-label">Clinic Terminal HQ</div>
+                <div class="sidebar-title-row">
+                    <h1 class="sidebar-title">Pending Triage</h1>
+                    <span class="case-badge" id="caseBadge">0 CASES</span>
+                </div>
+            </div>
+
+            <div class="cards-stack" id="cardsStack">
+                <!-- Pet cards injected by JS -->
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="clipboard-wrapper">
+                <!-- Clipboard Clip -->
+                <div class="clipboard-clip"></div>
+
+                <!-- Treatment Plan Card -->
+                <div class="treatment-card" id="treatmentCard">
+                    <!-- Top Header -->
+                    <div class="card-top-header">
+                        <div class="brand">
+                            <svg
+                                class="brand-icon"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M3 21h18M5 21V7l8-4 8 4v14M8 21v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"
+                                />
+                                <path d="M9 9h1M14 9h1M9 13h1M14 13h1" />
+                            </svg>
+                            <span class="brand-text">City Vet Simulator</span>
+                        </div>
+                        <div class="funds-section">
+                            <div class="funds-label">Available Funds</div>
+                            <div class="funds-badge" id="fundsBadge">
+                                <svg
+                                    class="funds-icon"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <rect
+                                        x="2"
+                                        y="5"
+                                        width="20"
+                                        height="14"
+                                        rx="2"
+                                    />
+                                    <path d="M2 10h20" />
+                                    <path d="M7 15h0" />
+                                </svg>
+                                <span id="fundsValue">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h1 class="plan-title">Patient Treatment Plan</h1>
+                    <div class="plan-meta" id="planMeta">
+                        DOC_ID: #VC-492-AX &nbsp;|&nbsp; JUN 20, 2026
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="content-grid" id="contentGrid">
+                        <!-- Left Column -->
+                        <div id="leftColumn">
+                            <div class="patient-info-header">
+                                <div class="patient-avatar-wrap">
+                                    <div
+                                        class="patient-avatar"
+                                        id="patientAvatar"
+                                    >
+                                        <canvas
+                                            id="patientAvatarCanvas"
+                                        ></canvas>
+                                    </div>
+                                    <span
+                                        class="critical-badge"
+                                        id="criticalBadge"
+                                        >Critical</span
+                                    >
+                                </div>
+                                <div class="patient-details">
+                                    <h2 id="patientName">—</h2>
+                                    <div
+                                        class="patient-subtitle"
+                                        id="patientSubtitle"
+                                    >
+                                        —
+                                    </div>
+                                    <div class="patient-tags" id="patientTags">
+                                        <span class="tag">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path
+                                                    d="M12 2a10 10 0 1 0 10 10H12V2z"
+                                                />
+                                                <path
+                                                    d="M12 2a10 10 0 0 1 10 10"
+                                                />
+                                            </svg>
+                                            <span id="tagWeight">—</span>
+                                        </span>
+                                        <span class="tag">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <circle
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                />
+                                                <path d="M12 16v-4M12 8h.01" />
+                                            </svg>
+                                            <span id="tagGender">—</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="section-label">Live Vitals</div>
+                            <div class="section-divider"></div>
+                            <div class="vitals-row">
+                                <div class="vital-card" id="vitalHealth">
+                                    <div class="vital-icon heart">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path
+                                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div class="vital-content">
+                                        <span class="vital-label">Health</span>
+                                        <div>
+                                            <span
+                                                class="vital-value"
+                                                id="vitalHealthVal"
+                                                >—</span
+                                            >
+                                            <span class="vital-unit">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="vital-card" id="vitalEnergy">
+                                    <div class="vital-icon temp">
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path
+                                                d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div class="vital-content">
+                                        <span class="vital-label">Energy</span>
+                                        <div>
+                                            <span
+                                                class="vital-value"
+                                                id="vitalEnergyVal"
+                                                >—</span
+                                            >
+                                            <span class="vital-unit">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="section-label">
+                                Symptoms &amp; Notes
+                            </div>
+                            <div class="section-divider"></div>
+                            <ul class="symptom-list" id="symptomList">
+                                <!-- symptoms injected by JS -->
+                            </ul>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div id="rightColumn">
+                            <div class="interventions-header">
+                                <h3 class="interventions-title">
+                                    Required Interventions
+                                </h3>
+                                <button class="authorize-btn" id="authorizeBtn">
+                                    Select to Authorize
+                                </button>
+                            </div>
+
+                            <div
+                                class="intervention-list"
+                                id="interventionList"
+                            >
+                                <!-- interventions injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <script src="app.js"></script>
+        <script src="shared-navbar.js"></script>
+        <script>
+            /* ═══════════════════════════════════════════
+               VET PAGE — LIVE PET DATA
+               ═══════════════════════════════════════════ */
+            const PET_TRAITS = {
+                a: { name: "Cat", icon: "🐱", color: "#ff9e80" },
+                b: { name: "Dog", icon: "🐶", color: "#81d4fa" },
+                c: { name: "Bird", icon: "🦜", color: "#a5d6a7" },
+            };
+
+            const MODELS = {
+                a: "Leopard_Hybrid_A2.glb",
+                b: "idle02.glb",
+                c: "Parrot_A4.glb",
+            };
+            const ACCESSORY_MODELS = {
+                b: {
+                    "Cozy Collar": "models/model1.glb",
+                    "4D Glasses": "models/model4.glb",
+                    "Sleuth Hat": "models/model7.glb",
+                },
+                a: {
+                    "King's Crown": "models/model2.glb",
+                    "Sick Shades": "models/model5.glb",
+                    "Spike Collar": "models/model8.glb",
+                },
+                c: {
+                    "Saffari Hat": "models/model3.glb",
+                    "King's Crown": "models/model6.glb",
+                    "Bow Tie": "models/model9.glb",
+                },
+            };
+
+            function getModelForPet(petType) {
+                const accessory =
+                    localStorage.getItem("currentAccessory") || "none";
+                if (accessory !== "none") {
+                    const petAccessories = ACCESSORY_MODELS[petType] || {};
+                    if (petAccessories[accessory])
+                        return petAccessories[accessory];
+                }
+                return MODELS[petType];
+            }
+
+            function fixMats(root) {
+                root.getChildMeshes().forEach((mesh) => {
+                    if (!mesh.material) return;
+                    const mat = mesh.material;
+                    if (mat.getClassName() === "PBRMaterial") {
+                        if (mat.albedoTexture) {
+                            if (mat.albedoTexture.hasAlpha) {
+                                mat.transparencyMode =
+                                    BABYLON.PBRMaterial.PBRMATERIAL_ALPHATEST;
+                                mat.alphaCutOff = 0.5;
+                                mat.useAlphaFromAlbedoTexture = true;
+                            } else {
+                                mat.transparencyMode =
+                                    BABYLON.PBRMaterial.PBRMATERIAL_OPAQUE;
+                                mat.useAlphaFromAlbedoTexture = false;
+                            }
+                        }
+                        if (!mat.metallicTexture) {
+                            mat.metallic = 0;
+                            mat.roughness = 1;
+                        }
+                        mat.backFaceCulling = true;
+                        mat.twoSidedLighting = false;
+                    }
+                });
+            }
+
+            let vetPreviewEng = null,
+                vetPreviewSc = null;
+            function loadVetPreview(petType) {
+                const cvs = document.getElementById("patientAvatarCanvas");
+                if (!cvs) return;
+                if (vetPreviewEng) {
+                    try {
+                        vetPreviewEng.stopRenderLoop();
+                        vetPreviewEng.dispose();
+                    } catch (e) {}
+                    vetPreviewEng = null;
+                    vetPreviewSc = null;
+                }
+                const eng = new BABYLON.Engine(cvs, true, {
+                    preserveDrawingBuffer: true,
+                    stencil: true,
+                });
+                const sc = new BABYLON.Scene(eng);
+                sc.clearColor = new BABYLON.Color4(0.03, 0.1, 0.1, 1);
+                new BABYLON.ArcRotateCamera(
+                    "c",
+                    -Math.PI / 2,
+                    Math.PI / 2.5,
+                    4,
+                    BABYLON.Vector3.Zero(),
+                    sc,
+                );
+                const l1 = new BABYLON.HemisphericLight(
+                    "l1",
+                    new BABYLON.Vector3(0, 1, 0),
+                    sc,
+                );
+                l1.intensity = 0.7;
+                const l2 = new BABYLON.DirectionalLight(
+                    "l2",
+                    new BABYLON.Vector3(-1, -2, -1),
+                    sc,
+                );
+                l2.intensity = 0.5;
+                BABYLON.SceneLoader.ImportMesh(
+                    "",
+                    "",
+                    getModelForPet(petType),
+                    sc,
+                    (meshes) => {
+                        const m = meshes[0];
+                        fixMats(m);
+                        const b = m.getHierarchyBoundingVectors(),
+                            sz = b.max.subtract(b.min);
+                        m.scaling.setAll(2 / Math.max(sz.x, sz.y, sz.z));
+                        m.computeWorldMatrix(true);
+                        const b2 = m.getHierarchyBoundingVectors(),
+                            ctr = BABYLON.Vector3.Center(b2.min, b2.max);
+                        m.position = new BABYLON.Vector3(
+                            -ctr.x,
+                            -b2.min.y - 0.3,
+                            -ctr.z,
+                        );
+                        sc.registerBeforeRender(() => {
+                            m.rotation.y += 0.006;
+                        });
+                    },
+                    null,
+                    () => {},
+                );
+                eng.runRenderLoop(() => sc.render());
+                vetPreviewEng = eng;
+                vetPreviewSc = sc;
+            }
+
+            const AGE_LABELS = {
+                baby: "Baby",
+                young: "Young",
+                adult: "Adult",
+                senior: "Senior",
+            };
+
+            let currentUser = null;
+            let userPets = {},
+                currentPetId = null;
+            let activePet = null;
+
+            /* use db & auth from app.js; do NOT redeclare */
+
+            function formatMoney(n) {
+                return (
+                    "$" +
+                    (n || 0).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    })
+                );
+            }
+
+            function getSymptoms(pet) {
+                const s = [];
+                if ((pet.health || 100) < 40)
+                    s.push({
+                        color: "red",
+                        text: "Severely low health — immediate attention required.",
+                    });
+                else if ((pet.health || 100) < 70)
+                    s.push({
+                        color: "yellow",
+                        text: "Health declining — monitor closely.",
+                    });
+                if ((pet.energy || 100) < 30)
+                    s.push({
+                        color: "red",
+                        text: "Critically low energy — rest and nutrition advised.",
+                    });
+                else if ((pet.energy || 100) < 50)
+                    s.push({
+                        color: "yellow",
+                        text: "Low energy levels detected.",
+                    });
+                if ((pet.fullness || 100) < 30)
+                    s.push({
+                        color: "red",
+                        text: "Severe hunger — feeding required immediately.",
+                    });
+                else if ((pet.fullness || 100) < 60)
+                    s.push({
+                        color: "yellow",
+                        text: "Mild dehydration / hunger indicated.",
+                    });
+                if ((pet.happiness || 100) < 30)
+                    s.push({
+                        color: "red",
+                        text: "Extreme distress — social interaction needed.",
+                    });
+                else if ((pet.happiness || 100) < 50)
+                    s.push({
+                        color: "yellow",
+                        text: "Mood low — play and attention recommended.",
+                    });
+                if (s.length === 0)
+                    s.push({
+                        color: "yellow",
+                        text: "Routine wellness check — no urgent concerns.",
+                    });
+                return s;
+            }
+
+            function getInterventions(pet) {
+                const list = [];
+                const hp = pet.health || 100;
+                const nrg = pet.energy || 100;
+                const fd = pet.fullness || 100;
+                const joy = pet.happiness || 100;
+
+                if (hp < 40) {
+                    list.push({
+                        name: "Emergency Stabilization",
+                        desc: "IV fluids, oxygen support, and continuous monitoring.",
+                        price: 250,
+                    });
+                    list.push({
+                        name: "Comprehensive Blood Panel",
+                        desc: "Full CBC, metabolic panel, and organ function tests.",
+                        price: 150,
+                    });
+                } else if (hp < 70) {
+                    list.push({
+                        name: "Wellness Blood Panel",
+                        desc: "CBC and basic metabolic screening.",
+                        price: 85,
+                    });
+                }
+
+                if (nrg < 30) {
+                    list.push({
+                        name: "Electrolyte IV Therapy",
+                        desc: "Lactated Ringer's solution with electrolyte boost.",
+                        price: 120,
+                    });
+                } else if (nrg < 50) {
+                    list.push({
+                        name: "Energy Support Supplement",
+                        desc: "B-complex and iron supplementation.",
+                        price: 45,
+                    });
+                }
+
+                if (fd < 30) {
+                    list.push({
+                        name: "Nutritional Support Package",
+                        desc: "High-calorie therapeutic diet and hydration protocol.",
+                        price: 95,
+                    });
+                } else if (fd < 60) {
+                    list.push({
+                        name: "Dietary Consultation",
+                        desc: "Custom meal planning and supplement review.",
+                        price: 55,
+                    });
+                }
+
+                if (joy < 30) {
+                    list.push({
+                        name: "Behavioral Enrichment Program",
+                        desc: "Structured play therapy and social engagement plan.",
+                        price: 75,
+                    });
+                } else if (joy < 50) {
+                    list.push({
+                        name: "Mental Wellness Check",
+                        desc: "Cognitive assessment and enrichment toy kit.",
+                        price: 40,
+                    });
+                }
+
+                if (list.length === 0) {
+                    list.push({
+                        name: "Annual Wellness Exam",
+                        desc: "Standard physical examination and vaccination review.",
+                        price: 65,
+                    });
+                }
+                return list;
+            }
+
+            function renderCards() {
+                const stack = document.getElementById("cardsStack");
+                if (!stack) return;
+                const ids = Object.keys(userPets);
+                stack.innerHTML = "";
+
+                document.getElementById("caseBadge").textContent =
+                    ids.length + " CASE" + (ids.length !== 1 ? "S" : "");
+
+                ids.forEach((pid, idx) => {
+                    const pet = userPets[pid];
+                    const traits = PET_TRAITS[pet.type] || {
+                        name: "Pet",
+                        emoji: "🐾",
+                    };
+                    const isActive = pid === currentPetId;
+                    const urgent =
+                        (pet.health || 100) < 50 ||
+                        (pet.energy || 100) < 30 ||
+                        (pet.fullness || 100) < 30;
+                    const complaint = urgent
+                        ? "Critical Condition"
+                        : (pet.health || 100) < 70
+                          ? "Lethargy"
+                          : "Routine Checkup";
+
+                    const card = document.createElement("div");
+                    card.className =
+                        "patient-card" + (isActive ? "" : " placeholder-card");
+                    card.style.cssText = `
+                        top: ${idx * 68}px;
+                        left: ${idx * 4}px;
+                        transform: rotate(-2deg);
+                        z-index: ${4 - idx};
+                    `;
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <div>
+                                <span class="pet-name">${escapeHtml(pet.name || "Pet")}</span>
+                                <span class="pet-number">#${String(idx + 1).padStart(2, "0")}</span>
+                            </div>
+                        </div>
+                        <div class="card-row">
+                            <div>
+                                <div class="card-field-label">Species/Breed</div>
+                                <div class="card-field-value">${traits.name}</div>
+                            </div>
+                            ${urgent ? '<span class="urgent-badge">Urgent</span>' : ""}
+                        </div>
+                        <div>
+                            <div class="card-field-label">Chief Complaint</div>
+                            <div class="card-field-value">${complaint}</div>
+                        </div>
+                        <div class="card-footer">
+                            <span class="assigned-to">Assigned to: DR. SMITH</span>
+                            <button class="arrow-btn" aria-label="Open case" data-pid="${pid}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    card.querySelector(".arrow-btn").addEventListener(
+                        "click",
+                        () => {
+                            selectPet(pid);
+                        },
+                    );
+                    stack.appendChild(card);
+                });
+            }
+
+            function renderMain(pet) {
+                if (!pet) return;
+                activePet = pet;
+                const traits = PET_TRAITS[pet.type] || {
+                    name: "Pet",
+                    icon: "🐾",
+                };
+                const ageLabel = AGE_LABELS[pet.age] || "Unknown";
+                const level = pet.level || 1;
+                const hp = Math.round(pet.health || 0);
+                const nrg = Math.round(pet.energy || 0);
+                const fd = Math.round(pet.fullness || 0);
+                const joy = Math.round(pet.happiness || 0);
+                const budget = pet.costTracking?.budgetRemaining ?? 500;
+
+                loadVetPreview(pet.type);
+                document.getElementById("patientName").textContent =
+                    pet.name || "—";
+                document.getElementById("patientSubtitle").textContent =
+                    `${traits.name} · ${ageLabel} · Lv. ${level}`;
+                document.getElementById("tagWeight").textContent =
+                    `${fd}% Fullness`;
+                document.getElementById("tagGender").textContent =
+                    `${joy}% Happiness`;
+
+                document.getElementById("vitalHealthVal").textContent = hp;
+                document.getElementById("vitalEnergyVal").textContent = nrg;
+
+                const healthCard = document.getElementById("vitalHealth");
+                const energyCard = document.getElementById("vitalEnergy");
+                healthCard.classList.toggle("alert", hp < 50);
+                energyCard.classList.toggle("alert", nrg < 30);
+
+                const crit = document.getElementById("criticalBadge");
+                if (hp < 40 || nrg < 30 || fd < 30 || joy < 30) {
+                    crit.textContent = "Critical";
+                    crit.style.display = "block";
+                } else if (hp < 70 || nrg < 50 || fd < 50 || joy < 50) {
+                    crit.textContent = "Monitor";
+                    crit.style.display = "block";
+                    crit.style.background = "#f59e0b";
+                } else {
+                    crit.style.display = "none";
+                }
+
+                document.getElementById("fundsValue").textContent =
+                    formatMoney(budget);
+                document.getElementById("planMeta").textContent =
+                    `DOC_ID: #VC-${String(pet.level || 1).padStart(3, "0")}-${(pet.name || "X").slice(0, 2).toUpperCase()} &nbsp;|&nbsp; ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase()}`;
+
+                const symList = document.getElementById("symptomList");
+                const symptoms = getSymptoms(pet);
+                symList.innerHTML = symptoms
+                    .map(
+                        (s) => `
+                    <li class="symptom-item">
+                        <span class="symptom-dot ${s.color}"></span>
+                        <span class="symptom-text">${s.text}</span>
+                    </li>
+                `,
+                    )
+                    .join("");
+
+                const intList = document.getElementById("interventionList");
+                const interventions = getInterventions(pet);
+                intList.innerHTML = interventions
+                    .map(
+                        (i) => `
+                    <div class="intervention-item">
+                        <div class="intervention-check"></div>
+                        <div class="intervention-info">
+                            <div class="intervention-name">${i.name}</div>
+                            <div class="intervention-desc">${i.desc}</div>
+                        </div>
+                        <div class="intervention-price">${formatMoney(i.price)}</div>
+                    </div>
+                `,
+                    )
+                    .join("");
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement("div");
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            async function selectPet(pid) {
+                if (pid === currentPetId) return;
+                currentPetId = pid;
+                activePet = userPets[pid];
+                renderCards();
+                renderMain(activePet);
+                if (db && currentUser) {
+                    await db
+                        .collection("users")
+                        .doc(currentUser.uid)
+                        .set({ currentPetId: pid }, { merge: true });
+                }
+                if (typeof helixNav !== "undefined") helixNav.refresh();
+            }
+
+            async function loadData() {
+                if (!auth || !db) return;
+                auth.onAuthStateChanged(async (user) => {
+                    if (!user) {
+                        window.location.href = "index.html";
+                        return;
+                    }
+                    currentUser = user;
+                    try {
+                        const userDoc = await db
+                            .collection("users")
+                            .doc(user.uid)
+                            .get();
+                        const petsSnap = await db
+                            .collection("users")
+                            .doc(user.uid)
+                            .collection("pets")
+                            .get();
+                        userPets = {};
+                        petsSnap.forEach(
+                            (doc) => (userPets[doc.id] = doc.data()),
+                        );
+                        currentPetId = userDoc.exists
+                            ? userDoc.data().currentPetId
+                            : null;
+                        if (!currentPetId || !userPets[currentPetId]) {
+                            currentPetId = Object.keys(userPets)[0] || null;
+                        }
+                        renderCards();
+                        if (currentPetId) renderMain(userPets[currentPetId]);
+                    } catch (e) {
+                        console.error("Vet load error:", e);
+                    }
+                });
+            }
+
+            loadData();
+            helixNav.init({
+                page: "vet",
+                onPetSelect: (pid) => {
+                    selectPet(pid);
+                },
+            });
+        </script>
+    </body>
+</html>

@@ -5,15 +5,18 @@
  * Mobile: loading overlay is bypassed (no-op) for snappier feel.
  */
 
-(function() {
-    'use strict';
+(function () {
+  "use strict";
 
-    // ── Detect mobile/tablet ──────────────────────────────────────────────────
-    const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
-        || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+  // ── Detect mobile/tablet ──────────────────────────────────────────────────
+  const isMobile =
+    /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
+      navigator.userAgent,
+    ) ||
+    ("ontouchstart" in window && navigator.maxTouchPoints > 0);
 
-    // Inject CSS
-    const styles = `
+  // Inject CSS
+  const styles = `
         .loading-overlay {
             display: none;
             position: fixed;
@@ -26,22 +29,22 @@
             justify-content: center;
             align-items: center;
         }
-        
+
         .loading-overlay.active {
             display: flex;
         }
-        
+
         .loading-container {
             text-align: center;
         }
-        
+
         .loading-spinner {
             position: relative;
             width: 200px;
             height: 200px;
             margin: 0 auto 2rem;
         }
-        
+
         .spinner-svg {
             width: 100%;
             height: 100%;
@@ -50,13 +53,13 @@
             left: 0;
             animation: spinnerRotate 2s linear infinite;
         }
-        
+
         .spinner-track {
             fill: none;
             stroke: #e0e0e0;
             stroke-width: 4;
         }
-        
+
         .spinner-circle {
             fill: none;
             stroke: #49a6a6;
@@ -65,7 +68,7 @@
             stroke-dasharray: 251.2;
             stroke-dashoffset: 188.4;
         }
-        
+
         @keyframes spinnerRotate {
             0% {
                 transform: rotate(0deg);
@@ -74,7 +77,7 @@
                 transform: rotate(360deg);
             }
         }
-        
+
         .loading-logo {
             position: absolute;
             top: 50%;
@@ -87,14 +90,14 @@
             background: white;
             z-index: 1;
         }
-        
+
         .loading-text {
             font-size: 1.2rem;
             color: #49a6a6;
             font-weight: 600;
             animation: pulse 1.5s ease-in-out infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% {
                 opacity: 1;
@@ -104,9 +107,9 @@
             }
         }
     `;
-    
-    // Inject HTML
-    const html = `
+
+  // Inject HTML
+  const html = `
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-container">
                 <div class="loading-spinner">
@@ -120,68 +123,67 @@
             </div>
         </div>
     `;
-    
-    // Initialize when DOM is ready
-    function init() {
-        const styleEl = document.createElement('style');
-        styleEl.textContent = styles;
-        document.head.appendChild(styleEl);
-        document.body.insertAdjacentHTML('beforeend', html);
-    }
-    
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+
+  // Initialize when DOM is ready
+  function init() {
+    const styleEl = document.createElement("style");
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
+    document.body.insertAdjacentHTML("beforeend", html);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  // ========================================
+  // GLOBAL API FUNCTIONS
+  // ========================================
+
+  /**
+   * Show loading overlay
+   * On mobile this is a no-op — overlay is skipped entirely.
+   * @param {string} message - Optional custom loading message (default: "Loading...")
+   */
+  window.showLoading = function (message = "Loading...") {
+    if (isMobile) return; // ← bypass on mobile
+    const overlay = document.getElementById("loadingOverlay");
+    const text = overlay ? overlay.querySelector(".loading-text") : null;
+    if (text && message) text.textContent = message;
+    if (overlay) overlay.classList.add("active");
+  };
+
+  /**
+   * Hide loading overlay
+   * On mobile this is a no-op.
+   * @param {number} delay - Optional delay in ms before hiding (default: 0)
+   */
+  window.hideLoading = function (delay = 0) {
+    if (isMobile) return; // ← bypass on mobile
+    const overlay = document.getElementById("loadingOverlay");
+    const removeAll = () => {
+      if (overlay) overlay.classList.remove("active");
+      const init = document.getElementById("initialLoader");
+      if (init) init.remove();
+    };
+    if (delay > 0) {
+      setTimeout(removeAll, delay);
     } else {
-        init();
+      removeAll();
     }
-    
-    // ========================================
-    // GLOBAL API FUNCTIONS
-    // ========================================
+  };
 
-    /**
-     * Show loading overlay
-     * On mobile this is a no-op — overlay is skipped entirely.
-     * @param {string} message - Optional custom loading message (default: "Loading...")
-     */
-    window.showLoading = function(message = 'Loading...') {
-        if (isMobile) return;   // ← bypass on mobile
-        const overlay = document.getElementById('loadingOverlay');
-        const text = overlay ? overlay.querySelector('.loading-text') : null;
-        if (text && message) text.textContent = message;
-        if (overlay) overlay.classList.add('active');
-    };
-
-    /**
-     * Hide loading overlay
-     * On mobile this is a no-op.
-     * @param {number} delay - Optional delay in ms before hiding (default: 0)
-     */
-window.hideLoading = function(delay = 0) {
-        if (isMobile) return;   // ← bypass on mobile
-        const overlay = document.getElementById('loadingOverlay');
-        const removeAll = () => {
-            if (overlay) overlay.classList.remove('active');
-            const init = document.getElementById('initialLoader');
-            if (init) init.remove();
-        };
-        if (delay > 0) {
-            setTimeout(removeAll, delay);
-        } else {
-            removeAll();
-        }
-    };
-
-    /**
-     * Show loading for a specific duration then auto-hide.
-     * On mobile this is a no-op.
-     * @param {number} duration - Duration in milliseconds
-     * @param {string} message - Optional custom loading message
-     */
-    window.showLoadingFor = function(duration, message = 'Loading...') {
-        if (isMobile) return;   // ← bypass on mobile
-        window.showLoading(message);
-        window.hideLoading(duration);
-    };
-
+  /**
+   * Show loading for a specific duration then auto-hide.
+   * On mobile this is a no-op.
+   * @param {number} duration - Duration in milliseconds
+   * @param {string} message - Optional custom loading message
+   */
+  window.showLoadingFor = function (duration, message = "Loading...") {
+    if (isMobile) return; // ← bypass on mobile
+    window.showLoading(message);
+    window.hideLoading(duration);
+  };
 })();
