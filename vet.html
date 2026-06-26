@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>City Vet Simulator - Patient Treatment Plan</title>
+        <title>Vet</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
@@ -741,6 +741,62 @@
                 white-space: nowrap;
             }
 
+            /* ── PRIORITY TAGS ── */
+            .priority-tag {
+                display: inline-block;
+                margin-left: 8px;
+                padding: 2px 8px;
+                border-radius: 6px;
+                font-size: 0.65rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                vertical-align: middle;
+            }
+            .priority-tag.critical {
+                background: #fee2e2;
+                color: #b91c1c;
+                animation: priorityPulse 1.5s ease-in-out infinite;
+            }
+            .priority-tag.high {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            @keyframes priorityPulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.6;
+                }
+            }
+
+            /* ── INTERVENTION ITEM STATES ── */
+            .intervention-item {
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .intervention-item:hover {
+                border-color: #00bcd4;
+                background: #f0fdfa;
+            }
+            .intervention-item[data-priority="critical"] {
+                border-color: #fecaca;
+                background: linear-gradient(to right, #fef2f2, #fff);
+            }
+            .intervention-item[data-priority="high"] {
+                border-color: #fed7aa;
+            }
+            .intervention-check {
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .intervention-check:hover {
+                border-color: #00bcd4;
+                background: rgba(0, 188, 212, 0.1);
+            }
+
             /* Responsive */
             @media (max-width: 1024px) {
                 .content-grid {
@@ -755,6 +811,663 @@
                 }
             }
         </style>
+        <link rel="stylesheet" href="tutorial-popup.css?v=4" />
+        <script src="tutorial-popup.js?v=4"></script>
+        <style>
+            /* ── EMERGENCY SIMULATOR BUTTON ── */
+            .emergency-btn {
+                position: fixed;
+                top: 24px;
+                right: 24px;
+                z-index: 100;
+                background: linear-gradient(135deg, #dc2626, #b91c1c);
+                color: #fff;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 14px;
+                font-family: inherit;
+                font-size: 0.85rem;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                letter-spacing: 0.3px;
+            }
+            .emergency-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(220, 38, 38, 0.45);
+            }
+            .emergency-btn:active {
+                transform: translateY(0);
+            }
+            .emergency-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            /* ── EMERGENCY POPUP ── */
+            .emergency-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.75);
+                backdrop-filter: blur(8px);
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+            .emergency-overlay.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .emergency-card {
+                background: #fff;
+                border-radius: 24px;
+                width: min(560px, calc(100vw - 32px));
+                max-height: calc(100vh - 48px);
+                overflow: hidden;
+                box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+                transform: scale(0.9) translateY(20px);
+                transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+                display: flex;
+                flex-direction: column;
+            }
+            .emergency-overlay.open .emergency-card {
+                transform: scale(1) translateY(0);
+            }
+
+            .emergency-header {
+                padding: 28px 28px 20px;
+                color: #fff;
+                position: relative;
+                overflow: hidden;
+            }
+            .emergency-header.critical {
+                background: linear-gradient(135deg, #dc2626, #991b1b);
+            }
+            .emergency-header.serious {
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+            }
+            .emergency-header.moderate {
+                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            }
+            .emergency-header::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(
+                    circle at top right,
+                    rgba(255, 255, 255, 0.15),
+                    transparent 60%
+                );
+            }
+
+            .emergency-severity {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(8px);
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 0.7rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 12px;
+            }
+            .emergency-severity::before {
+                content: "";
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #fff;
+                animation: emergencyPulse 1.5s ease-in-out infinite;
+            }
+            @keyframes emergencyPulse {
+                0%,
+                100% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 0.5;
+                    transform: scale(1.3);
+                }
+            }
+
+            .emergency-title {
+                font-size: 1.5rem;
+                font-weight: 800;
+                margin: 0 0 6px;
+                letter-spacing: -0.02em;
+                position: relative;
+            }
+
+            .emergency-subtitle {
+                font-size: 0.85rem;
+                opacity: 0.9;
+                margin: 0;
+                font-weight: 500;
+                position: relative;
+            }
+
+            .emergency-body {
+                padding: 24px 28px;
+                flex: 1;
+                overflow-y: auto;
+            }
+
+            .emergency-section {
+                margin-bottom: 20px;
+            }
+            .emergency-section:last-child {
+                margin-bottom: 0;
+            }
+
+            .emergency-section-label {
+                font-size: 0.7rem;
+                font-weight: 800;
+                color: #94a3b8;
+                text-transform: uppercase;
+                letter-spacing: 1.2px;
+                margin-bottom: 8px;
+            }
+
+            .emergency-section-text {
+                font-size: 0.92rem;
+                line-height: 1.6;
+                color: #1f2937;
+                margin: 0;
+            }
+
+            .emergency-symptoms {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .emergency-symptom {
+                background: #f1f5f9;
+                color: #475569;
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-size: 0.8rem;
+                font-weight: 600;
+            }
+            .emergency-symptom.red {
+                background: #fee2e2;
+                color: #b91c1c;
+            }
+            .emergency-symptom.yellow {
+                background: #fef3c7;
+                color: #92400e;
+            }
+
+            .emergency-stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+            }
+
+            .emergency-stat {
+                background: #f8fafc;
+                border-radius: 12px;
+                padding: 12px;
+                text-align: center;
+            }
+            .emergency-stat-value {
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: #dc2626;
+                margin-bottom: 2px;
+            }
+            .emergency-stat-label {
+                font-size: 0.7rem;
+                color: #64748b;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .emergency-footer {
+                padding: 18px 28px 24px;
+                border-top: 1px solid #f1f5f9;
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+            }
+
+            .emergency-btn-action {
+                border: none;
+                border-radius: 12px;
+                padding: 11px 22px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-family: inherit;
+            }
+            .emergency-btn-action:active {
+                transform: scale(0.96);
+            }
+            .emergency-btn-action.primary {
+                background: linear-gradient(135deg, #dc2626, #b91c1c);
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            }
+            .emergency-btn-action.primary:hover {
+                box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+                transform: translateY(-1px);
+            }
+            .emergency-btn-action.secondary {
+                background: #f1f5f9;
+                color: #475569;
+            }
+            .emergency-btn-action.secondary:hover {
+                background: #e2e8f0;
+                color: #334155;
+            }
+
+            /* ── CAUSE/TRIGGER INFO ── */
+            .emergency-cause {
+                font-size: 0.85rem;
+                color: #475569;
+                margin-bottom: 6px;
+                padding: 8px 12px;
+                background: #f8fafc;
+                border-radius: 8px;
+                border-left: 3px solid #00bcd4;
+            }
+            .emergency-cause strong {
+                color: #0d2a2a;
+            }
+            .emergency-trigger {
+                font-size: 0.75rem;
+                color: #64748b;
+                margin-bottom: 16px;
+                padding: 6px 12px;
+                background: #f1f5f9;
+                border-radius: 6px;
+                font-family: monospace;
+            }
+            .emergency-trigger code {
+                background: #e2e8f0;
+                padding: 2px 6px;
+                border-radius: 4px;
+                color: #475569;
+            }
+
+            /* ── CURRENT VITALS DISPLAY ── */
+            .emergency-current-vitals {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+            }
+            .cv-item {
+                background: #f8fafc;
+                border-radius: 10px;
+                padding: 10px 6px;
+                text-align: center;
+                border: 2px solid transparent;
+                transition: all 0.2s;
+            }
+            .cv-item.warning {
+                background: #fef3c7;
+                border-color: #f59e0b;
+            }
+            .cv-item.critical {
+                background: #fee2e2;
+                border-color: #dc2626;
+            }
+            .cv-label {
+                display: block;
+                font-size: 0.65rem;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 4px;
+            }
+            .cv-value {
+                display: block;
+                font-size: 1rem;
+                font-weight: 800;
+                color: #1e293b;
+            }
+            .cv-item.warning .cv-value {
+                color: #92400e;
+            }
+            .cv-item.critical .cv-value {
+                color: #b91c1c;
+            }
+
+            /* ── LEFT CARD STACK (vitals + menu) ── */
+            .left-card-stack {
+                position: fixed;
+                left: 24px;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 100;
+                width: 280px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .profile-mini-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 20px;
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .pmc-avatar {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                overflow: hidden;
+                border: 2px solid #e91e63;
+                flex-shrink: 0;
+            }
+            .pmc-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            .pmc-info {
+                flex: 1;
+                min-width: 0;
+            }
+            .pmc-name {
+                font-size: 1rem;
+                font-weight: 800;
+                color: #1a1a1a;
+                font-family: "Inter", sans-serif;
+                line-height: 1.2;
+            }
+            .pmc-sub {
+                font-size: 0.72rem;
+                color: #888;
+                font-weight: 600;
+                font-family: "Inter", sans-serif;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 2px;
+            }
+            .pmc-coins {
+                font-size: 0.95rem;
+                font-weight: 800;
+                color: #f4a020;
+                font-family: "Inter", sans-serif;
+            }
+
+            .vitals-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 24px;
+                padding: 20px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .vitals-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                margin-bottom: 4px;
+            }
+            .vitals-name {
+                font-size: 1.15rem;
+                font-weight: 800;
+                color: #1a1a1a;
+                font-family: "Inter", sans-serif;
+                cursor: pointer;
+            }
+            .vitals-sub {
+                font-size: 0.6rem;
+                font-weight: 700;
+                color: #aaa;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                font-family: "Inter", sans-serif;
+                margin-bottom: 20px;
+            }
+            .vitals-rings {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                width: 180px;
+                height: 180px;
+                margin: 0 auto 16px;
+            }
+            .vitals-rings svg {
+                transform: rotate(-90deg);
+            }
+            .vitals-center {
+                position: absolute;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            }
+            .vitals-center svg {
+                width: 24px;
+                height: 24px;
+                transform: none;
+                color: #e91e63;
+            }
+            .vitals-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 4px;
+            }
+            .vitals-footer-label {
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: #e91e63;
+                font-family: "Inter", sans-serif;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vitals-footer-label::before {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #e91e63;
+            }
+            .vitals-footer-pct {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 0.95rem;
+                color: #1a1a1a;
+            }
+            .vitals-stats-row {
+                display: flex;
+                justify-content: space-between;
+                gap: 8px;
+                margin-top: 16px;
+                padding-top: 14px;
+                border-top: 1px solid rgba(0, 0, 0, 0.06);
+            }
+            .vitals-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                flex: 1;
+            }
+            .vitals-stat-val {
+                font-size: 1rem;
+                font-weight: 800;
+                color: #1a1a1a;
+                font-family: "Inter", sans-serif;
+            }
+            .vitals-stat-lbl {
+                font-size: 0.6rem;
+                font-weight: 700;
+                color: #999;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-family: "Inter", sans-serif;
+            }
+
+            /* Menu card */
+            .menu-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 24px;
+                padding: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .menu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 14px;
+                border-radius: 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+                position: relative;
+                border: none;
+                background: transparent;
+                width: 100%;
+                text-align: left;
+            }
+            .menu-item:hover {
+                background: rgba(0, 0, 0, 0.04);
+            }
+            .menu-item-icon {
+                width: 20px;
+                height: 20px;
+                color: #666;
+                flex-shrink: 0;
+            }
+            .menu-item-label {
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: #555;
+                font-family: "Inter", sans-serif;
+                flex: 1;
+            }
+
+            @media (max-width: 1200px) {
+                .left-card-stack {
+                    width: 240px;
+                }
+                .vitals-rings {
+                    width: 140px;
+                    height: 140px;
+                }
+                .vitals-rings svg {
+                    width: 140px;
+                    height: 140px;
+                }
+                .vitals-center {
+                    width: 44px;
+                    height: 44px;
+                }
+                .vitals-center svg {
+                    width: 18px;
+                    height: 18px;
+                }
+                .vitals-card {
+                    padding: 16px;
+                }
+            }
+            @media (max-width: 900px) {
+                .left-card-stack {
+                    left: 16px;
+                    width: 200px;
+                    gap: 8px;
+                }
+                .profile-mini-card {
+                    padding: 10px 12px;
+                    gap: 10px;
+                }
+                .pmc-avatar {
+                    width: 36px;
+                    height: 36px;
+                }
+                .pmc-name {
+                    font-size: 0.85rem;
+                }
+                .pmc-coins {
+                    font-size: 0.8rem;
+                }
+                .vitals-card {
+                    padding: 12px;
+                    border-radius: 18px;
+                }
+                .vitals-rings {
+                    width: 110px;
+                    height: 110px;
+                }
+                .vitals-rings svg {
+                    width: 110px;
+                    height: 110px;
+                }
+                .vitals-center {
+                    width: 36px;
+                    height: 36px;
+                }
+                .vitals-center svg {
+                    width: 16px;
+                    height: 16px;
+                }
+                .vitals-stats-row {
+                    margin-top: 12px;
+                    padding-top: 10px;
+                }
+                .vitals-stat-val {
+                    font-size: 0.85rem;
+                }
+                .vitals-stat-lbl {
+                    font-size: 0.55rem;
+                }
+                .menu-card {
+                    padding: 8px;
+                    gap: 4px;
+                }
+                .menu-item {
+                    padding: 10px 12px;
+                    gap: 10px;
+                }
+                .menu-item-icon {
+                    width: 16px;
+                    height: 16px;
+                }
+                .menu-item-label {
+                    font-size: 0.78rem;
+                }
+            }
+            @media (max-width: 768px) {
+                .left-card-stack {
+                    display: none;
+                }
+            }
+        </style>
         <script src="https://cdn.babylonjs.com/babylon.js"></script>
         <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -766,6 +1479,254 @@
             <div class="blob blob-1"></div>
             <div class="blob blob-2"></div>
         </div>
+
+        <!-- LEFT CARD STACK -->
+        <div class="left-card-stack">
+            <!-- Profile mini card -->
+            <div class="profile-mini-card">
+                <div class="pmc-avatar">
+                    <img
+                        src="https://i.pravatar.cc/150?img=12"
+                        alt="avatar"
+                        id="vetAvatar"
+                    />
+                </div>
+                <div class="pmc-info">
+                    <div class="pmc-name" id="vetName">Pet</div>
+                    <div class="pmc-sub">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="#f4a020"
+                            stroke="none"
+                        >
+                            <path
+                                d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
+                            />
+                        </svg>
+                        <span id="vetLevel">Lv. 1</span>
+                    </div>
+                </div>
+                <div class="pmc-coins" id="vetCoins">$0</div>
+            </div>
+
+            <!-- Vitals card -->
+            <div class="vitals-card">
+                <div class="vitals-header">
+                    <div class="vitals-name" id="vetVitalsName">Pet</div>
+                </div>
+                <div class="vitals-sub">VITALS SYNC</div>
+
+                <div class="vitals-rings">
+                    <svg width="180" height="180" viewBox="0 0 180 180">
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="78"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vetRingHp"
+                            cx="90"
+                            cy="90"
+                            r="78"
+                            fill="none"
+                            stroke="#ff5a7e"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="490"
+                            stroke-dashoffset="490"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="60"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vetRingFd"
+                            cx="90"
+                            cy="90"
+                            r="60"
+                            fill="none"
+                            stroke="#ffa726"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="377"
+                            stroke-dashoffset="377"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="42"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vetRingJoy"
+                            cx="90"
+                            cy="90"
+                            r="42"
+                            fill="none"
+                            stroke="#26a69a"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="264"
+                            stroke-dashoffset="264"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                    </svg>
+                    <div class="vitals-center">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                            />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="vitals-footer">
+                    <div class="vitals-footer-label">Health Care</div>
+                    <div class="vitals-footer-pct" id="vetVitalsPct">100%</div>
+                </div>
+                <div class="vitals-stats-row">
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vetHp">100</div>
+                        <div class="vitals-stat-lbl">Health</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vetNrg">100</div>
+                        <div class="vitals-stat-lbl">Energy</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vetFd">100</div>
+                        <div class="vitals-stat-lbl">Fullness</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vetJoy">100</div>
+                        <div class="vitals-stat-lbl">Happiness</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu card -->
+            <div class="menu-card">
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'home.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                        />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span class="menu-item-label">Home</span>
+                </button>
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'kitchen.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                        />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span class="menu-item-label">Kitchen</span>
+                </button>
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'park.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 22v-8" />
+                        <path
+                            d="M12 14c-3 0-5-2-5-5 0-3 2-7 5-9 3 2 5 6 5 9 0 3-2 5-5 5z"
+                        />
+                    </svg>
+                    <span class="menu-item-label">Park</span>
+                </button>
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'shop.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path
+                            d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                        />
+                    </svg>
+                    <span class="menu-item-label">Store</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Emergency Simulator Button (hidden) -->
+        <button
+            class="emergency-btn"
+            id="emergencyBtn"
+            title="Simulate a random medical emergency"
+            style="display: none"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M12 2L2 22h20L12 2z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Simulate Emergency
+        </button>
 
         <!-- Left Sidebar -->
         <aside class="sidebar">
@@ -1002,7 +1963,7 @@
             </div>
         </main>
         <script src="app.js"></script>
-        <script src="shared-navbar.js"></script>
+        <script src="shared-navbar.js?v=16"></script>
         <script>
             /* ═══════════════════════════════════════════
                VET PAGE — LIVE PET DATA
@@ -1225,74 +2186,209 @@
                 const fd = pet.fullness || 100;
                 const joy = pet.happiness || 100;
 
-                if (hp < 40) {
+                /* ── HEALTH INTERVENTIONS ── */
+                if (hp < 20) {
                     list.push({
+                        id: "icu",
+                        name: "ICU Critical Care",
+                        desc: "24-hour intensive care with continuous monitoring, IV medications, and life support.",
+                        price: 450,
+                        effect: { health: 35 },
+                        priority: "critical",
+                    });
+                    list.push({
+                        id: "blood_transfusion",
+                        name: "Blood Transfusion",
+                        desc: "Emergency blood transfusion to restore critical blood levels.",
+                        price: 320,
+                        effect: { health: 25 },
+                        priority: "critical",
+                    });
+                } else if (hp < 40) {
+                    list.push({
+                        id: "emergency_stab",
                         name: "Emergency Stabilization",
                         desc: "IV fluids, oxygen support, and continuous monitoring.",
                         price: 250,
+                        effect: { health: 20 },
+                        priority: "high",
                     });
                     list.push({
-                        name: "Comprehensive Blood Panel",
-                        desc: "Full CBC, metabolic panel, and organ function tests.",
-                        price: 150,
+                        id: "antibiotics",
+                        name: "Antibiotic Therapy",
+                        desc: "Broad-spectrum antibiotics to fight infection.",
+                        price: 95,
+                        effect: { health: 15 },
+                        priority: "high",
                     });
                 } else if (hp < 70) {
                     list.push({
+                        id: "blood_panel",
                         name: "Wellness Blood Panel",
                         desc: "CBC and basic metabolic screening.",
                         price: 85,
+                        effect: { health: 5 },
+                        priority: "medium",
+                    });
+                    list.push({
+                        id: "checkup",
+                        name: "General Health Checkup",
+                        desc: "Physical examination and health assessment.",
+                        price: 45,
+                        effect: { health: 8 },
+                        priority: "medium",
                     });
                 }
 
-                if (nrg < 30) {
+                /* ── ENERGY INTERVENTIONS ── */
+                if (nrg < 15) {
                     list.push({
+                        id: "icu_energy",
+                        name: "Emergency Energy Protocol",
+                        desc: "IV glucose and stimulant therapy to prevent collapse.",
+                        price: 180,
+                        effect: { energy: 30 },
+                        priority: "critical",
+                    });
+                } else if (nrg < 30) {
+                    list.push({
+                        id: "iv_therapy",
                         name: "Electrolyte IV Therapy",
                         desc: "Lactated Ringer's solution with electrolyte boost.",
                         price: 120,
+                        effect: { energy: 20 },
+                        priority: "high",
+                    });
+                    list.push({
+                        id: "rest_program",
+                        name: "Rest & Recovery Program",
+                        desc: "Structured rest plan with monitoring.",
+                        price: 60,
+                        effect: { energy: 15 },
+                        priority: "high",
                     });
                 } else if (nrg < 50) {
                     list.push({
+                        id: "energy_supplement",
                         name: "Energy Support Supplement",
                         desc: "B-complex and iron supplementation.",
                         price: 45,
+                        effect: { energy: 10 },
+                        priority: "medium",
                     });
                 }
 
-                if (fd < 30) {
+                /* ── FULLNESS INTERVENTIONS ── */
+                if (fd < 15) {
                     list.push({
+                        id: "feeding_tube",
+                        name: "Feeding Tube Placement",
+                        desc: "Emergency nutritional support via feeding tube.",
+                        price: 220,
+                        effect: { fullness: 35 },
+                        priority: "critical",
+                    });
+                } else if (fd < 30) {
+                    list.push({
+                        id: "nutrition_package",
                         name: "Nutritional Support Package",
                         desc: "High-calorie therapeutic diet and hydration protocol.",
                         price: 95,
+                        effect: { fullness: 25 },
+                        priority: "high",
+                    });
+                    list.push({
+                        id: "iv_fluids",
+                        name: "IV Fluid Therapy",
+                        desc: "Immediate rehydration with balanced electrolytes.",
+                        price: 75,
+                        effect: { fullness: 15 },
+                        priority: "high",
                     });
                 } else if (fd < 60) {
                     list.push({
+                        id: "dietary_consult",
                         name: "Dietary Consultation",
                         desc: "Custom meal planning and supplement review.",
                         price: 55,
+                        effect: { fullness: 10 },
+                        priority: "medium",
                     });
                 }
 
-                if (joy < 30) {
+                /* ── HAPPINESS INTERVENTIONS ── */
+                if (joy < 15) {
                     list.push({
+                        id: "behavioral_icu",
+                        name: "Behavioral Crisis Intervention",
+                        desc: "Immediate behavioral therapy and environmental enrichment.",
+                        price: 150,
+                        effect: { happiness: 30 },
+                        priority: "critical",
+                    });
+                } else if (joy < 30) {
+                    list.push({
+                        id: "enrichment",
                         name: "Behavioral Enrichment Program",
                         desc: "Structured play therapy and social engagement plan.",
                         price: 75,
+                        effect: { happiness: 20 },
+                        priority: "high",
+                    });
+                    list.push({
+                        id: "companion",
+                        name: "Companion Animal Introduction",
+                        desc: "Pair with a compatible companion for emotional support.",
+                        price: 50,
+                        effect: { happiness: 15 },
+                        priority: "high",
                     });
                 } else if (joy < 50) {
                     list.push({
+                        id: "mental_wellness",
                         name: "Mental Wellness Check",
                         desc: "Cognitive assessment and enrichment toy kit.",
                         price: 40,
+                        effect: { happiness: 10 },
+                        priority: "medium",
                     });
                 }
 
-                if (list.length === 0) {
+                /* ── ROUTINE CARE (always available) ── */
+                if (
+                    list.length === 0 ||
+                    (hp >= 70 && nrg >= 50 && fd >= 60 && joy >= 50)
+                ) {
                     list.push({
+                        id: "wellness_exam",
                         name: "Annual Wellness Exam",
                         desc: "Standard physical examination and vaccination review.",
                         price: 65,
+                        effect: {},
+                        priority: "low",
+                    });
+                    list.push({
+                        id: "dental_cleaning",
+                        name: "Dental Cleaning",
+                        desc: "Professional teeth cleaning and oral health assessment.",
+                        price: 120,
+                        effect: { health: 3 },
+                        priority: "low",
                     });
                 }
+
+                /* Sort by priority */
+                const priorityOrder = {
+                    critical: 0,
+                    high: 1,
+                    medium: 2,
+                    low: 3,
+                };
+                list.sort(
+                    (a, b) =>
+                        priorityOrder[a.priority] - priorityOrder[b.priority],
+                );
+
                 return list;
             }
 
@@ -1381,7 +2477,11 @@
                 const nrg = Math.round(pet.energy || 0);
                 const fd = Math.round(pet.fullness || 0);
                 const joy = Math.round(pet.happiness || 0);
-                const budget = pet.costTracking?.budgetRemaining ?? 500;
+                /* Get budget from pet's costTracking or userData */
+                const budget =
+                    pet.costTracking?.budgetRemaining ??
+                    userData?.costTracking?.budgetRemaining ??
+                    500;
 
                 loadVetPreview(pet.type);
                 document.getElementById("patientName").textContent =
@@ -1405,6 +2505,7 @@
                 if (hp < 40 || nrg < 30 || fd < 30 || joy < 30) {
                     crit.textContent = "Critical";
                     crit.style.display = "block";
+                    crit.style.background = "";
                 } else if (hp < 70 || nrg < 50 || fd < 50 || joy < 50) {
                     crit.textContent = "Monitor";
                     crit.style.display = "block";
@@ -1423,11 +2524,11 @@
                 symList.innerHTML = symptoms
                     .map(
                         (s) => `
-                    <li class="symptom-item">
-                        <span class="symptom-dot ${s.color}"></span>
-                        <span class="symptom-text">${s.text}</span>
-                    </li>
-                `,
+                                <li class="symptom-item">
+                                    <span class="symptom-dot ${s.color}"></span>
+                                    <span class="symptom-text">${s.text}</span>
+                                </li>
+                            `,
                     )
                     .join("");
 
@@ -1436,17 +2537,120 @@
                 intList.innerHTML = interventions
                     .map(
                         (i) => `
-                    <div class="intervention-item">
-                        <div class="intervention-check"></div>
-                        <div class="intervention-info">
-                            <div class="intervention-name">${i.name}</div>
-                            <div class="intervention-desc">${i.desc}</div>
-                        </div>
-                        <div class="intervention-price">${formatMoney(i.price)}</div>
-                    </div>
-                `,
+                                <div class="intervention-item" data-id="${i.id}" data-priority="${i.priority}">
+                                    <div class="intervention-check" onclick="authorizeIntervention('${i.id}', ${i.price}, ${JSON.stringify(i.effect).replace(/"/g, "&quot;")})"></div>
+                                    <div class="intervention-info">
+                                        <div class="intervention-name">
+                                            ${i.name}
+                                            ${i.priority === "critical" ? '<span class="priority-tag critical">CRITICAL</span>' : ""}
+                                            ${i.priority === "high" ? '<span class="priority-tag high">URGENT</span>' : ""}
+                                        </div>
+                                        <div class="intervention-desc">${i.desc}</div>
+                                    </div>
+                                    <div class="intervention-price">${formatMoney(i.price)}</div>
+                                </div>
+                            `,
                     )
                     .join("");
+            }
+
+            async function authorizeIntervention(id, price, effect) {
+                if (!activePet || !currentPetId || !db || !currentUser) {
+                    showAlert("Unable to authorize — please sign in.", "error");
+                    return;
+                }
+
+                /* Check if user has enough budget */
+                const currentBudget =
+                    activePet.costTracking?.budgetRemaining ??
+                    userData?.costTracking?.budgetRemaining ??
+                    500;
+
+                if (currentBudget < price) {
+                    showAlert(
+                        `Insufficient funds. Need $${price - currentBudget} more.`,
+                        "error",
+                    );
+                    return;
+                }
+
+                /* Apply the intervention effects */
+                const updates = {
+                    health: Math.min(
+                        100,
+                        (activePet.health || 0) + (effect.health || 0),
+                    ),
+                    energy: Math.min(
+                        100,
+                        (activePet.energy || 0) + (effect.energy || 0),
+                    ),
+                    fullness: Math.min(
+                        100,
+                        (activePet.fullness || 0) + (effect.fullness || 0),
+                    ),
+                    happiness: Math.min(
+                        100,
+                        (activePet.happiness || 0) + (effect.happiness || 0),
+                    ),
+                };
+
+                /* Update budget */
+                const newBudget = currentBudget - price;
+
+                /* Save to database */
+                try {
+                    showLoading("Authorizing intervention...");
+
+                    /* Update pet stats */
+                    await db
+                        .collection("users")
+                        .doc(currentUser.uid)
+                        .collection("pets")
+                        .doc(currentPetId)
+                        .update(updates);
+
+                    /* Update budget in user doc */
+                    await db
+                        .collection("users")
+                        .doc(currentUser.uid)
+                        .set(
+                            {
+                                costTracking: {
+                                    budgetRemaining: newBudget,
+                                    vetSpent:
+                                        (userData?.costTracking?.vetSpent ||
+                                            0) + price,
+                                },
+                            },
+                            { merge: true },
+                        );
+
+                    /* Update local state */
+                    Object.assign(activePet, updates);
+                    activePet.costTracking = {
+                        ...(activePet.costTracking || {}),
+                        budgetRemaining: newBudget,
+                    };
+
+                    /* Refresh UI */
+                    renderMain(activePet);
+                    renderCards();
+
+                    /* Refresh navbar pet data */
+                    if (typeof helixNav !== "undefined") helixNav.refresh();
+
+                    hideLoading();
+                    showAlert(
+                        `Intervention authorized! ${Object.keys(updates)
+                            .filter((k) => updates[k] > 0)
+                            .join(", ")} improved.`,
+                        "success",
+                    );
+                } catch (e) {
+                    console.error("Intervention error:", e);
+                    hideLoading();
+                    showAlert(`Error: ${e.message}`, "error");
+                }
             }
 
             function escapeHtml(str) {
@@ -1478,35 +2682,857 @@
                         return;
                     }
                     currentUser = user;
-                    try {
-                        const userDoc = await db
-                            .collection("users")
-                            .doc(user.uid)
-                            .get();
-                        const petsSnap = await db
-                            .collection("users")
-                            .doc(user.uid)
-                            .collection("pets")
-                            .get();
-                        userPets = {};
-                        petsSnap.forEach(
-                            (doc) => (userPets[doc.id] = doc.data()),
-                        );
-                        currentPetId = userDoc.exists
-                            ? userDoc.data().currentPetId
-                            : null;
-                        if (!currentPetId || !userPets[currentPetId]) {
-                            currentPetId = Object.keys(userPets)[0] || null;
-                        }
-                        renderCards();
-                        if (currentPetId) renderMain(userPets[currentPetId]);
-                    } catch (e) {
-                        console.error("Vet load error:", e);
-                    }
+
+                    /* Subscribe to user document for live budget updates */
+                    db.collection("users")
+                        .doc(user.uid)
+                        .onSnapshot((userDoc) => {
+                            if (userDoc.exists) {
+                                userData = userDoc.data();
+                                /* If current pet changed, update */
+                                const newPetId = userData.currentPetId;
+                                if (newPetId && newPetId !== currentPetId) {
+                                    currentPetId = newPetId;
+                                    if (userPets[currentPetId]) {
+                                        renderMain(userPets[currentPetId]);
+                                    }
+                                } else if (
+                                    currentPetId &&
+                                    userPets[currentPetId]
+                                ) {
+                                    /* Just refresh budget */
+                                    renderMain(userPets[currentPetId]);
+                                }
+                            }
+                        });
+
+                    /* Subscribe to pets collection for live pet data updates */
+                    db.collection("users")
+                        .doc(user.uid)
+                        .collection("pets")
+                        .onSnapshot((petsSnap) => {
+                            userPets = {};
+                            petsSnap.forEach(
+                                (doc) => (userPets[doc.id] = doc.data()),
+                            );
+                            if (!currentPetId || !userPets[currentPetId]) {
+                                currentPetId = Object.keys(userPets)[0] || null;
+                            }
+                            renderCards();
+                            if (currentPetId) {
+                                renderMain(userPets[currentPetId]);
+                            }
+                            /* Update navbar */
+                            if (typeof helixNav !== "undefined") {
+                                helixNav.refresh();
+                            }
+                        });
                 });
             }
 
+            /* Pet type names and icons for overlay */
+            const VET_PET_TYPE_NAMES = {
+                a: "Cat",
+                b: "Dog",
+                c: "Bird",
+            };
+
+            const VET_PET_TYPE_ICONS = {
+                a: '<svg viewBox="0 0 24 24" fill="none" stroke="#00acc1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.5C21 17.9 16.97 21 12 21s-9-3-9-7.5c0-1.26.43-2.43 1-3.5 0 0-1.82-6.42-.42-7C4.57 2.43 7.82 3.27 9.6 5.26c.65-.17 1.33-.26 2-.26z"/></svg>',
+                b: '<svg viewBox="0 0 24 24" fill="none" stroke="#00acc1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>',
+                c: '<svg viewBox="0 0 24 24" fill="none" stroke="#00acc1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 9-8.5c0-3.5-2.5-7-7-7-3.5 0-6 2.5-6 6 0 1.5.5 2.5 1.5 3.5L6 18h.5"/><path d="M9 18a3.5 3.5 0 0 0 6 0"/></svg>',
+            };
+
             loadData();
+
+            /* ── VITALS OVERLAY (live from database) ── */
+            function updateVetVitals() {
+                /* Get current pet from navbar or activePet */
+                let pet = null;
+                if (
+                    typeof helixNav !== "undefined" &&
+                    helixNav.currentPetId &&
+                    helixNav.userPets
+                ) {
+                    pet = helixNav.userPets[helixNav.currentPetId];
+                }
+                if (!pet && typeof activePet !== "undefined") {
+                    pet = activePet;
+                }
+
+                if (!pet) return;
+
+                const hp = Math.round(pet.health || 100);
+                const nrg = Math.round(pet.energy || 100);
+                const fd = Math.round(pet.fullness || 100);
+                const joy = Math.round(pet.happiness || 100);
+
+                /* Update name and level */
+                /* Update name (Google account) and level */
+                const googleUser =
+                    (typeof firebase !== "undefined" &&
+                        firebase.auth().currentUser) ||
+                    null;
+                if (googleUser) {
+                    document.getElementById("vetName").textContent =
+                        googleUser.displayName || "Trainer";
+                    const avatarImg = document.getElementById("vetAvatar");
+                    if (avatarImg && googleUser.photoURL) {
+                        avatarImg.src = googleUser.photoURL;
+                    }
+                } else {
+                    document.getElementById("vetName").textContent =
+                        pet.name || "Pet";
+                }
+                document.getElementById("vetLevel").textContent =
+                    `Lv. ${pet.level || 1} · ${(VET_PET_TYPE_NAMES && VET_PET_TYPE_NAMES[pet.type]) || "Pet"}`;
+                document.getElementById("vetVitalsName").textContent =
+                    pet.name || "Pet";
+
+                /* Update coins (budgetRemaining) */
+                const coins =
+                    pet.costTracking?.budgetRemaining ??
+                    pet.costTracking?.coins ??
+                    0;
+                document.getElementById("vetCoins").textContent =
+                    `$${Math.max(0, coins)}`;
+
+                /* Update stat values */
+                document.getElementById("vetHp").textContent = hp;
+                document.getElementById("vetNrg").textContent = nrg;
+                document.getElementById("vetFd").textContent = fd;
+                document.getElementById("vetJoy").textContent = joy;
+
+                /* Update rings */
+                const hpCirc = 2 * Math.PI * 78;
+                const fdCirc = 2 * Math.PI * 60;
+                const joyCirc = 2 * Math.PI * 42;
+                document.getElementById("vetRingHp").style.strokeDashoffset =
+                    hpCirc - (hpCirc * hp) / 100;
+                document.getElementById("vetRingFd").style.strokeDashoffset =
+                    fdCirc - (fdCirc * fd) / 100;
+                document.getElementById("vetRingJoy").style.strokeDashoffset =
+                    joyCirc - (joyCirc * joy) / 100;
+
+                /* Update overall health percentage */
+                const avg = Math.round((hp + nrg + fd + joy) / 4);
+                document.getElementById("vetVitalsPct").textContent = `${avg}%`;
+            }
+
+            /* Update vitals when DOM is ready and periodically */
+            document.addEventListener("DOMContentLoaded", () => {
+                updateVetVitals();
+                setInterval(updateVetVitals, 2000);
+            });
+        </script>
+        <script>
+            const vetTour = new TutorialGuide({
+                storageKey: "tutorialPopupVetSeen",
+                steps: [
+                    {
+                        name: "Helix",
+                        text: "Welcome to the <strong>Vet Clinic</strong>! Here you can manage your pet's health and medical needs. Let me walk you through it!",
+                        position: "bottom-right",
+                    },
+                    {
+                        name: "Helix",
+                        text: 'This is your pet\'s <span class="hl">vitals chart</span>. The rings show Health, Fullness, and Happiness. The numbers below show all 4 stats in real-time from the database.',
+                        position: "near-element",
+                        highlight: ".vitals-card",
+                    },
+                    {
+                        name: "Helix",
+                        text: 'Want to switch pets? Click the <span class="hl">pet selector</span> in the bottom nav. The center avatar opens a modal where you can pick a different pet to treat.',
+                        position: "bottom-right",
+                    },
+                    {
+                        name: "Helix",
+                        text: 'This is the <span class="hl">treatment clipboard</span>. It shows your pet\'s vitals, symptoms, and available medical interventions. Your budget is displayed at the top.',
+                        position: "near-element",
+                        highlight: ".clipboard-wrapper",
+                    },
+                    {
+                        name: "Helix",
+                        text: 'Below the symptoms are <span class="hl">medical interventions</span>. Each one costs coins and improves your pet\'s stats. Click the checkbox to authorize an intervention!',
+                        position: "near-element",
+                        highlight: ".intervention-list",
+                    },
+                    {
+                        name: "Helix",
+                        text: "That's the vet clinic tour! Keep your pet's vitals up and authorize treatments when needed. If you ever need a refresher, just click the <strong>Tutorial</strong> button in the bottom nav!",
+                        position: "bottom-right",
+                    },
+                ],
+            });
+            window.vetTour = vetTour;
+            if (document.readyState === "loading") {
+                window.addEventListener("DOMContentLoaded", () =>
+                    vetTour.start(),
+                );
+            } else {
+                vetTour.start();
+            }
+        </script>
+        <script src="shared-navbar.js?v=16"></script>
+        <script>
+            /* ═══════════════════════════════════════════
+                       EMERGENCY SIMULATOR
+                       ═══════════════════════════════════════════ */
+            const EMERGENCY_TEMPLATES = {
+                /* ── SINGLE-VITAL EMERGENIES ── */
+                hp_critical: {
+                    name: "Septic Shock",
+                    severity: "critical",
+                    description:
+                        "A life-threatening response to severe infection causing organ failure. The body's immune system has gone into overdrive, causing blood pressure to drop dangerously low and organs to shut down.",
+                    symptoms: [
+                        "Pale gums",
+                        "Rapid weak pulse",
+                        "Disorientation",
+                        "Cold extremities",
+                        "Labored breathing",
+                    ],
+                    trigger: "HP < 20",
+                    cause: "Critically low health",
+                },
+                hp_very_low: {
+                    name: "Severe Anemia",
+                    severity: "serious",
+                    description:
+                        "A dangerous drop in red blood cells causing oxygen deprivation throughout the body. Without intervention, this can lead to organ damage and heart failure.",
+                    symptoms: [
+                        "Pale mucous membranes",
+                        "Weakness",
+                        "Rapid breathing",
+                        "Lethargy",
+                        "Loss of appetite",
+                    ],
+                    trigger: "HP < 35",
+                    cause: "Very low health",
+                },
+                hp_low: {
+                    name: "Minor Infection",
+                    severity: "moderate",
+                    description:
+                        "A localized bacterial infection that, if left untreated, could spread and become systemic. Early intervention with antibiotics can prevent complications.",
+                    symptoms: [
+                        "Mild fever",
+                        "Reduced activity",
+                        "Slight swelling",
+                        "Decreased appetite",
+                    ],
+                    trigger: "HP < 50",
+                    cause: "Low health",
+                },
+                nrg_exhausted: {
+                    name: "Complete Exhaustion",
+                    severity: "critical",
+                    description:
+                        "Total physical collapse from prolonged energy depletion. The body's systems are shutting down to conserve resources. Immediate rest and rehydration are required.",
+                    symptoms: [
+                        "Inability to stand",
+                        "Unresponsive",
+                        "Shallow breathing",
+                        "Low body temperature",
+                        "Muscle tremors",
+                    ],
+                    trigger: "NRG < 15",
+                    cause: "Critically low energy",
+                },
+                nrg_very_low: {
+                    name: "Severe Fatigue",
+                    severity: "serious",
+                    description:
+                        "Extreme tiredness from sustained activity without adequate rest. The body is struggling to maintain basic functions and is at risk of collapse.",
+                    symptoms: [
+                        "Constant sleeping",
+                        "No interest in food",
+                        "Slow movements",
+                        "Heavy breathing",
+                    ],
+                    trigger: "NRG < 30",
+                    cause: "Very low energy",
+                },
+                nrg_low: {
+                    name: "Exhaustion",
+                    severity: "moderate",
+                    description:
+                        "Significant tiredness that impairs normal function. The pet needs rest and proper nutrition to recover.",
+                    symptoms: [
+                        "Lethargy",
+                        "Reduced playfulness",
+                        "Slower response time",
+                        "Increased sleep",
+                    ],
+                    trigger: "NRG < 45",
+                    cause: "Low energy",
+                },
+                fd_starvation: {
+                    name: "Severe Malnutrition",
+                    severity: "critical",
+                    description:
+                        "Critical lack of nutrients causing the body to break down its own tissues for energy. This can lead to organ failure and death if not addressed immediately.",
+                    symptoms: [
+                        "Visible weight loss",
+                        "Sunken eyes",
+                        "Weakness",
+                        "Poor coat condition",
+                        "Hypothermia",
+                    ],
+                    trigger: "FD < 15",
+                    cause: "Critically low fullness",
+                },
+                fd_very_low: {
+                    name: "Dehydration & Hunger",
+                    severity: "serious",
+                    description:
+                        "Severe lack of food and water causing the body to become dehydrated and weak. Without immediate nutrition, this can progress to malnutrition.",
+                    symptoms: [
+                        "Dry gums",
+                        "Lethargy",
+                        "Loss of skin elasticity",
+                        "Reduced urination",
+                        "Weakness",
+                    ],
+                    trigger: "FD < 30",
+                    cause: "Very low fullness",
+                },
+                fd_low: {
+                    name: "Mild Dehydration",
+                    severity: "moderate",
+                    description:
+                        "Early signs of dehydration from insufficient food and water intake. Easily reversible with proper hydration and nutrition.",
+                    symptoms: [
+                        "Slightly dry gums",
+                        "Mild lethargy",
+                        "Reduced appetite",
+                        "Slower than normal",
+                    ],
+                    trigger: "FD < 50",
+                    cause: "Low fullness",
+                },
+                joy_depression: {
+                    name: "Severe Depression",
+                    severity: "critical",
+                    description:
+                        "A serious mental health crisis where the pet has lost interest in all activities. This can lead to self-neglect and physical illness if not addressed.",
+                    symptoms: [
+                        "Complete withdrawal",
+                        "No response to stimuli",
+                        "Refusal to eat",
+                        "Hiding constantly",
+                        "No grooming",
+                    ],
+                    trigger: "Joy < 15",
+                    cause: "Critically low happiness",
+                },
+                joy_very_low: {
+                    name: "Behavioral Collapse",
+                    severity: "serious",
+                    description:
+                        "A significant decline in mental wellbeing causing the pet to lose interest in its environment. Can lead to physical symptoms and self-harm behaviors.",
+                    symptoms: [
+                        "Persistent hiding",
+                        "No interest in play",
+                        "Aggression or fear",
+                        "Excessive sleeping",
+                        "Pacing",
+                    ],
+                    trigger: "Joy < 30",
+                    cause: "Very low happiness",
+                },
+                joy_low: {
+                    name: "Anxiety Disorder",
+                    severity: "moderate",
+                    description:
+                        "Persistent stress and unhappiness affecting the pet's quality of life. Early intervention can prevent progression to more serious conditions.",
+                    symptoms: [
+                        "Restlessness",
+                        "Destructive behavior",
+                        "Excessive vocalization",
+                        "Loss of interest",
+                    ],
+                    trigger: "Joy < 50",
+                    cause: "Low happiness",
+                },
+
+                /* ── COMBINATION EMERGENIES ── */
+                hp_nrg_combo: {
+                    name: "Multi-System Organ Failure",
+                    severity: "critical",
+                    description:
+                        "A catastrophic failure of multiple body systems due to combined health and energy depletion. This is a dire emergency requiring intensive care.",
+                    symptoms: [
+                        "Unconsciousness",
+                        "Irregular heartbeat",
+                        "No response",
+                        "Cold body",
+                        "Fixed pupils",
+                    ],
+                    trigger: "HP < 30 AND NRG < 25",
+                    cause: "Critical health + energy",
+                },
+                fd_nrg_combo: {
+                    name: "Hypoglycemic Collapse",
+                    severity: "critical",
+                    description:
+                        "Dangerously low blood sugar from prolonged hunger combined with exhaustion. Can cause seizures and loss of consciousness.",
+                    symptoms: [
+                        "Trembling",
+                        "Disorientation",
+                        "Seizures",
+                        "Loss of coordination",
+                        "Unconsciousness",
+                    ],
+                    trigger: "FD < 25 AND NRG < 30",
+                    cause: "Starvation + exhaustion",
+                },
+                hp_fd_combo: {
+                    name: "Wasting Syndrome",
+                    severity: "critical",
+                    description:
+                        "Severe weight loss and muscle wasting from chronic malnutrition combined with poor health. The body is consuming itself for survival.",
+                    symptoms: [
+                        "Visible bone structure",
+                        "Muscle atrophy",
+                        "Weakness",
+                        "Poor coat",
+                        "Lethargy",
+                    ],
+                    trigger: "HP < 35 AND FD < 30",
+                    cause: "Poor health + malnutrition",
+                },
+                joy_hp_combo: {
+                    name: "Psychosomatic Crisis",
+                    severity: "serious",
+                    description:
+                        "Severe mental distress manifesting as physical illness. The pet's emotional state is directly impacting its physical health, creating a dangerous cycle.",
+                    symptoms: [
+                        "Self-isolation",
+                        "Refusal to eat",
+                        "Physical weakness",
+                        "No grooming",
+                        "Depression",
+                    ],
+                    trigger: "Joy < 25 AND HP < 40",
+                    cause: "Depression + poor health",
+                },
+                all_low: {
+                    name: "Systemic Collapse",
+                    severity: "critical",
+                    description:
+                        "Complete breakdown of all body systems due to severe neglect across all vital areas. This is the most serious condition and requires immediate emergency intervention.",
+                    symptoms: [
+                        "Unresponsive",
+                        "Organ failure signs",
+                        "Severe weakness",
+                        "No appetite",
+                        "Critical vitals",
+                    ],
+                    trigger: "All vitals below 40",
+                    cause: "All vitals critically low",
+                },
+                triple_low: {
+                    name: "Acute Distress Syndrome",
+                    severity: "critical",
+                    description:
+                        "A severe crisis caused by the combination of three or more depleted vital systems. The body is in a state of emergency and requires immediate stabilization.",
+                    symptoms: [
+                        "Severe weakness",
+                        "Disorientation",
+                        "Rapid heartbeat",
+                        "Labored breathing",
+                        "Critical condition",
+                    ],
+                    trigger: "Three or more vitals below 35",
+                    cause: "Multiple system failure",
+                },
+            };
+
+            function getCurrentVitals() {
+                /* Get current pet's vitals from the navbar or active pet */
+                let pet = null;
+                if (
+                    typeof helixNav !== "undefined" &&
+                    helixNav.currentPetId &&
+                    helixNav.userPets
+                ) {
+                    pet = helixNav.userPets[helixNav.currentPetId];
+                }
+                if (!pet && typeof activePet !== "undefined") {
+                    pet = activePet;
+                }
+
+                if (!pet) {
+                    return {
+                        hp: 100,
+                        nrg: 100,
+                        fd: 100,
+                        joy: 100,
+                        type: "b",
+                        name: "your pet",
+                    };
+                }
+
+                return {
+                    hp: pet.health || 100,
+                    nrg: pet.energy || 100,
+                    fd: pet.fullness || 100,
+                    joy: pet.happiness || 100,
+                    type: pet.type || "b",
+                    name: pet.name || "your pet",
+                };
+            }
+
+            function analyzeVitals(vitals) {
+                /* Count how many vitals are critically low */
+                const lowCount = [
+                    vitals.hp < 40,
+                    vitals.nrg < 40,
+                    vitals.fd < 40,
+                    vitals.joy < 40,
+                ].filter(Boolean).length;
+
+                const possibleEmergencies = [];
+
+                /* Check combination emergencies first (they're more severe) */
+                if (
+                    vitals.hp < 40 &&
+                    vitals.nrg < 40 &&
+                    vitals.fd < 40 &&
+                    vitals.joy < 40
+                ) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.all_low);
+                }
+                if (lowCount >= 3) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.triple_low);
+                }
+                if (vitals.hp < 30 && vitals.nrg < 25) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.hp_nrg_combo);
+                }
+                if (vitals.fd < 25 && vitals.nrg < 30) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.fd_nrg_combo);
+                }
+                if (vitals.hp < 35 && vitals.fd < 30) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.hp_fd_combo);
+                }
+                if (vitals.joy < 25 && vitals.hp < 40) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.joy_hp_combo);
+                }
+
+                /* Check single-vital emergencies */
+                if (vitals.hp < 20) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.hp_critical);
+                } else if (vitals.hp < 35) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.hp_very_low);
+                } else if (vitals.hp < 50) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.hp_low);
+                }
+
+                if (vitals.nrg < 15) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.nrg_exhausted);
+                } else if (vitals.nrg < 30) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.nrg_very_low);
+                } else if (vitals.nrg < 45) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.nrg_low);
+                }
+
+                if (vitals.fd < 15) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.fd_starvation);
+                } else if (vitals.fd < 30) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.fd_very_low);
+                } else if (vitals.fd < 50) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.fd_low);
+                }
+
+                if (vitals.joy < 15) {
+                    possibleEmergencies.push(
+                        EMERGENCY_TEMPLATES.joy_depression,
+                    );
+                } else if (vitals.joy < 30) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.joy_very_low);
+                } else if (vitals.joy < 50) {
+                    possibleEmergencies.push(EMERGENCY_TEMPLATES.joy_low);
+                }
+
+                return possibleEmergencies;
+            }
+
+            function triggerEmergency() {
+                /* Get current pet's actual vitals */
+                const vitals = getCurrentVitals();
+
+                /* Analyze vitals to find applicable emergencies */
+                const possibleEmergencies = analyzeVitals(vitals);
+
+                /* If pet is healthy, show a preventive checkup */
+                if (possibleEmergencies.length === 0) {
+                    showHealthyEmergency(vitals);
+                    return;
+                }
+
+                /* Pick a random emergency from the applicable ones */
+                const event =
+                    possibleEmergencies[
+                        Math.floor(Math.random() * possibleEmergencies.length)
+                    ];
+
+                /* Calculate vitals based on pet type */
+                const baseVitals = {
+                    a: { heart: 160, temp: 101.5 },
+                    b: { heart: 100, temp: 101.5 },
+                    c: { heart: 400, temp: 105.0 },
+                };
+                const base = baseVitals[vitals.type] || baseVitals.b;
+
+                /* Adjust vitals based on severity */
+                let heartMod = 0,
+                    tempMod = 0;
+                if (event.severity === "critical") {
+                    heartMod = 40;
+                    tempMod = 2.5;
+                } else if (event.severity === "serious") {
+                    heartMod = 20;
+                    tempMod = 1.0;
+                } else {
+                    heartMod = 10;
+                    tempMod = 0.5;
+                }
+
+                /* Adjust based on which vitals are low */
+                if (vitals.hp < 30) heartMod += 20;
+                if (vitals.nrg < 30) heartMod += 15;
+                if (vitals.fd < 30) tempMod -= 1.5;
+                if (vitals.joy < 30) heartMod -= 10;
+
+                showEmergencyPopup(
+                    event,
+                    vitals.name,
+                    vitals.type,
+                    {
+                        heart: Math.round(base.heart + heartMod),
+                        temp: parseFloat((base.temp + tempMod).toFixed(1)),
+                    },
+                    vitals,
+                );
+            }
+
+            function showHealthyEmergency(vitals) {
+                const checkup = {
+                    name: "Routine Wellness Checkup",
+                    severity: "moderate",
+                    description: `Your pet appears to be in good health! This is a preventive checkup to ensure continued wellbeing. Regular monitoring helps catch any issues early before they become serious.`,
+                    symptoms: [
+                        "Healthy coat condition",
+                        "Normal appetite",
+                        "Active and alert",
+                        "Good hydration",
+                    ],
+                    cause: "Preventive care",
+                };
+
+                showEmergencyPopup(
+                    checkup,
+                    vitals.name,
+                    vitals.type,
+                    { heart: 0, temp: 0 },
+                    vitals,
+                );
+            }
+
+            function showEmergencyPopup(
+                event,
+                petName,
+                petType,
+                vitalsData,
+                petVitals,
+            ) {
+                const traits = PET_TRAITS[petType] || {
+                    name: "Pet",
+                    icon: "🐾",
+                };
+
+                /* Create overlay if not exists */
+                let overlay = document.getElementById("emergencyOverlay");
+                if (!overlay) {
+                    overlay = document.createElement("div");
+                    overlay.id = "emergencyOverlay";
+                    overlay.className = "emergency-overlay";
+                    document.body.appendChild(overlay);
+                }
+
+                const heartStr =
+                    vitalsData && vitalsData.heart > 0
+                        ? `${vitalsData.heart} bpm`
+                        : "—";
+                const tempStr =
+                    vitalsData && vitalsData.temp > 0
+                        ? `${vitalsData.temp.toFixed(1)}°F`
+                        : "—";
+
+                /* Build cause/trigger info */
+                let causeInfo = "";
+                if (event.cause) {
+                    causeInfo = `<div class="emergency-cause">Caused by: <strong>${event.cause}</strong></div>`;
+                }
+                if (event.trigger) {
+                    causeInfo += `<div class="emergency-trigger">Trigger: <code>${event.trigger}</code></div>`;
+                }
+
+                /* Build current vitals display */
+                let vitalsDisplay = "";
+                if (petVitals) {
+                    vitalsDisplay = `
+                                    <div class="emergency-section">
+                                        <div class="emergency-section-label">Current Vitals</div>
+                                        <div class="emergency-current-vitals">
+                                            <div class="cv-item ${petVitals.hp < 40 ? "critical" : petVitals.hp < 60 ? "warning" : ""}">
+                                                <span class="cv-label">Health</span>
+                                                <span class="cv-value">${Math.round(petVitals.hp)}%</span>
+                                            </div>
+                                            <div class="cv-item ${petVitals.nrg < 40 ? "critical" : petVitals.nrg < 60 ? "warning" : ""}">
+                                                <span class="cv-label">Energy</span>
+                                                <span class="cv-value">${Math.round(petVitals.nrg)}%</span>
+                                            </div>
+                                            <div class="cv-item ${petVitals.fd < 40 ? "critical" : petVitals.fd < 60 ? "warning" : ""}">
+                                                <span class="cv-label">Fullness</span>
+                                                <span class="cv-value">${Math.round(petVitals.fd)}%</span>
+                                            </div>
+                                            <div class="cv-item ${petVitals.joy < 40 ? "critical" : petVitals.joy < 60 ? "warning" : ""}">
+                                                <span class="cv-label">Happiness</span>
+                                                <span class="cv-value">${Math.round(petVitals.joy)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                }
+
+                overlay.innerHTML = `
+                            <div class="emergency-card">
+                                                            <div class="emergency-header ${event.severity}">
+                                                                <div class="emergency-severity">${
+                                                                    event.severity
+                                                                }</div>
+                                                                <h2 class="emergency-title">${event.name}</h2>
+                                                                <p class="emergency-subtitle">Patient: ${traits.icon} ${petName}</p>
+                                                            </div>
+                                                            <div class="emergency-body">
+                                                                <div class="emergency-section">
+                                                                    <div class="emergency-section-label">Description</div>
+                                                                    <p class="emergency-section-text">${event.description}</p>
+                                                                </div>
+                                                                ${causeInfo}
+                                                                ${vitalsDisplay}
+                                                                <div class="emergency-section">
+                                                                    <div class="emergency-section-label">Symptoms Observed</div>
+                                                                    <div class="emergency-symptoms">
+                                                                        ${event.symptoms
+                                                                            .map(
+                                                                                (
+                                                                                    s,
+                                                                                    i,
+                                                                                ) =>
+                                                                                    `<span class="emergency-symptom ${
+                                                                                        i <
+                                                                                        2
+                                                                                            ? "red"
+                                                                                            : "yellow"
+                                                                                    }">${s}</span>`,
+                                                                            )
+                                                                            .join(
+                                                                                "",
+                                                                            )}
+                                                                    </div>
+                                                                </div>
+                                                                <div class="emergency-section">
+                                                                    <div class="emergency-section-label">Critical Vitals</div>
+                                                                    <div class="emergency-stats">
+                                                                        <div class="emergency-stat">
+                                                                            <div class="emergency-stat-value">${heartStr}</div>
+                                                                            <div class="emergency-stat-label">Heart Rate</div>
+                                                                        </div>
+                                                                        <div class="emergency-stat">
+                                                                            <div class="emergency-stat-value">${tempStr}</div>
+                                                                            <div class="emergency-stat-label">Temperature</div>
+                                                                        </div>
+                                            <div class="emergency-stat">
+                                                <div class="emergency-stat-value">${
+                                                    event.severity ===
+                                                    "critical"
+                                                        ? "High"
+                                                        : event.severity ===
+                                                            "serious"
+                                                          ? "Medium"
+                                                          : "Low"
+                                                }</div>
+                                                <div class="emergency-stat-label">Risk Level</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="emergency-footer">
+                                    <button class="emergency-btn-action secondary" data-act="close">Dismiss</button>
+                                    <button class="emergency-btn-action primary" data-act="begin">Begin Treatment</button>
+                                </div>
+                            </div>
+                        `;
+
+                /* Show overlay */
+                requestAnimationFrame(() => overlay.classList.add("open"));
+
+                /* Wire buttons */
+                overlay
+                    .querySelector('[data-act="close"]')
+                    .addEventListener("click", () => closeEmergency());
+                overlay
+                    .querySelector('[data-act="begin"]')
+                    .addEventListener("click", () => {
+                        closeEmergency();
+                        /* Switch to the affected pet if needed */
+                        if (
+                            typeof helixNav !== "undefined" &&
+                            helixNav.currentPetId &&
+                            typeof window.selectPet === "function"
+                        ) {
+                            /* Pet is already selected */
+                        }
+                    });
+
+                /* Close on backdrop click */
+                overlay.addEventListener("click", (e) => {
+                    if (e.target === overlay) closeEmergency();
+                });
+
+                /* Close on Escape */
+                const escHandler = (e) => {
+                    if (e.key === "Escape") {
+                        closeEmergency();
+                        document.removeEventListener("keydown", escHandler);
+                    }
+                };
+                document.addEventListener("keydown", escHandler);
+            }
+
+            function closeEmergency() {
+                const overlay = document.getElementById("emergencyOverlay");
+                if (overlay) {
+                    overlay.classList.remove("open");
+                    setTimeout(() => {
+                        if (overlay.parentNode)
+                            overlay.parentNode.removeChild(overlay);
+                    }, 300);
+                }
+            }
+
+            /* Wire the emergency button */
+            document.addEventListener("DOMContentLoaded", () => {
+                const btn = document.getElementById("emergencyBtn");
+                if (btn) {
+                    btn.addEventListener("click", triggerEmergency);
+                }
+            });
+        </script>
+        <script>
             helixNav.init({
                 page: "vet",
                 onPetSelect: (pid) => {

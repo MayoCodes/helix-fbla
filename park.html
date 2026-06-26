@@ -1,0 +1,1675 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Park — Helix</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&family=Inter:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+        <link rel="stylesheet" href="tutorial-popup.css?v=3" />
+        <script src="tutorial-popup.js?v=3"></script>
+        <script src="shared-navbar.js?v=8"></script>
+        <style>
+            :root {
+                --teal: #49a6a6;
+                --teal-dk: #2d7a7a;
+                --teal-lt: #7fcece;
+                --white: #fff;
+                --glass: rgba(8, 28, 28, 0.65);
+                --glass-h: rgba(73, 166, 166, 0.22);
+                --yellow: #f4c430;
+                --red: #e05252;
+                --green: #4caf50;
+            }
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
+                font-family: "Nunito", sans-serif;
+                background: #0a1f0a;
+                user-select: none;
+            }
+
+            /* Background */
+            .park-bg {
+                position: fixed;
+                inset: 0;
+                width: 100vw;
+                height: 100vh;
+                background: url("bg.jpg") center/cover no-repeat;
+                z-index: 0;
+            }
+            .park-bg::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(
+                    to bottom,
+                    rgba(0, 0, 0, 0.25) 0%,
+                    rgba(0, 0, 0, 0.1) 50%,
+                    rgba(0, 0, 0, 0.35) 100%
+                );
+            }
+
+            /* ── TOP-LEFT PROFILE ── */
+            .yeap-top-left {
+                position: fixed;
+                top: 24px;
+                left: 24px;
+                z-index: 100;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .yeap-avatar-wrap {
+                position: relative;
+            }
+            .yeap-avatar {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: #333;
+                overflow: hidden;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+            }
+            .yeap-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            .yeap-level-badge {
+                position: absolute;
+                bottom: -6px;
+                left: 0;
+                background: #00d2ff;
+                color: #000;
+                font-size: 0.6rem;
+                font-weight: 800;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: "Inter", sans-serif;
+            }
+            .yeap-profile-info {
+                display: flex;
+                flex-direction: column;
+            }
+            .yeap-profile-sub {
+                font-size: 0.65rem;
+                font-weight: 700;
+                color: #4ecdc4;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-family: "Inter", sans-serif;
+            }
+            .yeap-profile-name {
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: #fff;
+                letter-spacing: 0.5px;
+                font-family: "Inter", sans-serif;
+            }
+
+            /* ── TOP-RIGHT RESOURCES ── */
+            .yeap-top-right {
+                position: fixed;
+                top: 24px;
+                right: 24px;
+                z-index: 100;
+                display: flex;
+                gap: 12px;
+            }
+            .yeap-resource-pill {
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(12px);
+                border-radius: 12px;
+                padding: 10px 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                min-width: 100px;
+            }
+            .yeap-resource-label {
+                font-size: 0.6rem;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.5);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-family: "Inter", sans-serif;
+            }
+            .yeap-resource-value {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #fff;
+                font-family: "Inter", sans-serif;
+            }
+            .yeap-resource-value.cores {
+                color: #00d2ff;
+            }
+
+            /* ── LEFT CARD STACK ── */
+            .left-card-stack {
+                position: fixed;
+                left: 24px;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 100;
+                width: 280px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .profile-mini-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 20px;
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .pmc-avatar {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                overflow: hidden;
+                border: 2px solid #e91e63;
+                flex-shrink: 0;
+            }
+            .pmc-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            .pmc-info {
+                flex: 1;
+                min-width: 0;
+            }
+            .pmc-name {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 0.95rem;
+                color: #1a1a1a;
+                letter-spacing: -0.3px;
+            }
+            .pmc-sub {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 0.72rem;
+                color: #888;
+                font-weight: 700;
+                margin-top: 2px;
+                font-family: "Inter", sans-serif;
+            }
+            .pmc-coins {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 0.9rem;
+                color: #f4a020;
+                flex-shrink: 0;
+            }
+            .vitals-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 24px;
+                padding: 18px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .vitals-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .vitals-name {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 1rem;
+                color: #1a1a1a;
+                cursor: pointer;
+            }
+            .vitals-menu-btn {
+                width: 28px;
+                height: 28px;
+                border-radius: 8px;
+                border: none;
+                background: rgba(0, 0, 0, 0.05);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #666;
+                transition: background 0.2s;
+            }
+            .vitals-menu-btn:hover {
+                background: rgba(0, 0, 0, 0.1);
+            }
+            .vitals-sub {
+                font-size: 0.6rem;
+                font-weight: 800;
+                color: #aaa;
+                letter-spacing: 2px;
+                font-family: "Inter", sans-serif;
+            }
+            .vitals-rings {
+                position: relative;
+                width: 180px;
+                height: 180px;
+                margin: 0 auto;
+            }
+            .vitals-rings svg {
+                transform: rotate(-90deg);
+            }
+            .vitals-center {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 44px;
+                height: 44px;
+                background: #fff;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+                color: #ff5a7e;
+            }
+            .vitals-center svg {
+                width: 22px;
+                height: 22px;
+                transform: none;
+            }
+            .vitals-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 4px;
+            }
+            .vitals-footer-label {
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: #ff5a7e;
+                font-family: "Inter", sans-serif;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .vitals-footer-label::before {
+                content: "";
+                width: 6px;
+                height: 6px;
+                background: #ff5a7e;
+                border-radius: 50%;
+                display: inline-block;
+            }
+            .vitals-footer-pct {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 0.85rem;
+                color: #333;
+            }
+            .vitals-stats-row {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 6px;
+                padding-top: 10px;
+                border-top: 1px solid rgba(0, 0, 0, 0.06);
+            }
+            .vitals-stat {
+                text-align: center;
+                flex: 1;
+            }
+            .vitals-stat-val {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 0.85rem;
+                color: #333;
+            }
+            .vitals-stat-lbl {
+                font-size: 0.6rem;
+                font-weight: 700;
+                color: #aaa;
+                margin-top: 2px;
+                letter-spacing: 0.5px;
+                font-family: "Inter", sans-serif;
+            }
+            .menu-card {
+                background: rgba(245, 245, 245, 0.96);
+                backdrop-filter: blur(20px);
+                border-radius: 20px;
+                padding: 10px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .menu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 12px;
+                border-radius: 14px;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-family: "Nunito", sans-serif;
+                font-weight: 700;
+                font-size: 0.85rem;
+                color: #666;
+                text-decoration: none;
+                position: relative;
+            }
+            .menu-item:hover {
+                background: rgba(0, 0, 0, 0.04);
+                color: #333;
+            }
+            .menu-item.active {
+                background: rgba(255, 90, 126, 0.1);
+                color: #ff5a7e;
+            }
+            .menu-item.active .menu-item-icon {
+                color: #ff5a7e;
+            }
+            .menu-item.active .menu-item-label {
+                color: #ff5a7e;
+            }
+            .menu-item-icon {
+                width: 20px;
+                height: 20px;
+                color: #999;
+                flex-shrink: 0;
+            }
+            .menu-item-icon svg {
+                width: 100%;
+                height: 100%;
+            }
+            .menu-item-label {
+                flex: 1;
+                text-align: left;
+                font-size: 0.85rem;
+                font-weight: 700;
+            }
+            .menu-item-dot {
+                width: 8px;
+                height: 8px;
+                background: #ff5a7e;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+            .expand-family-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                width: 100%;
+                padding: 12px;
+                margin-top: 4px;
+                border-radius: 14px;
+                border: none;
+                background: linear-gradient(135deg, #26a69a, #2d7a7a);
+                color: #fff;
+                font-family: "Nunito", sans-serif;
+                font-weight: 800;
+                font-size: 0.85rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+            }
+            .expand-family-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(38, 166, 154, 0.4);
+            }
+
+            /* ── CENTER PET AREA ── */
+            .park-center {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 50;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 320px;
+                height: 320px;
+            }
+            .pet-idle-wrap {
+                position: relative;
+                width: 280px;
+                height: 280px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.3s ease;
+            }
+            .pet-idle-wrap.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+            .pet-idle {
+                width: 200px;
+                height: auto;
+                image-rendering: auto;
+                filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3));
+                transition: transform 0.3s ease;
+            }
+            .pet-click-zone {
+                position: absolute;
+                inset: 20px;
+                border: 2px dashed rgba(255, 255, 255, 0.25);
+                border-radius: 20px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                background: rgba(255, 255, 255, 0.03);
+            }
+            .pet-click-zone:hover {
+                border-color: rgba(255, 255, 255, 0.5);
+                background: rgba(255, 255, 255, 0.06);
+            }
+            .pet-click-zone::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background-image:
+                    linear-gradient(
+                        rgba(255, 255, 255, 0.1) 1px,
+                        transparent 1px
+                    ),
+                    linear-gradient(
+                        90deg,
+                        rgba(255, 255, 255, 0.1) 1px,
+                        transparent 1px
+                    );
+                background-size: 30px 30px;
+                border-radius: 18px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            }
+            .pet-click-zone:hover::before {
+                opacity: 1;
+            }
+
+            /* ── ACTION CIRCLES (extrude from pet on click) ── */
+            .action-ring {
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                z-index: 55;
+            }
+            .action-ring.show {
+                pointer-events: auto;
+            }
+
+            .action-orb {
+                position: absolute;
+                min-width: 80px;
+                padding: 14px 20px;
+                border-radius: 40px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background: var(--glass);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                cursor: pointer;
+                font-family: "Nunito", sans-serif;
+                box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+                transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+                opacity: 0;
+                transform: scale(0);
+                z-index: 56;
+                pointer-events: none;
+                color: #fff;
+            }
+            .action-ring.show .action-orb {
+                opacity: 1;
+                transform: scale(1);
+                pointer-events: auto;
+            }
+            .action-orb:hover {
+                background: var(--glass-h);
+                border-color: rgba(73, 166, 166, 0.4);
+                transform: scale(1.1) !important;
+                box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
+            }
+            .action-orb .a-lbl {
+                font-size: 0.7rem;
+                font-weight: 800;
+                color: var(--teal-lt);
+                text-transform: uppercase;
+                letter-spacing: 1.2px;
+                line-height: 1.2;
+                font-family: "Nunito", sans-serif;
+                text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            }
+            .action-orb .a-cost {
+                font-size: 0.55rem;
+                font-weight: 900;
+                color: rgba(255, 255, 255, 0.4);
+                letter-spacing: 1px;
+            }
+
+            /* Radial positions — farther out to clear center box */
+            .action-orb.tailwag {
+                top: -8%;
+                left: 50%;
+                transform: translateX(-50%) scale(0);
+                transition-delay: 0s;
+            }
+            .action-ring.show .action-orb.tailwag {
+                transform: translateX(-50%) scale(1);
+            }
+            .action-orb.tailwag:hover {
+                transform: translateX(-50%) scale(1.1) !important;
+            }
+            .action-orb.backflip {
+                top: 22%;
+                left: -4%;
+                transform: translateY(-50%) scale(0);
+                transition-delay: 0.04s;
+            }
+            .action-ring.show .action-orb.backflip {
+                transform: translateY(-50%) scale(1);
+            }
+            .action-orb.backflip:hover {
+                transform: translateY(-50%) scale(1.1) !important;
+            }
+            .action-orb.dig {
+                top: 22%;
+                right: -4%;
+                left: auto;
+                transform: translateY(-50%) scale(0);
+                transition-delay: 0.08s;
+            }
+            .action-ring.show .action-orb.dig {
+                transform: translateY(-50%) scale(1);
+            }
+            .action-orb.dig:hover {
+                transform: translateY(-50%) scale(1.1) !important;
+            }
+            .action-orb.rollover {
+                bottom: -8%;
+                left: 50%;
+                transform: translateX(-50%) scale(0);
+                transition-delay: 0.12s;
+            }
+            .action-ring.show .action-orb.rollover {
+                transform: translateX(-50%) scale(1);
+            }
+            .action-orb.rollover:hover {
+                transform: translateX(-50%) scale(1.1) !important;
+            }
+
+            /* Sprite inside pet-center plays animation in-place */
+            .pet-center-sprite {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-repeat: no-repeat;
+                background-position: 0 0;
+                border-radius: 20px;
+                display: none;
+                z-index: 51;
+            }
+            .pet-center-sprite.active {
+                display: block;
+            }
+
+            /* ── XP BAR ── */
+            .xp-bar-container {
+                position: fixed;
+                bottom: 100px;
+                right: 24px;
+                z-index: 100;
+                width: 280px;
+                background: rgba(0, 0, 0, 0.55);
+                backdrop-filter: blur(16px);
+                border-radius: 16px;
+                padding: 14px 18px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            }
+            .xp-bar-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            .xp-bar-label {
+                font-family: "Inter", sans-serif;
+                font-weight: 700;
+                font-size: 0.7rem;
+                color: rgba(255, 255, 255, 0.6);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .xp-bar-value {
+                font-family: "Inter", sans-serif;
+                font-weight: 800;
+                font-size: 0.85rem;
+                color: #f4c430;
+            }
+            .xp-bar-track {
+                width: 100%;
+                height: 10px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 5px;
+                overflow: hidden;
+                position: relative;
+            }
+            .xp-bar-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #f4c430, #ff9800);
+                border-radius: 5px;
+                transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+                box-shadow: 0 0 12px rgba(244, 196, 48, 0.3);
+                position: relative;
+            }
+            .xp-bar-fill::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.25),
+                    transparent
+                );
+                animation: xpShimmer 2s infinite;
+            }
+            @keyframes xpShimmer {
+                0% {
+                    transform: translateX(-100%);
+                }
+                100% {
+                    transform: translateX(100%);
+                }
+            }
+
+            /* ── RESPONSIVE ── */
+            @media (max-width: 1024px) {
+                .left-card-stack {
+                    width: 240px;
+                }
+                .park-center {
+                    width: 280px;
+                    height: 280px;
+                }
+                .xp-bar-container {
+                    width: 220px;
+                }
+            }
+            @media (max-width: 768px) {
+                .left-card-stack {
+                    display: none;
+                }
+                .yeap-top-left {
+                    top: 12px;
+                    left: 12px;
+                }
+                .yeap-top-right {
+                    top: 12px;
+                    right: 12px;
+                }
+                .park-center {
+                    width: 240px;
+                    height: 240px;
+                }
+                .pet-idle-wrap {
+                    width: 220px;
+                    height: 220px;
+                }
+                .pet-idle {
+                    width: 160px;
+                }
+                .xp-bar-container {
+                    width: calc(100vw - 48px);
+                    right: 12px;
+                    bottom: 90px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Background -->
+        <div class="park-bg"></div>
+
+        <!-- TOP-LEFT PROFILE -->
+        <div class="yeap-top-left">
+            <div class="yeap-avatar-wrap">
+                <div class="yeap-avatar">
+                    <img
+                        src="https://i.pravatar.cc/150?img=12"
+                        alt="avatar"
+                        id="topAvatar"
+                    />
+                </div>
+                <div class="yeap-level-badge" id="yeapLevelBadge">Lv.1</div>
+            </div>
+            <div class="yeap-profile-info">
+                <div class="yeap-profile-sub" id="yeapProfileSub">
+                    Systems Admin
+                </div>
+                <div class="yeap-profile-name" id="yeapProfileName">
+                    Trainer
+                </div>
+            </div>
+        </div>
+
+        <!-- TOP-RIGHT RESOURCES -->
+        <div class="yeap-top-right">
+            <div class="yeap-resource-pill">
+                <div class="yeap-resource-label">Credits</div>
+                <div class="yeap-resource-value" id="yeapCredits">0</div>
+            </div>
+            <div class="yeap-resource-pill">
+                <div class="yeap-resource-label">Cores</div>
+                <div class="yeap-resource-value cores" id="yeapCores">1</div>
+            </div>
+        </div>
+
+        <!-- LEFT CARD STACK -->
+        <div class="left-card-stack">
+            <div class="profile-mini-card">
+                <div class="pmc-avatar">
+                    <img
+                        src="https://i.pravatar.cc/150?img=12"
+                        alt="avatar"
+                        id="pmcAvatar"
+                    />
+                </div>
+                <div class="pmc-info">
+                    <div class="pmc-name" id="pmcName">Trainer</div>
+                    <div class="pmc-sub">
+                        <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="#f4a020"
+                            stroke="none"
+                        >
+                            <path
+                                d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
+                            />
+                        </svg>
+                        <span id="pmcSub">Lv. 1 Trainer</span>
+                    </div>
+                </div>
+                <div class="pmc-coins" id="pmcCoins">$0</div>
+            </div>
+
+            <div class="vitals-card">
+                <div class="vitals-header">
+                    <div class="vitals-name" id="vitalsPetName">Pet</div>
+                    <button
+                        class="vitals-menu-btn"
+                        onclick="
+                            showAlert('info', 'Vitals synced with your pet.')
+                        "
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="19" cy="12" r="1" />
+                            <circle cx="5" cy="12" r="1" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="vitals-sub">VITALS SYNC</div>
+                <div class="vitals-rings">
+                    <svg width="180" height="180" viewBox="0 0 180 180">
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="78"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingHp"
+                            cx="90"
+                            cy="90"
+                            r="78"
+                            fill="none"
+                            stroke="#ff5a7e"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="490"
+                            stroke-dashoffset="490"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="60"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingFd"
+                            cx="90"
+                            cy="90"
+                            r="60"
+                            fill="none"
+                            stroke="#ffa726"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="377"
+                            stroke-dashoffset="377"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="42"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingJoy"
+                            cx="90"
+                            cy="90"
+                            r="42"
+                            fill="none"
+                            stroke="#26a69a"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="264"
+                            stroke-dashoffset="264"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                    </svg>
+                    <div class="vitals-center">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                            />
+                        </svg>
+                    </div>
+                </div>
+                <div class="vitals-footer">
+                    <div class="vitals-footer-label">Health Care</div>
+                    <div class="vitals-footer-pct" id="vitalsPct">95%</div>
+                </div>
+                <div class="vitals-stats-row">
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsHp">100</div>
+                        <div class="vitals-stat-lbl">Health</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsNrg">100</div>
+                        <div class="vitals-stat-lbl">Energy</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsFd">100</div>
+                        <div class="vitals-stat-lbl">Fullness</div>
+                    </div>
+                    <div class="vitals-stat">
+                        <div class="vitals-stat-val" id="vitalsJoy">100</div>
+                        <div class="vitals-stat-lbl">Happiness</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-card">
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'kitchen.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                        />
+                    </svg>
+                    <span class="menu-item-label">Kitchen</span>
+                </button>
+                <button
+                    class="menu-item active"
+                    onclick="window.location.href = 'park.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 22v-8" />
+                        <path
+                            d="M12 14a4 4 0 0 1 4-4h4a4 4 0 0 0-4-4 4 4 0 0 0-4 4z"
+                        />
+                        <path
+                            d="M12 14a4 4 0 0 0-4-4H4a4 4 0 0 1 4-4 4 4 0 0 1 4 4z"
+                        />
+                        <path d="M12 6V2" />
+                    </svg>
+                    <span class="menu-item-label">Park</span>
+                </button>
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'vet.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                    <span class="menu-item-label">Vet</span>
+                </button>
+                <button
+                    class="menu-item"
+                    onclick="window.location.href = 'shop.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path
+                            d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                        />
+                    </svg>
+                    <span class="menu-item-label">Store</span>
+                </button>
+                <button class="expand-family-btn" onclick="openSetupModal()">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Expand Family
+                </button>
+            </div>
+        </div>
+
+        <!-- CENTER PET AREA -->
+        <div class="park-center" id="parkCenter">
+            <!-- Idle state -->
+            <div class="pet-idle-wrap" id="idleWrap">
+                <img
+                    src="Dogidle.png"
+                    alt="Pet"
+                    class="pet-idle"
+                    id="petIdle"
+                />
+                <div
+                    class="pet-click-zone"
+                    id="petClickZone"
+                    onclick="toggleActions()"
+                ></div>
+                <!-- Sprite plays in-place over idle -->
+                <div class="pet-center-sprite" id="petCenterSprite"></div>
+            </div>
+
+            <!-- RADIAL ACTION RING (extrudes from pet) -->
+            <div class="action-ring" id="actionRing">
+                <button
+                    class="action-orb tailwag"
+                    onclick="playAnim('tailwag')"
+                >
+                    <span class="a-lbl">Tail Wag</span>
+                    <span class="a-cost">5 energy</span>
+                </button>
+                <button
+                    class="action-orb backflip"
+                    onclick="playAnim('backflip')"
+                >
+                    <span class="a-lbl">Backflip</span>
+                    <span class="a-cost">5 energy</span>
+                </button>
+                <button class="action-orb dig" onclick="playAnim('dig')">
+                    <span class="a-lbl">Dig</span>
+                    <span class="a-cost">12 energy</span>
+                </button>
+                <button
+                    class="action-orb rollover"
+                    onclick="playAnim('rollover')"
+                >
+                    <span class="a-lbl">Roll Over</span>
+                    <span class="a-cost">4 energy</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- XP BAR (bottom-right of viewport) -->
+        <div class="xp-bar-container">
+            <div class="xp-bar-header">
+                <span class="xp-bar-label">Experience</span>
+                <span class="xp-bar-value" id="xpValue">0 / 100</span>
+            </div>
+            <div class="xp-bar-track">
+                <div class="xp-bar-fill" id="xpFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- ALERT -->
+        <div
+            class="alert-ov"
+            id="alertOv"
+            style="
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(8px);
+            "
+        >
+            <div
+                class="alert-box"
+                style="
+                    background: rgba(255, 255, 255, 0.97);
+                    border-radius: 24px;
+                    padding: 32px;
+                    max-width: 360px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+                "
+            >
+                <div
+                    class="a-em"
+                    id="aEm"
+                    style="font-size: 3rem; margin-bottom: 12px"
+                >
+                    ℹ️
+                </div>
+                <div
+                    class="a-msg"
+                    id="aMsg"
+                    style="
+                        font-size: 1rem;
+                        font-weight: 700;
+                        color: #333;
+                        margin-bottom: 20px;
+                        font-family: &quot;Nunito&quot;, sans-serif;
+                    "
+                ></div>
+                <button
+                    class="a-ok"
+                    onclick="closeAlert()"
+                    style="
+                        padding: 12px 32px;
+                        border-radius: 14px;
+                        border: none;
+                        background: linear-gradient(135deg, #26a69a, #2d7a7a);
+                        color: #fff;
+                        font-family: &quot;Nunito&quot;, sans-serif;
+                        font-weight: 800;
+                        font-size: 0.9rem;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+                    "
+                >
+                    OK!
+                </button>
+            </div>
+        </div>
+
+        <script src="overlay.js"></script>
+        <script src="shared-navbar.js?v=8"></script>
+        <script>
+            // ═══════════════════════════════════════════
+            // FIREBASE
+            // ═══════════════════════════════════════════
+            const firebaseConfig = {
+                apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+                authDomain: "helix-fbla.firebaseapp.com",
+                projectId: "helix-fbla",
+                storageBucket: "helix-fbla.firebasestorage.app",
+                messagingSenderId: "154951525413",
+                appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc",
+            };
+            let db, auth, currentUser;
+            try {
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+            } catch (e) {
+                console.error(e);
+            }
+
+            // ═══════════════════════════════════════════
+            // STATE
+            // ═══════════════════════════════════════════
+            let petData = {
+                name: "Pet",
+                type: "b",
+                age: "baby",
+                level: 1,
+                experience: 0,
+                experienceToNextLevel: 100,
+                health: 100,
+                happiness: 100,
+                fullness: 100,
+                energy: 100,
+                bond: 0,
+                personality: "",
+                lastUpdated: Date.now(),
+            };
+            let userPets = {},
+                currentPetId = null;
+            let userData = { coins: 0 };
+            let spriteInterval = null;
+
+            const PET_TRAITS = {
+                a: { name: "Cat", emoji: "🐱" },
+                b: { name: "Dog", emoji: "🐶" },
+                c: { name: "Bird", emoji: "🦜" },
+            };
+
+            // ═══════════════════════════════════════════
+            // SPRITE CONFIG
+            // Adjust frameW/frameH to match your sprite sheets
+            // ═══════════════════════════════════════════
+            const SPRITE_CONFIG = {
+                tailwag: {
+                    src: "Tailwag.png",
+                    frames: 16,
+                    frameW: 280,
+                    frameH: 280,
+                    fps: 12,
+                    cols: 4,
+                    rows: 4,
+                },
+                dig: {
+                    src: "Dig.png",
+                    frames: 16,
+                    frameW: 280,
+                    frameH: 280,
+                    fps: 12,
+                    cols: 4,
+                    rows: 4,
+                },
+                backflip: {
+                    src: "Backflip.png",
+                    frames: 16,
+                    frameW: 280,
+                    frameH: 280,
+                    fps: 12,
+                    cols: 4,
+                    rows: 4,
+                },
+                rollover: {
+                    src: "Rollover.png",
+                    frames: 16,
+                    frameW: 280,
+                    frameH: 280,
+                    fps: 12,
+                    cols: 4,
+                    rows: 4,
+                },
+            };
+
+            // CSS generated sprite keyframes no longer used (using rAF now)
+
+            // ═══════════════════════════════════════════
+            // ACTION STATS
+            // ═══════════════════════════════════════════
+            const ACTION_STATS = {
+                tailwag: {
+                    happiness: 6,
+                    energy: 2,
+                    fullness: 0,
+                    xp: 3,
+                    tiredXp: 2,
+                },
+                dig: {
+                    happiness: 8,
+                    energy: -9,
+                    fullness: -1,
+                    xp: 8,
+                    tiredXp: 4,
+                },
+                rollover: {
+                    happiness: 10,
+                    energy: -16,
+                    fullness: -2,
+                    xp: 14,
+                    tiredXp: 7,
+                },
+                backflip: {
+                    happiness: 12,
+                    energy: -25,
+                    fullness: -3,
+                    xp: 22,
+                    tiredXp: 11,
+                },
+            };
+
+            // ═══════════════════════════════════════════
+            // DATA LOADING
+            // ═══════════════════════════════════════════
+            async function loadPetData() {
+                if (!auth || !db) return;
+                try {
+                    await new Promise((resolve) => {
+                        const unsub = auth.onAuthStateChanged((u) => {
+                            currentUser = u;
+                            unsub();
+                            resolve();
+                        });
+                    });
+                    if (!currentUser) return;
+
+                    const userDoc = await db
+                        .collection("users")
+                        .doc(currentUser.uid)
+                        .get();
+                    if (userDoc.exists) {
+                        const d = userDoc.data();
+                        currentPetId = d.currentPetId;
+                        userData.coins = d.coins || d.budgetRemaining || 0;
+                        document.getElementById("yeapCredits").textContent =
+                            userData.coins;
+                        document.getElementById("pmcCoins").textContent =
+                            "$" + userData.coins;
+                        document.getElementById("yeapProfileName").textContent =
+                            d.displayName || "Trainer";
+                        document.getElementById("pmcName").textContent =
+                            d.displayName || "Trainer";
+                        if (d.photoURL) {
+                            document.getElementById("topAvatar").src =
+                                d.photoURL;
+                            document.getElementById("pmcAvatar").src =
+                                d.photoURL;
+                        }
+                    }
+
+                    const petsSnap = await db
+                        .collection("users")
+                        .doc(currentUser.uid)
+                        .collection("pets")
+                        .get();
+                    userPets = {};
+                    petsSnap.forEach((doc) => (userPets[doc.id] = doc.data()));
+
+                    if (currentPetId && userPets[currentPetId]) {
+                        petData = { ...petData, ...userPets[currentPetId] };
+                    } else if (Object.keys(userPets).length > 0) {
+                        currentPetId = Object.keys(userPets)[0];
+                        petData = { ...petData, ...userPets[currentPetId] };
+                    }
+
+                    updateUI();
+                } catch (e) {
+                    console.error("loadPetData error:", e);
+                }
+            }
+
+            async function savePetData() {
+                if (!currentUser || !db || !currentPetId) return;
+                try {
+                    await db
+                        .collection("users")
+                        .doc(currentUser.uid)
+                        .collection("pets")
+                        .doc(currentPetId)
+                        .set(petData, { merge: true });
+                } catch (e) {
+                    console.error("savePetData error:", e);
+                }
+            }
+
+            // ═══════════════════════════════════════════
+            // UI UPDATES
+            // ═══════════════════════════════════════════
+            function updateUI() {
+                const p = petData;
+                document.getElementById("vitalsPetName").textContent =
+                    p.name || "Pet";
+                document.getElementById("pmcSub").textContent =
+                    "Lv. " + (p.level || 1) + " Trainer";
+                document.getElementById("yeapLevelBadge").textContent =
+                    "Lv." + (p.level || 1);
+
+                const hp = p.health || 0;
+                const fd = p.fullness || 0;
+                const joy = p.happiness || 0;
+                const nrg = p.energy || 0;
+
+                document.getElementById("vRingHp").style.strokeDashoffset =
+                    490 - (490 * hp) / 100;
+                document.getElementById("vRingFd").style.strokeDashoffset =
+                    377 - (377 * fd) / 100;
+                document.getElementById("vRingJoy").style.strokeDashoffset =
+                    264 - (264 * joy) / 100;
+
+                document.getElementById("vitalsHp").textContent =
+                    Math.round(hp);
+                document.getElementById("vitalsNrg").textContent =
+                    Math.round(nrg);
+                document.getElementById("vitalsFd").textContent =
+                    Math.round(fd);
+                document.getElementById("vitalsJoy").textContent =
+                    Math.round(joy);
+
+                const avg = (hp + nrg + fd + joy) / 4;
+                document.getElementById("vitalsPct").textContent =
+                    Math.round(avg) + "%";
+
+                const xp = p.experience || 0;
+                const xpNext = p.experienceToNextLevel || 100;
+                const xpPct = Math.min(100, (xp / xpNext) * 100);
+                document.getElementById("xpValue").textContent =
+                    Math.round(xp) + " / " + Math.round(xpNext);
+                document.getElementById("xpFill").style.width = xpPct + "%";
+
+                if (p.type === "b") {
+                    document.getElementById("petIdle").src = "Dogidle.png";
+                }
+            }
+
+            // ═══════════════════════════════════════════
+            // RADIAL ACTION RING
+            // ═══════════════════════════════════════════
+            function toggleActions() {
+                document.getElementById("actionRing").classList.toggle("show");
+            }
+
+            // ═══════════════════════════════════════════
+            // SPRITE ANIMATOR (requestAnimationFrame — smooth)
+            // ═══════════════════════════════════════════
+            let sprRaf = null;
+            let sprEl = null;
+            let sprCfg = null;
+            let sprFrame = 0;
+            let sprLastT = 0;
+
+            function startSpriteAnim(element, key) {
+                const cfg = SPRITE_CONFIG[key];
+                if (!cfg) return;
+                stopSpriteAnim();
+                sprCfg = cfg;
+                sprEl = element;
+                sprFrame = 0;
+                sprLastT = performance.now();
+
+                // Set the spritesheet as background at actual pixel size
+                element.style.backgroundImage = `url(${cfg.src})`;
+                const sheetW = cfg.cols * cfg.frameW;
+                const sheetH = cfg.rows * cfg.frameH;
+                element.style.backgroundSize = `${sheetW}px ${sheetH}px`;
+                // Element itself = one frame cell
+                element.style.width = cfg.frameW + "px";
+                element.style.height = cfg.frameH + "px";
+
+                // Show frame 0
+                element.style.backgroundPosition = "0px 0px";
+
+                const interval = 1000 / cfg.fps;
+                function tick(now) {
+                    const dt = now - sprLastT;
+                    if (dt >= interval) {
+                        sprFrame++;
+                        if (sprFrame >= cfg.frames) {
+                            sprFrame = 0;
+                        }
+                        const col = sprFrame % cfg.cols;
+                        const row = Math.floor(sprFrame / cfg.cols);
+                        element.style.backgroundPosition = `-${col * cfg.frameW}px -${row * cfg.frameH}px`;
+                        sprLastT = now;
+                    }
+                    sprRaf = requestAnimationFrame(tick);
+                }
+                sprRaf = requestAnimationFrame(tick);
+            }
+
+            function stopSpriteAnim() {
+                if (sprRaf) {
+                    cancelAnimationFrame(sprRaf);
+                    sprRaf = null;
+                }
+                const el = document.getElementById("petCenterSprite");
+                if (el) {
+                    el.style.backgroundImage = "";
+                    el.style.backgroundPosition = "";
+                    el.style.backgroundSize = "";
+                    el.style.width = "";
+                    el.style.height = "";
+                }
+                sprEl = null;
+                sprCfg = null;
+                sprFrame = 0;
+            }
+
+            // ═══════════════════════════════════════════
+            // ANIMATION PLAYER
+            // ═══════════════════════════════════════════
+            function playAnim(key) {
+                const stats = ACTION_STATS[key];
+                if (!stats) return;
+
+                // Apply stats
+                const isTired = (petData.energy || 0) < 20;
+                const xpGain = isTired ? stats.tiredXp : stats.xp;
+
+                petData.happiness = Math.min(
+                    100,
+                    Math.max(0, (petData.happiness || 0) + stats.happiness),
+                );
+                petData.energy = Math.min(
+                    100,
+                    Math.max(0, (petData.energy || 0) + stats.energy),
+                );
+                petData.fullness = Math.min(
+                    100,
+                    Math.max(0, (petData.fullness || 0) + stats.fullness),
+                );
+                petData.experience = (petData.experience || 0) + xpGain;
+
+                // Level up check
+                if (
+                    petData.experience >= (petData.experienceToNextLevel || 100)
+                ) {
+                    petData.level = (petData.level || 1) + 1;
+                    petData.experience -= petData.experienceToNextLevel || 100;
+                    petData.experienceToNextLevel =
+                        (petData.experienceToNextLevel || 100) * 1.2;
+                    showAlert(
+                        "success",
+                        "Level Up! Your pet is now level " + petData.level,
+                    );
+                }
+
+                updateUI();
+                savePetData();
+
+                // Hide idle img, show sprite in-place, hide action ring
+                document.getElementById("petIdle").style.display = "none";
+                document.getElementById("actionRing").classList.remove("show");
+                const sprite = document.getElementById("petCenterSprite");
+                sprite.classList.add("active");
+                startSpriteAnim(sprite, key);
+
+                // Restore after duration
+                const cfg = SPRITE_CONFIG[key];
+                const duration = Math.max(2500, (cfg.frames / cfg.fps) * 1000);
+                setTimeout(() => {
+                    stopSpriteAnim();
+                    sprite.classList.remove("active");
+                    document.getElementById("petIdle").style.display = "block";
+                }, duration);
+            }
+
+            // ═══════════════════════════════════════════
+            // NAVIGATION
+            // ═══════════════════════════════════════════
+            function goBaseCamp() {
+                window.location.href = "yeap.html";
+            }
+            function goCareCenter() {
+                window.location.href = "vet.html";
+            }
+            function goNutrition() {
+                window.location.href = "nutrition.html";
+            }
+            function goPark() {
+                /* already here */
+            }
+            function openSetupModal() {
+                window.location.href = "yeap.html";
+            }
+
+            // ═══════════════════════════════════════════
+            // ALERT
+            // ═══════════════════════════════════════════
+            function showAlert(type, msg) {
+                const ov = document.getElementById("alertOv");
+                const em = document.getElementById("aEm");
+                const ms = document.getElementById("aMsg");
+                const icons = {
+                    info: "ℹ️",
+                    success: "✅",
+                    error: "❌",
+                    warning: "⚠️",
+                };
+                em.textContent = icons[type] || icons.info;
+                ms.textContent = msg;
+                ov.style.display = "flex";
+            }
+            function closeAlert() {
+                document.getElementById("alertOv").style.display = "none";
+            }
+
+            // ═══════════════════════════════════════════
+            // PARK TOUR
+            // ═══════════════════════════════════════════
+            const parkTour = new TutorialPopup({
+                storageKey: "tutorialPopupParkSeen",
+                tabs: [
+                    {
+                        id: "overview",
+                        title: "Park Overview",
+                        content: [
+                            "<strong>The Park</strong> is where you can play with your pet and help them grow. Interact with your pet, track their vitals, and earn experience.",
+                            "Use the action buttons to play, train, and bond with your pet. Each action affects their stats and grants XP.",
+                        ],
+                    },
+                    {
+                        id: "vitals",
+                        title: "Pet Vitals",
+                        content: [
+                            "The <strong>left panel</strong> shows your active pet's vitals: Health, Happiness, Fullness, and Energy.",
+                            "The ring chart gives a quick visual overview of overall wellness. Keep all stats balanced for a happy pet.",
+                        ],
+                    },
+                    {
+                        id: "actions",
+                        title: "Actions & Rewards",
+                        content: [
+                            "Click your pet to reveal <strong>action buttons</strong> around them: Tail Wag, Dig, Backflip, and Rollover.",
+                            "Each action costs energy and grants stat boosts plus XP. Some actions work better when your pet is tired.",
+                            "Watch your pet's level and XP bar in the bottom-right corner as you play.",
+                        ],
+                    },
+                    {
+                        id: "navigation",
+                        title: "Quick Navigation",
+                        content: [
+                            "Use the <strong>bottom nav bar</strong> to quickly jump between the Kitchen, Park, and Vet.",
+                            "Click the <strong>center avatar</strong> to switch between your pets at any time.",
+                        ],
+                    },
+                ],
+            });
+            window.parkTour = parkTour;
+            if (document.readyState === "loading") {
+                window.addEventListener("DOMContentLoaded", () =>
+                    parkTour.open(),
+                );
+            } else {
+                parkTour.open();
+            }
+
+            // ═══════════════════════════════════════════
+            // INIT
+            // ═══════════════════════════════════════════
+            document.addEventListener("DOMContentLoaded", () => {
+                loadPetData();
+                if (typeof helixNav !== "undefined") {
+                    helixNav.init({
+                        page: "park",
+                        onPetSelect: (pid, pet) => {
+                            currentPetId = pid;
+                            petData = { ...petData, ...pet };
+                            updateUI();
+                        },
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>

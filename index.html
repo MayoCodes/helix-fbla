@@ -2907,7 +2907,7 @@
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
         <script src="loading.js"></script>
-        <script src="app.js"></script>
+        <script src="app.js?v=4"></script>
         <script>
             // Update nav based on auth state
             function updateLucyNav(user) {
@@ -2915,7 +2915,7 @@
                 if (!btns) return;
                 if (user) {
                     btns.innerHTML = `
-        <button class="nreq" onclick="window.location.href='homepage.html'">Homepage</button>
+        <button class="nreq" onclick="window.location.href='home.html'">Home</button>
         <button class="nreq" style="background:var(--text);color:white;border-color:var(--text);" onclick="handleLogout()">Log Out</button>`;
                 } else {
                     btns.innerHTML = `

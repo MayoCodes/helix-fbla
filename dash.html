@@ -1,0 +1,2582 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Dashboard</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="tutorial-popup.css?v=4" />
+        <script src="tutorial-popup.js?v=4"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+        <script>
+            Chart.defaults.font.family = "'Outfit', sans-serif";
+            Chart.defaults.font.size = 11;
+            Chart.defaults.color = "#6b7280";
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyAihB6sYRLLfVOqupIxn5NJWLHzaA8tJRo",
+                authDomain: "helix-fbla.firebaseapp.com",
+                projectId: "helix-fbla",
+                storageBucket: "helix-fbla.firebasestorage.app",
+                messagingSenderId: "154951525413",
+                appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc",
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+
+            window.signInWithGoogle = async () => {
+                try {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    await auth.signInWithPopup(provider);
+                } catch (err) {
+                    console.error("Firebase sign in error:", err);
+                    alert("Failed to sign in with Google.");
+                }
+            };
+
+            window.signOut = async () => {
+                try {
+                    await auth.signOut();
+                } catch (err) {
+                    console.error("Firebase sign out error:", err);
+                }
+            };
+
+            let allPets = {};
+            let currentPetId = null;
+            let userData = null;
+            let chartInstances = {};
+
+            function destroyChart(id) {
+                if (chartInstances[id]) {
+                    chartInstances[id].destroy();
+                    delete chartInstances[id];
+                }
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    await loadUserData(user.uid);
+                } else {
+                    document.body.innerHTML =
+                        '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:Inter,sans-serif"><h2>Sign in to view your dashboard</h2><button onclick="window.signInWithGoogle()" style="padding:10px 20px;border-radius:8px;border:none;background:#4f46e5;color:white;font-weight:600;cursor:pointer">Sign in with Google</button></div>';
+                }
+            });
+
+            async function loadUserData(uid) {
+                try {
+                    const userDoc = await db.collection("users").doc(uid).get();
+                    if (!userDoc.exists) {
+                        showEmpty();
+                        return;
+                    }
+                    const data = userDoc.data();
+                    userData = data.userData || {};
+                    currentPetId = data.currentPetId;
+                    const petsSnap = await db
+                        .collection("users")
+                        .doc(uid)
+                        .collection("pets")
+                        .get();
+                    allPets = {};
+                    petsSnap.forEach((d) => {
+                        allPets[d.id] = d.data();
+                    });
+                    if (!currentPetId || !allPets[currentPetId]) {
+                        currentPetId = Object.keys(allPets)[0] || null;
+                    }
+                    buildPetSelector();
+                    renderAll();
+                } catch (e) {
+                    console.error("Error loading data:", e);
+                }
+            }
+
+            function buildPetSelector() {
+                const sel = document.getElementById("pet-select");
+                if (!sel) return;
+                sel.innerHTML = "";
+                Object.entries(allPets).forEach(([id, pet]) => {
+                    const opt = document.createElement("option");
+                    opt.value = id;
+                    opt.textContent = pet.name || "Unnamed Pet";
+                    if (id === currentPetId) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            }
+
+            window.switchPet = (id) => {
+                currentPetId = id;
+                renderAll();
+            };
+
+            function renderAll() {
+                if (!currentPetId || !allPets[currentPetId]) return;
+                const pet = allPets[currentPetId];
+                const ct = pet.costTracking || userData?.costTracking || {};
+                renderHeader(pet, ct);
+                renderStats(pet, ct);
+                renderMainChart(ct);
+                renderCategoryChart(ct);
+                renderBudgetDonut(ct);
+                renderTransactions(ct);
+                renderTasks(pet);
+            }
+
+            function petTypeLabel(t) {
+                if (t === "a") return "cat";
+                if (t === "b") return "dog";
+                if (t === "c") return "bird";
+                return "pet";
+            }
+
+            function statLabel(val) {
+                if (val >= 90) return "Excellent";
+                if (val >= 70) return "Good";
+                if (val >= 50) return "Fair";
+                if (val >= 30) return "Low";
+                return "Critical";
+            }
+
+            function thisMonthTx(transactions) {
+                const now = new Date();
+                return (transactions || []).filter((tx) => {
+                    const d = new Date(tx.date);
+                    return (
+                        d.getMonth() === now.getMonth() &&
+                        d.getFullYear() === now.getFullYear()
+                    );
+                });
+            }
+
+            function fmtMoney(n) {
+                return "$" + (n || 0).toFixed(2);
+            }
+
+            function renderHeader(pet, ct) {
+                const name = pet.name || "Your Pet";
+                const type = petTypeLabel(pet.type);
+                document.getElementById("page-title").textContent =
+                    name + "'s Finances";
+                document.getElementById("welcome-line").textContent =
+                    `Your ${type} ${name} is ${statLabel(
+                        pet.health ?? 100,
+                    ).toLowerCase()} — health at ${Math.round(
+                        pet.health ?? 100,
+                    )}% and happiness at ${Math.round(pet.happiness ?? 100)}%.`;
+            }
+
+            function renderStats(pet, ct) {
+                const totalSpent = ct.totalSpent || 0;
+                const budget = ct.monthlyBudget || 200;
+                const remaining =
+                    ct.budgetRemaining ?? Math.max(0, budget - totalSpent);
+                document.getElementById("stat-total-spent").textContent =
+                    fmtMoney(totalSpent);
+                document.getElementById("stat-budget-left").textContent =
+                    fmtMoney(remaining);
+                document.getElementById("stat-happiness").textContent =
+                    Math.round(pet.happiness ?? 0) + "%";
+                document.getElementById("stat-level").textContent =
+                    "Lv. " + (pet.level || 1);
+            }
+
+            function renderMainChart(ct) {
+                const budget = ct.monthlyBudget || 200;
+                const txList = thisMonthTx(ct.transactions);
+                const sorted = [...txList].sort((a, b) => a.date - b.date);
+                let running = 0;
+                const labels = [];
+                const data = [];
+                sorted.forEach((tx) => {
+                    running += tx.amount || 0;
+                    labels.push(
+                        new Date(tx.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                        }),
+                    );
+                    data.push(parseFloat(running.toFixed(2)));
+                });
+                if (labels.length === 0) {
+                    labels.push("No data");
+                    data.push(0);
+                }
+                destroyChart("mainChart");
+                const ctx = document
+                    .getElementById("mainChart")
+                    .getContext("2d");
+                const grad = ctx.createLinearGradient(0, 0, 0, 260);
+                grad.addColorStop(0, "rgba(147,197,253,0.25)");
+                grad.addColorStop(1, "rgba(147,197,253,0)");
+                chartInstances["mainChart"] = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: "Spending",
+                                data,
+                                borderColor: "#93c5fd",
+                                backgroundColor: grad,
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4,
+                                pointBackgroundColor: "#93c5fd",
+                                pointBorderColor: "#fff",
+                                pointBorderWidth: 2,
+                            },
+                            {
+                                label: "Budget",
+                                data: labels.map(() => budget),
+                                borderColor: "#48bb78",
+                                borderDash: [5, 5],
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                fill: false,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, position: "bottom" },
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { callback: (v) => "$" + v },
+                                grid: { color: "#f3f4f6" },
+                                border: { display: false },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
+            }
+
+            function renderCategoryChart(ct) {
+                const food = ct.foodSpent || 0;
+                const vet = ct.vetSpent || 0;
+                const toy = ct.toySpent || 0;
+                const other = Math.max(
+                    0,
+                    (ct.totalSpent || 0) - food - vet - toy,
+                );
+                destroyChart("categoryChart");
+                const ctx = document
+                    .getElementById("categoryChart")
+                    .getContext("2d");
+                chartInstances["categoryChart"] = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: ["Food", "Vet", "Toys", "Other"],
+                        datasets: [
+                            {
+                                data: [food, vet, toy, other],
+                                backgroundColor: [
+                                    "#93c5fd",
+                                    "#c4b5fd",
+                                    "#48bb78",
+                                    "#bbdefb",
+                                ],
+                                borderRadius: 6,
+                                barPercentage: 0.55,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { callback: (v) => "$" + v },
+                                grid: { color: "#e8f5e9" },
+                                border: { display: false },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
+            }
+
+            function renderStatsBarChart(pet) {
+                destroyChart("statsBarChart");
+                const ctx = document
+                    .getElementById("statsBarChart")
+                    .getContext("2d");
+                chartInstances["statsBarChart"] = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: [
+                            "Health",
+                            "Happiness",
+                            "Fullness",
+                            "Energy",
+                            "Bond",
+                        ],
+                        datasets: [
+                            {
+                                data: [
+                                    pet.health ?? 0,
+                                    pet.happiness ?? 0,
+                                    pet.fullness ?? 0,
+                                    pet.energy ?? 0,
+                                    pet.bond ?? 0,
+                                ],
+                                backgroundColor: [
+                                    "#93c5fd",
+                                    "#c4b5fd",
+                                    "#48bb78",
+                                    "#bbdefb",
+                                    "#a5d6a7",
+                                ],
+                                borderRadius: 6,
+                                barPercentage: 0.55,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: "#e8f5e9" },
+                                border: { display: false },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
+            }
+
+            function renderBudgetDonut(ct) {
+                const budget = ct.monthlyBudget || 200;
+                const totalSpent = ct.totalSpent || 0;
+                const food = ct.foodSpent || 0;
+                const vet = ct.vetSpent || 0;
+                const toy = ct.toySpent || 0;
+                const remaining = Math.max(0, budget - totalSpent);
+                document.getElementById("legend-food").textContent =
+                    fmtMoney(food);
+                document.getElementById("legend-vet").textContent =
+                    fmtMoney(vet);
+                document.getElementById("legend-toys").textContent =
+                    fmtMoney(toy);
+                document.getElementById("legend-remaining").textContent =
+                    fmtMoney(remaining);
+                destroyChart("budgetDonut");
+                const ctx = document
+                    .getElementById("budgetDonut")
+                    .getContext("2d");
+                chartInstances["budgetDonut"] = new Chart(ctx, {
+                    type: "doughnut",
+                    data: {
+                        labels: ["Food", "Vet", "Toys", "Remaining"],
+                        datasets: [
+                            {
+                                data: [food, vet, toy, remaining],
+                                backgroundColor: [
+                                    "#93c5fd",
+                                    "#c4b5fd",
+                                    "#48bb78",
+                                    "#bbdefb",
+                                ],
+                                borderWidth: 0,
+                                hoverOffset: 4,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: "65%",
+                        plugins: { legend: { display: false } },
+                    },
+                });
+            }
+
+            function renderTransactions(ct) {
+                const txList = thisMonthTx(ct.transactions);
+                const recent = [...txList]
+                    .sort((a, b) => b.date - a.date)
+                    .slice(0, 5);
+                const container = document.getElementById("tx-list");
+                if (!container) return;
+                if (recent.length === 0) {
+                    container.innerHTML =
+                        '<div class="widget-item"><div class="widget-text"><div class="widget-title">No transactions this month</div></div></div>';
+                    return;
+                }
+                const catColors = {
+                    food: { bg: "#dbeafe", color: "#5b8def" },
+                    vet: { bg: "#ede9fe", color: "#8b7dd4" },
+                    toy: { bg: "#c8e6c9", color: "#66bb6a" },
+                    grooming: { bg: "#bbdefb", color: "#5b8def" },
+                    other: { bg: "#e8f5e9", color: "#66bb6a" },
+                };
+                container.innerHTML = recent
+                    .map((tx) => {
+                        const cat = tx.category || "other";
+                        const style = catColors[cat] || catColors.other;
+                        const date = new Date(tx.date).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric" },
+                        );
+                        return `<div class="widget-item">
+                            <div class="widget-icon" style="background:${style.bg};color:${style.color}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </div>
+                            <div class="widget-text">
+                                <div class="widget-title">${tx.item || "Transaction"}</div>
+                                <div class="widget-sub">${cat.charAt(0).toUpperCase() + cat.slice(1)} · ${date}</div>
+                            </div>
+                            <div class="widget-meta">-$${(tx.amount || 0).toFixed(2)}</div>
+                        </div>`;
+                    })
+                    .join("");
+            }
+
+            function renderTasks(pet) {
+                const tasks = pet.tasksCompleted || {};
+                const done = Object.entries(tasks).filter(([, v]) => v);
+                const pending = Object.entries(tasks).filter(([, v]) => !v);
+                const container = document.getElementById("tasks-list");
+                if (!container) return;
+                let html = "";
+                done.forEach(([k]) => {
+                    html += `<div class="task-row">
+                        <div class="task-check done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+                        <span class="task-text done">${k
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+                    </div>`;
+                });
+                pending.forEach(([k]) => {
+                    html += `<div class="task-row">
+                        <div class="task-check"></div>
+                        <span class="task-text">${k
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+                    </div>`;
+                });
+                if (html === "") {
+                    html =
+                        '<div class="task-row"><div class="task-check"></div><span class="task-text">No tasks yet</span></div>';
+                }
+                container.innerHTML = html;
+            }
+
+            function showEmpty() {
+                document.getElementById("page-title").textContent = "No data";
+                document.getElementById("welcome-line").textContent =
+                    "No pets found for this account.";
+            }
+
+            window.switchTab = (tabId, e) => {
+                document
+                    .querySelectorAll(".tab-content")
+                    .forEach((t) => t.classList.remove("active"));
+                document
+                    .querySelectorAll(".nav-item")
+                    .forEach((b) => b.classList.remove("active"));
+                document.getElementById("tab-" + tabId).classList.add("active");
+                if (e && e.currentTarget) {
+                    e.currentTarget.classList.add("active");
+                }
+                // Re-render charts for the active tab since they may have been hidden
+                if (tabId === "finances") {
+                    const pet = currentPetId ? allPets[currentPetId] : null;
+                    const ct =
+                        pet?.costTracking || userData?.costTracking || {};
+                    setTimeout(() => {
+                        renderMainChart(ct);
+                        renderCategoryChart(ct);
+                        renderBudgetDonut(ct);
+                    }, 10);
+                } else if (tabId === "health") {
+                    const pet = currentPetId ? allPets[currentPetId] : null;
+                    setTimeout(() => renderHealthTabCharts(pet), 10);
+                } else if (tabId === "ai") {
+                    const pet = currentPetId ? allPets[currentPetId] : null;
+                    const ct =
+                        pet?.costTracking || userData?.costTracking || {};
+                    setTimeout(() => {
+                        renderAITabCharts(pet, ct);
+                        renderAIInsights(pet, ct);
+                    }, 10);
+                }
+            };
+
+            window.toggleChat = () =>
+                document
+                    .getElementById("ai-chat-panel")
+                    .classList.toggle("open");
+
+            window.sendChat = async (presetMsg) => {
+                const input = document.getElementById("chat-input");
+                const msg = presetMsg || input.value.trim();
+                if (!msg) return;
+                input.value = "";
+                const messagesDiv = document.getElementById("chat-messages");
+                messagesDiv.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+                messagesDiv.innerHTML += `<div class="chat-msg loading" id="loading-msg">Thinking...</div>`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                const pet = currentPetId ? allPets[currentPetId] : null;
+                const ct = pet?.costTracking || userData?.costTracking || {};
+                const context = pet
+                    ? {
+                          name: pet.name,
+                          type: petTypeLabel(pet.type),
+                          health: Math.round(pet.health ?? 100),
+                          happiness: Math.round(pet.happiness ?? 100),
+                          fullness: Math.round(pet.fullness ?? 100),
+                          energy: Math.round(pet.energy ?? 100),
+                          bond: Math.round(pet.bond ?? 0),
+                          level: pet.level || 1,
+                          experience: pet.experience || 0,
+                          totalSpent: ct.totalSpent || 0,
+                          budget: ct.monthlyBudget || 200,
+                          budgetRemaining:
+                              ct.budgetRemaining ??
+                              (ct.monthlyBudget || 200) - (ct.totalSpent || 0),
+                          coins: userData?.coins || 0,
+                          transactionsThisMonth: thisMonthTx(ct.transactions)
+                              .length,
+                      }
+                    : {};
+                try {
+                    const res = await fetch("/api/groq", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            model: "llama-3.3-70b-versatile",
+                            max_tokens: 1000,
+                            messages: [
+                                {
+                                    role: "system",
+                                    content: `You are a helpful HELIX AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}`,
+                                },
+                                { role: "user", content: msg },
+                            ],
+                        }),
+                    });
+                    const data = await res.json();
+                    const reply =
+                        data.choices?.[0]?.message?.content ||
+                        "Sorry, I couldn't process that.";
+                    document.getElementById("loading-msg")?.remove();
+                    messagesDiv.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
+                } catch {
+                    document.getElementById("loading-msg")?.remove();
+                    if (pet)
+                        messagesDiv.innerHTML += `<div class="chat-msg bot">${pet.name} is at ${Math.round(pet.health ?? 100)}% health and ${Math.round(pet.happiness ?? 100)}% happiness. Keep up the care routine!</div>`;
+                }
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            function renderBudgetTabCharts(ct) {
+                const budget = ct.monthlyBudget || 200;
+                const totalSpent = ct.totalSpent || 0;
+                const food = ct.foodSpent || 0;
+                const vet = ct.vetSpent || 0;
+                const toy = ct.toySpent || 0;
+                const other = Math.max(0, totalSpent - food - vet - toy);
+                const remaining = Math.max(0, budget - totalSpent);
+                destroyChart("budgetTabDonut");
+                const ctx = document
+                    .getElementById("budgetTabDonut")
+                    .getContext("2d");
+                chartInstances["budgetTabDonut"] = new Chart(ctx, {
+                    type: "doughnut",
+                    data: {
+                        labels: ["Food", "Vet", "Toys", "Other", "Remaining"],
+                        datasets: [
+                            {
+                                data: [food, vet, toy, other, remaining],
+                                backgroundColor: [
+                                    "#93c5fd",
+                                    "#c4b5fd",
+                                    "#48bb78",
+                                    "#bbdefb",
+                                    "#a5d6a7",
+                                ],
+                                borderWidth: 0,
+                                hoverOffset: 4,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: "60%",
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: "bottom",
+                                labels: {
+                                    boxWidth: 10,
+                                    padding: 10,
+                                    font: { size: 11 },
+                                },
+                            },
+                        },
+                    },
+                });
+                document.getElementById("budget-tab-total").textContent =
+                    fmtMoney(totalSpent);
+                document.getElementById("budget-tab-remaining").textContent =
+                    fmtMoney(remaining);
+                document.getElementById("budget-tab-food").textContent =
+                    fmtMoney(food);
+                document.getElementById("budget-tab-vet").textContent =
+                    fmtMoney(vet);
+                document.getElementById("budget-tab-toys").textContent =
+                    fmtMoney(toy);
+            }
+
+            function renderHealthTabCharts(pet) {
+                if (!pet) return;
+                destroyChart("healthTabBar");
+                const ctx = document
+                    .getElementById("healthTabBar")
+                    .getContext("2d");
+                chartInstances["healthTabBar"] = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: [
+                            "Health",
+                            "Happiness",
+                            "Fullness",
+                            "Energy",
+                            "Bond",
+                        ],
+                        datasets: [
+                            {
+                                label: "Current",
+                                data: [
+                                    pet.health ?? 0,
+                                    pet.happiness ?? 0,
+                                    pet.fullness ?? 0,
+                                    pet.energy ?? 0,
+                                    pet.bond ?? 0,
+                                ],
+                                backgroundColor: [
+                                    "#93c5fd",
+                                    "#c4b5fd",
+                                    "#48bb78",
+                                    "#bbdefb",
+                                    "#a5d6a7",
+                                ],
+                                borderRadius: 6,
+                                barPercentage: 0.6,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: "#e8f5e9" },
+                                border: { display: false },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
+                document.getElementById("health-tab-health").textContent =
+                    Math.round(pet.health ?? 0) + "%";
+                document.getElementById("health-tab-happiness").textContent =
+                    Math.round(pet.happiness ?? 0) + "%";
+                document.getElementById("health-tab-fullness").textContent =
+                    Math.round(pet.fullness ?? 0) + "%";
+                document.getElementById("health-tab-energy").textContent =
+                    Math.round(pet.energy ?? 0) + "%";
+                document.getElementById("health-tab-bond").textContent =
+                    Math.round(pet.bond ?? 0) + "%";
+            }
+
+            function renderAITabCharts(pet, ct) {
+                if (!pet) return;
+                const budget = ct.monthlyBudget || 200;
+                const totalSpent = ct.totalSpent || 0;
+                const daysInMonth = new Date(
+                    new Date().getFullYear(),
+                    new Date().getMonth() + 1,
+                    0,
+                ).getDate();
+                const dayOfMonth = new Date().getDate();
+                const projectedTotal =
+                    dayOfMonth > 0
+                        ? (totalSpent / dayOfMonth) * daysInMonth
+                        : totalSpent;
+                destroyChart("aiTabProjected");
+                const ctx = document
+                    .getElementById("aiTabProjected")
+                    .getContext("2d");
+                chartInstances["aiTabProjected"] = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: ["Spent So Far", "Projected Month"],
+                        datasets: [
+                            {
+                                data: [totalSpent, projectedTotal],
+                                backgroundColor: ["#93c5fd", "#c4b5fd"],
+                                borderRadius: 8,
+                                barPercentage: 0.5,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { callback: (v) => "$" + v },
+                                grid: { color: "#e8f5e9" },
+                                border: { display: false },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
+                document.getElementById("ai-tab-spent").textContent =
+                    fmtMoney(totalSpent);
+                document.getElementById("ai-tab-projected").textContent =
+                    fmtMoney(projectedTotal);
+                document.getElementById("ai-tab-budget").textContent =
+                    fmtMoney(budget);
+                document.getElementById("ai-health-tab-health").textContent =
+                    Math.round(pet.health ?? 0) + "%";
+                document.getElementById("ai-health-happiness").textContent =
+                    Math.round(pet.happiness ?? 0) + "%";
+            }
+
+            function generateInsights(pet, ct) {
+                const insights = [];
+                const budget = ct.monthlyBudget || 200;
+                const totalSpent = ct.totalSpent || 0;
+                const remaining = budget - totalSpent;
+                const health = Math.round(pet.health ?? 100);
+                const happiness = Math.round(pet.happiness ?? 100);
+                const daysInMonth = new Date(
+                    new Date().getFullYear(),
+                    new Date().getMonth() + 1,
+                    0,
+                ).getDate();
+                const dayOfMonth = new Date().getDate();
+                const projectedTotal =
+                    dayOfMonth > 0
+                        ? (totalSpent / dayOfMonth) * daysInMonth
+                        : totalSpent;
+
+                if (projectedTotal > budget) {
+                    insights.push({
+                        title: "Over Budget Risk",
+                        text: `At this pace, you'll spend ${fmtMoney(projectedTotal)} by month-end — ${fmtMoney(projectedTotal - budget)} over budget.`,
+                    });
+                } else if (remaining < budget * 0.2) {
+                    insights.push({
+                        title: "Budget Running Low",
+                        text: `You have ${fmtMoney(remaining)} left. Consider cutting non-essential pet spending.`,
+                    });
+                } else {
+                    insights.push({
+                        title: "Budget On Track",
+                        text: `You're projected to finish at ${fmtMoney(projectedTotal)}, staying within your ${fmtMoney(budget)} budget.`,
+                    });
+                }
+
+                if (health < 50) {
+                    insights.push({
+                        title: "Health Alert",
+                        text: `${pet.name || "Your pet"}'s health is at ${health}%. Schedule a vet visit soon.`,
+                    });
+                } else if (happiness < 50) {
+                    insights.push({
+                        title: "Happiness Low",
+                        text: `${pet.name || "Your pet"} seems unhappy (${happiness}%). More playtime or treats could help.`,
+                    });
+                } else {
+                    insights.push({
+                        title: "Pet Thriving",
+                        text: `${pet.name || "Your pet"} is doing well with ${health}% health and ${happiness}% happiness.`,
+                    });
+                }
+
+                const foodSpent = ct.foodSpent || 0;
+                const vetSpent = ct.vetSpent || 0;
+                const toySpent = ct.toySpent || 0;
+                const maxCategory = Math.max(foodSpent, vetSpent, toySpent);
+                if (maxCategory > 0) {
+                    const categoryName =
+                        foodSpent === maxCategory
+                            ? "food"
+                            : vetSpent === maxCategory
+                              ? "vet"
+                              : "toys";
+                    insights.push({
+                        title: "Top Spending Category",
+                        text: `Most of your budget went to ${categoryName} (${fmtMoney(maxCategory)}).`,
+                    });
+                }
+
+                return insights;
+            }
+
+            function renderAIInsights(pet, ct) {
+                const container = document.getElementById("ai-insights-list");
+                if (!container || !pet) return;
+                const insights = generateInsights(pet, ct);
+                container.innerHTML = insights
+                    .map(
+                        (insight) => `
+                        <div class="ai-insight-card">
+                            <div class="ai-insight-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 8V4H8" />
+                                    <rect width="16" height="12" x="4" y="8" rx="2" />
+                                    <path d="M2 14h2" />
+                                    <path d="M20 14h2" />
+                                    <path d="M15 13v2" />
+                                    <path d="M9 13v2" />
+                                </svg>
+                            </div>
+                            <div class="ai-insight-content">
+                                <div class="ai-insight-title">${insight.title}</div>
+                                <div class="ai-insight-text">${insight.text}</div>
+                            </div>
+                        </div>
+                    `,
+                    )
+                    .join("");
+            }
+        </script>
+        <style>
+            :root {
+                --bg: #f4f6f9;
+                --sidebar-bg: #ffffff;
+                --card-bg: #ffffff;
+                --text: #1f2937;
+                --muted: #6b7280;
+                --border: #e5e7eb;
+                --primary: #7c9af7;
+                --primary-light: #eef2ff;
+                --green: #81c784;
+                --red: #93c5fd;
+                --blue: #93c5fd;
+                --cyan: #bbdefb;
+                --purple: #c4b5fd;
+                --orange: #a5d6a7;
+                --pink: #e1bee7;
+                --shadow:
+                    0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    "Outfit",
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                font-size: 12px;
+            }
+
+            .app {
+                display: flex;
+                min-height: 100vh;
+            }
+
+            /* Sidebar */
+            .sidebar {
+                width: 210px;
+                background: var(--sidebar-bg);
+                border-right: 1px solid var(--border);
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                height: 100vh;
+                z-index: 50;
+            }
+
+            .sidebar-header {
+                padding: 20px 24px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .sidebar-header .logo-img {
+                width: 28px;
+                height: 28px;
+                object-fit: contain;
+                border-radius: 6px;
+            }
+
+            .sidebar-header .logo-icon {
+                width: 28px;
+                height: 28px;
+                border-radius: 8px;
+                background: #eef2ff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .sidebar-header .logo-icon svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .sidebar-header span {
+                font-weight: 700;
+                font-size: 14px;
+            }
+
+            .sidebar-section {
+                padding: 12px 16px;
+            }
+
+            .sidebar-label {
+                font-size: 11px;
+                font-weight: 600;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 8px;
+                padding: 0 8px;
+            }
+
+            .nav-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 9px 12px;
+                border-radius: 8px;
+                color: var(--muted);
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.15s;
+                margin-bottom: 2px;
+                text-decoration: none;
+            }
+
+            .nav-item:hover {
+                background: #e8f5e9;
+                color: var(--text);
+            }
+
+            .nav-item.active {
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+
+            .nav-item svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .nav-item .chevron {
+                margin-left: auto;
+                width: 14px;
+                height: 14px;
+                opacity: 0.5;
+            }
+
+            .sub-nav {
+                padding-left: 32px;
+                margin-bottom: 6px;
+            }
+
+            .sub-nav .nav-item {
+                font-size: 13px;
+                padding: 7px 12px;
+            }
+
+            /* Topbar */
+            .main {
+                flex: 1;
+                margin-left: 0;
+                margin-right: 270px;
+                min-width: 0;
+                padding-top: 0;
+            }
+
+            /* Right sidebar */
+            .right-sidebar {
+                width: 270px;
+                background: var(--sidebar-bg);
+                border-left: 1px solid var(--border);
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                right: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 50;
+                overflow-y: auto;
+            }
+
+            .right-sidebar-inner {
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .right-sidebar .widget-section {
+                box-shadow: none;
+                border: 1px solid var(--border);
+            }
+
+            .topbar {
+                background: var(--sidebar-bg);
+                border-bottom: 1px solid var(--border);
+                padding: 10px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: sticky;
+                top: 0;
+                z-index: 40;
+            }
+
+            .breadcrumb {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: var(--muted);
+                font-weight: 500;
+            }
+
+            .breadcrumb strong {
+                color: var(--text);
+            }
+
+            .search-box {
+                position: relative;
+                width: 200px;
+                max-width: 100%;
+            }
+
+            .search-box input {
+                width: 100%;
+                padding: 9px 14px 9px 36px;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                background: var(--bg);
+                font-family: inherit;
+                font-size: 13px;
+                outline: none;
+            }
+
+            .search-box svg {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--muted);
+                width: 16px;
+                height: 16px;
+            }
+
+            .topbar-actions {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .username {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text);
+            }
+
+            .icon-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: transparent;
+                border: none;
+                color: var(--muted);
+                cursor: pointer;
+                position: relative;
+            }
+
+            .icon-btn:hover {
+                background: #e8f5e9;
+            }
+
+            .avatar {
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+            /* Content */
+            .content {
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                min-width: 0;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .page-header {
+                grid-column: 1 / -1;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 4px;
+            }
+
+            .page-header h1 {
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            .dropdown {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 14px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--card-bg);
+                font-family: "Outfit", sans-serif;
+                font-weight: 500;
+                font-size: 13px;
+                color: var(--text);
+                cursor: pointer;
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%223%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 12px center;
+                padding-right: 36px;
+            }
+            .dropdown:hover {
+                border-color: #d1d5db;
+            }
+            .dropdown:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(124, 154, 247, 0.15);
+            }
+
+            /* Stat cards */
+            .stat-row {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 16px;
+            }
+
+            .stat-card {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 16px;
+                box-shadow: var(--shadow);
+                min-width: 0;
+            }
+
+            .stat-card:nth-child(1) {
+                background: linear-gradient(135deg, #e0e7ff 0%, #eef2ff 100%);
+            }
+            .stat-card:nth-child(2) {
+                background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+            }
+            .stat-card:nth-child(3) {
+                background: linear-gradient(135deg, #c8e6c9 0%, #e8f5e9 100%);
+            }
+            .stat-card:nth-child(4) {
+                background: linear-gradient(135deg, #bbdefb 0%, #e3f2fd 100%);
+            }
+            .stat-card:nth-child(5) {
+                background: linear-gradient(135deg, #d1c4e9 0%, #ede7f6 100%);
+            }
+
+            .stat-label {
+                font-size: 12px;
+                color: var(--muted);
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+
+            .stat-value {
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            /* Cards */
+            .card {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 18px;
+                box-shadow: var(--shadow);
+                min-width: 0;
+            }
+
+            .card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 18px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .card-title {
+                font-size: 13px;
+                font-weight: 700;
+            }
+
+            .card-subtitle {
+                font-size: 11px;
+                color: var(--muted);
+                font-weight: 500;
+            }
+
+            .card-tabs {
+                display: flex;
+                gap: 16px;
+                font-size: 13px;
+                color: var(--muted);
+                font-weight: 600;
+            }
+
+            .card-tabs span {
+                cursor: pointer;
+                padding-bottom: 4px;
+            }
+
+            .card-tabs span.active {
+                color: var(--text);
+                border-bottom: 2px solid var(--primary);
+            }
+
+            .legend {
+                display: flex;
+                gap: 16px;
+                font-size: 12px;
+                color: var(--muted);
+            }
+
+            .legend span {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            .legend-dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+            }
+
+            .chart-container {
+                position: relative;
+                height: 180px;
+            }
+
+            .chart-container-sm {
+                position: relative;
+                height: 130px;
+            }
+
+            /* Bottom grid */
+            .bottom-grid {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 16px;
+            }
+
+            .budget-breakdown-wrap {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+
+            .budget-legend {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-width: 0;
+            }
+
+            .budget-legend-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 11px;
+                min-width: 0;
+            }
+
+            .budget-legend-row span:last-child {
+                margin-left: auto;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .budget-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+
+            .budget-label {
+                color: var(--muted);
+                white-space: nowrap;
+            }
+
+            .budget-value {
+                margin-left: auto;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            /* Right panel */
+            .right-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .right-panel .card {
+                padding: 20px;
+            }
+
+            .traffic-list {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .traffic-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .traffic-name {
+                font-weight: 500;
+                color: var(--muted);
+                width: 80px;
+            }
+
+            .traffic-bar-wrap {
+                flex: 1;
+                height: 6px;
+                background: #e8f5e9;
+                border-radius: 3px;
+                margin: 0 12px;
+                overflow: hidden;
+            }
+
+            .traffic-bar {
+                height: 100%;
+                border-radius: 3px;
+                background: #93c5fd;
+            }
+
+            .traffic-value {
+                font-weight: 600;
+                font-size: 13px;
+                color: var(--text);
+                width: 40px;
+                text-align: right;
+            }
+
+            /* Right sidebar widgets */
+            .widget-section {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 16px;
+                box-shadow: var(--shadow);
+            }
+
+            .widget-header {
+                font-size: 12px;
+                font-weight: 700;
+                margin-bottom: 14px;
+            }
+
+            .widget-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .right-sidebar-list {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .widget-item {
+                display: flex;
+                gap: 10px;
+                align-items: flex-start;
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+            }
+            .widget-item:last-child {
+                border-bottom: none;
+            }
+
+            .widget-icon {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                background: #e8f5e9;
+                color: var(--muted);
+            }
+
+            .widget-text {
+                flex: 1;
+            }
+
+            .widget-title {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text);
+                line-height: 1.4;
+            }
+
+            .widget-sub {
+                font-size: 11px;
+                color: var(--muted);
+                margin-top: 2px;
+            }
+
+            .widget-meta {
+                font-size: 11px;
+                color: var(--muted);
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            .task-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 6px 0;
+            }
+
+            .task-check {
+                width: 16px;
+                height: 16px;
+                border-radius: 5px;
+                border: 2px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                color: var(--card-bg);
+            }
+
+            .task-check.done {
+                background: var(--green);
+                border-color: var(--green);
+            }
+
+            .task-check svg {
+                width: 10px;
+                height: 10px;
+            }
+
+            .task-text {
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            .task-text.done {
+                text-decoration: line-through;
+                color: var(--muted);
+            }
+
+            /* Tabs */
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                width: 100%;
+            }
+
+            .ai-insights {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+            }
+
+            .ai-insight-card {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 14px;
+                box-shadow: var(--shadow);
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                border: 1px solid var(--border);
+            }
+
+            .ai-insight-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #e0e7ff 0%, #eef2ff 100%);
+                color: var(--primary);
+                flex-shrink: 0;
+            }
+
+            .ai-insight-icon svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .ai-insight-content {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .ai-insight-title {
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--text);
+                margin-bottom: 2px;
+            }
+
+            .ai-insight-text {
+                font-size: 11px;
+                color: var(--muted);
+                line-height: 1.4;
+            }
+
+            .tab-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 16px;
+            }
+
+            .tab-stat-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 16px;
+            }
+
+            .tab-stat-card {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 16px;
+                box-shadow: var(--shadow);
+                text-align: center;
+            }
+
+            .tab-stat-card .tab-stat-value {
+                font-size: 18px;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+
+            .tab-stat-card .tab-stat-label {
+                font-size: 12px;
+                color: var(--muted);
+                font-weight: 600;
+            }
+
+            @media (max-width: 1200px) {
+                .right-sidebar {
+                    display: none;
+                }
+                .main {
+                    margin-right: 0;
+                }
+            }
+
+            /* Dashboard inline tabs */
+            .dash-tabs {
+                display: flex;
+                gap: 4px;
+                background: #f1f5f9;
+                border-radius: 12px;
+                padding: 4px;
+                margin: 0 12px;
+            }
+            .dash-tab {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 14px;
+                border-radius: 10px;
+                font-size: 12px;
+                font-weight: 600;
+                color: #64748b;
+                cursor: pointer;
+                transition: all 0.2s;
+                white-space: nowrap;
+            }
+            .dash-tab:hover {
+                color: #334155;
+                background: rgba(255, 255, 255, 0.6);
+            }
+            .dash-tab.active {
+                background: #fff;
+                color: #4f46e5;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            }
+            .dash-tab svg {
+                width: 16px;
+                height: 16px;
+            }
+            @media (max-width: 900px) {
+                .dash-tabs {
+                    margin: 8px 0;
+                    width: 100%;
+                    overflow-x: auto;
+                }
+                .topbar {
+                    flex-wrap: wrap;
+                }
+            }
+
+            @media (max-width: 900px) {
+                .main {
+                    margin-left: 0;
+                    margin-right: 0;
+                }
+                .stat-row {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+                .bottom-grid {
+                    grid-template-columns: 1fr;
+                }
+                .tab-stat-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+
+            @media (max-width: 600px) {
+                .stat-row {
+                    grid-template-columns: 1fr;
+                }
+                .topbar {
+                    padding: 10px 14px;
+                }
+                .content {
+                    padding: 14px;
+                }
+                .search-box {
+                    display: none;
+                }
+                .ai-insights {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .ai-chat-fab {
+                position: fixed;
+                bottom: 28px;
+                right: 28px;
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, var(--cyan), #319795);
+                border-radius: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #1a1a27;
+                cursor: pointer;
+                box-shadow: 0 8px 24px rgba(165, 230, 214, 0.25);
+                z-index: 999;
+                transition:
+                    transform 0.2s,
+                    box-shadow 0.2s;
+                border: none;
+            }
+            .ai-chat-fab:hover {
+                transform: scale(1.08);
+                box-shadow: 0 12px 32px rgba(165, 230, 214, 0.35);
+            }
+            .ai-chat-panel {
+                position: fixed;
+                bottom: 96px;
+                right: 28px;
+                width: 380px;
+                max-height: 520px;
+                background: var(--card-bg);
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+                z-index: 998;
+                display: none;
+                flex-direction: column;
+                overflow: hidden;
+                border: 1px solid var(--border);
+            }
+            .ai-chat-panel.open {
+                display: flex;
+            }
+            .ai-chat-header {
+                background: var(--sidebar-bg);
+                padding: 18px 20px;
+                color: white;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                border-bottom: 1px solid var(--border);
+            }
+            .ai-chat-header-icon {
+                width: 36px;
+                height: 36px;
+                background: var(--cyan);
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #1a1a27;
+            }
+            .ai-chat-header h4 {
+                font-size: 14px;
+                font-weight: 700;
+            }
+            .ai-chat-header p {
+                font-size: 11px;
+                color: var(--muted);
+            }
+            .ai-chat-messages {
+                flex: 1;
+                padding: 16px;
+                overflow-y: auto;
+                max-height: 350px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .chat-msg {
+                max-width: 85%;
+                padding: 10px 14px;
+                border-radius: 14px;
+                font-size: 13px;
+                line-height: 1.5;
+                font-weight: 500;
+            }
+            .chat-msg.bot {
+                background: #252536;
+                color: var(--text);
+                align-self: flex-start;
+                border-bottom-left-radius: 4px;
+            }
+            .chat-msg.user {
+                background: var(--cyan);
+                color: #1a1a27;
+                align-self: flex-end;
+                border-bottom-right-radius: 4px;
+            }
+            .chat-msg.loading {
+                background: var(--card-bg);
+                color: var(--muted);
+                align-self: flex-start;
+                font-style: italic;
+                border: 1px solid var(--border);
+            }
+            .ai-chat-input {
+                display: flex;
+                gap: 8px;
+                padding: 14px 16px;
+                border-top: 1px solid var(--border);
+            }
+            .ai-chat-input input {
+                flex: 1;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-family: inherit;
+                font-size: 13px;
+                outline: none;
+                color: var(--text);
+                background: var(--bg);
+            }
+            .ai-chat-input input:focus {
+                border-color: var(--cyan);
+            }
+            .ai-chat-send {
+                background: var(--cyan);
+                color: #1a1a27;
+                border: none;
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+            .chat-suggestions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                padding: 0 16px 12px;
+            }
+            .chat-chip {
+                background: rgba(165, 230, 214, 0.1);
+                color: var(--cyan);
+                border: 1px solid rgba(165, 230, 214, 0.2);
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: inherit;
+                transition: background 0.2s;
+            }
+            .chat-chip:hover {
+                background: rgba(165, 230, 214, 0.2);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app">
+            <!-- Shared bottom nav will be injected by shared-navbar.js -->
+
+            <!-- Main -->
+            <main class="main">
+                <div class="topbar">
+                    <div class="breadcrumb">
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <rect width="18" height="18" x="3" y="3" rx="2" />
+                            <path d="M3 9h18" />
+                        </svg>
+                        <a
+                            href="teste.html"
+                            style="color: inherit; text-decoration: none"
+                            >Carepage</a
+                        >
+                        <span>/</span>
+                        <strong>Dashboard</strong>
+                    </div>
+                    <div class="dash-tabs" id="dashTabs">
+                        <span
+                            class="dash-tab active"
+                            data-tab="finances"
+                            onclick="window.switchTab('finances', event)"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <rect width="7" height="9" x="3" y="3" rx="1" />
+                                <rect
+                                    width="7"
+                                    height="5"
+                                    x="14"
+                                    y="3"
+                                    rx="1"
+                                />
+                                <rect
+                                    width="7"
+                                    height="9"
+                                    x="14"
+                                    y="12"
+                                    rx="1"
+                                />
+                                <rect
+                                    width="7"
+                                    height="5"
+                                    x="3"
+                                    y="16"
+                                    rx="1"
+                                />
+                            </svg>
+                            Finances
+                        </span>
+                        <span
+                            class="dash-tab"
+                            data-tab="health"
+                            onclick="window.switchTab('health', event)"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+                                />
+                            </svg>
+                            Health & Mood
+                        </span>
+                        <span
+                            class="dash-tab"
+                            data-tab="ai"
+                            onclick="window.switchTab('ai', event)"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M12 8V4H8" />
+                                <rect
+                                    width="16"
+                                    height="12"
+                                    x="4"
+                                    y="8"
+                                    rx="2"
+                                />
+                                <path d="M2 14h2" />
+                                <path d="M20 14h2" />
+                                <path d="M15 13v2" />
+                                <path d="M9 13v2" />
+                            </svg>
+                            AI Insights
+                        </span>
+                    </div>
+                    <div class="topbar-actions">
+                        <button
+                            class="icon-btn"
+                            onclick="window.dashboardTour?.forceOpen()"
+                            title="Documentation"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
+                                />
+                                <path
+                                    d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            class="icon-btn"
+                            onclick="window.signOut()"
+                            title="Sign Out"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                                />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" x2="9" y1="12" y2="12" />
+                            </svg>
+                        </button>
+                        <span class="username">Alex Rivera</span>
+                        <img
+                            class="avatar"
+                            src="https://i.pravatar.cc/150?img=32"
+                            alt="User"
+                        />
+                    </div>
+                </div>
+
+                <div class="content">
+                    <div class="page-header">
+                        <div>
+                            <h1 id="page-title">Finances</h1>
+                            <p
+                                id="welcome-line"
+                                style="
+                                    color: var(--muted);
+                                    font-size: 11px;
+                                    margin-top: 4px;
+                                "
+                            >
+                                Loading...
+                            </p>
+                        </div>
+                        <select
+                            id="pet-select"
+                            class="dropdown"
+                            onchange="window.switchPet(this.value)"
+                        >
+                            <option>Loading pets...</option>
+                        </select>
+                    </div>
+
+                    <!-- Finances Tab -->
+                    <div id="tab-finances" class="tab-content active">
+                        <div class="stat-row">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Spent</div>
+                                <div class="stat-value" id="stat-total-spent">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Budget Left</div>
+                                <div class="stat-value" id="stat-budget-left">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Happiness</div>
+                                <div class="stat-value" id="stat-happiness">
+                                    0%
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Pet Level</div>
+                                <div class="stat-value" id="stat-level">
+                                    Lv. 1
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    Spending This Month
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="mainChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bottom-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        Spending by Category
+                                    </div>
+                                </div>
+                                <div class="chart-container-sm">
+                                    <canvas id="categoryChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        Budget Breakdown
+                                    </div>
+                                </div>
+                                <div class="budget-breakdown-wrap">
+                                    <div
+                                        class="chart-container-sm"
+                                        style="
+                                            width: 120px;
+                                            height: 120px;
+                                            flex-shrink: 0;
+                                        "
+                                    >
+                                        <canvas id="budgetDonut"></canvas>
+                                    </div>
+                                    <div class="budget-legend">
+                                        <div class="budget-legend-row">
+                                            <span
+                                                class="budget-dot"
+                                                style="background: #93c5fd"
+                                            ></span>
+                                            <span class="budget-label"
+                                                >Food</span
+                                            >
+                                            <span id="legend-food">—</span>
+                                        </div>
+                                        <div class="budget-legend-row">
+                                            <span
+                                                class="budget-dot"
+                                                style="background: #c4b5fd"
+                                            ></span>
+                                            <span class="budget-label"
+                                                >Vet</span
+                                            >
+                                            <span id="legend-vet">—</span>
+                                        </div>
+                                        <div class="budget-legend-row">
+                                            <span
+                                                class="budget-dot"
+                                                style="background: #48bb78"
+                                            ></span>
+                                            <span class="budget-label"
+                                                >Toys</span
+                                            >
+                                            <span id="legend-toys">—</span>
+                                        </div>
+                                        <div class="budget-legend-row">
+                                            <span
+                                                class="budget-dot"
+                                                style="background: #bbdefb"
+                                            ></span>
+                                            <span class="budget-label"
+                                                >Remaining</span
+                                            >
+                                            <span id="legend-remaining">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Budget Tab -->
+                    <div id="tab-budget" class="tab-content">
+                        <div class="stat-row">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Spent</div>
+                                <div class="stat-value" id="budget-tab-total">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Budget Remaining</div>
+                                <div
+                                    class="stat-value"
+                                    id="budget-tab-remaining"
+                                >
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Food</div>
+                                <div class="stat-value" id="budget-tab-food">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Vet</div>
+                                <div class="stat-value" id="budget-tab-vet">
+                                    $0.00
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Budget Overview</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="budgetTabDonut"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Tab -->
+                    <div id="tab-health" class="tab-content">
+                        <div class="stat-row">
+                            <div class="stat-card">
+                                <div class="stat-label">Health</div>
+                                <div class="stat-value" id="health-tab-health">
+                                    0%
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Happiness</div>
+                                <div
+                                    class="stat-value"
+                                    id="health-tab-happiness"
+                                >
+                                    0%
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Fullness</div>
+                                <div
+                                    class="stat-value"
+                                    id="health-tab-fullness"
+                                >
+                                    0%
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Energy</div>
+                                <div class="stat-value" id="health-tab-energy">
+                                    0%
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Bond</div>
+                                <div class="stat-value" id="health-tab-bond">
+                                    0%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Pet Wellness</div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="healthTabBar"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Tab -->
+                    <div id="tab-ai" class="tab-content">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">AI Insights</div>
+                                <div class="card-subtitle">
+                                    Personalized recommendations powered by your
+                                    data
+                                </div>
+                            </div>
+                            <div
+                                id="ai-insights-list"
+                                class="ai-insights"
+                            ></div>
+                        </div>
+
+                        <div class="stat-row">
+                            <div class="stat-card">
+                                <div class="stat-label">Spent So Far</div>
+                                <div class="stat-value" id="ai-tab-spent">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Projected Total</div>
+                                <div class="stat-value" id="ai-tab-projected">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Monthly Budget</div>
+                                <div class="stat-value" id="ai-tab-budget">
+                                    $0.00
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Health</div>
+                                <div
+                                    class="stat-value"
+                                    id="ai-health-tab-health"
+                                >
+                                    0%
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Happiness</div>
+                                <div
+                                    class="stat-value"
+                                    id="ai-health-happiness"
+                                >
+                                    0%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Spending Forecast</div>
+                                <div class="card-subtitle">
+                                    AI-projected month-end total
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="aiTabProjected"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right sidebar -->
+            <aside class="right-sidebar">
+                <div class="right-sidebar-inner">
+                    <div class="right-sidebar-section">
+                        <div class="right-sidebar-title">Past Transactions</div>
+                        <div class="right-sidebar-list" id="tx-list">
+                            <div class="right-sidebar-item">
+                                <div class="right-sidebar-text">
+                                    <div class="right-sidebar-title">
+                                        Loading...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="right-sidebar-section">
+                        <div class="right-sidebar-title">Tasks</div>
+                        <div class="right-sidebar-list" id="tasks-list">
+                            <div class="right-sidebar-item">
+                                <div class="right-sidebar-text">
+                                    <div class="right-sidebar-title">
+                                        Loading...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- AI Chat FAB -->
+        <button
+            class="ai-chat-fab"
+            onclick="toggleChat()"
+            title="Ask AI about your pet"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M12 8V4H8" />
+                <rect width="16" height="12" x="4" y="8" rx="2" />
+                <path d="M2 14h2" />
+                <path d="M20 14h2" />
+                <path d="M15 13v2" />
+                <path d="M9 13v2" />
+            </svg>
+        </button>
+
+        <!-- AI Chat Panel -->
+        <div class="ai-chat-panel" id="ai-chat-panel">
+            <div class="ai-chat-header">
+                <div class="ai-chat-header-icon">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 8V4H8" />
+                        <rect width="16" height="12" x="4" y="8" rx="2" />
+                        <path d="M2 14h2" />
+                        <path d="M20 14h2" />
+                        <path d="M15 13v2" />
+                        <path d="M9 13v2" />
+                    </svg>
+                </div>
+                <div>
+                    <h4>HELIX AI Assistant</h4>
+                    <p>Ask about your pet's stats, budget, or care tips</p>
+                </div>
+            </div>
+            <div class="ai-chat-messages" id="chat-messages">
+                <div class="chat-msg bot">
+                    Hi! I'm your HELIX AI. Ask me anything about your pet's
+                    stats, spending, or care routine!
+                </div>
+            </div>
+            <div class="chat-suggestions">
+                <button
+                    class="chat-chip"
+                    onclick="sendChat('How is my pet doing overall?')"
+                >
+                    How is my pet doing?
+                </button>
+                <button
+                    class="chat-chip"
+                    onclick="sendChat('Am I staying on budget?')"
+                >
+                    Am I on budget?
+                </button>
+                <button
+                    class="chat-chip"
+                    onclick="sendChat('What should I do for my pet today?')"
+                >
+                    What to do today?
+                </button>
+                <button
+                    class="chat-chip"
+                    onclick="sendChat('How can I improve my pet\'s happiness?')"
+                >
+                    Boost happiness
+                </button>
+            </div>
+            <div class="ai-chat-input">
+                <input
+                    type="text"
+                    id="chat-input"
+                    placeholder="Ask about your pet..."
+                    onkeypress="if (event.key === 'Enter') sendChat();"
+                />
+                <button class="ai-chat-send" onclick="sendChat()">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="m22 2-7 20-4-9-9-4Z" />
+                        <path d="M22 2 11 13" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <script>
+            const dashboardTour = new TutorialGuide({
+                storageKey: "tutorialPopupDashSeen",
+                steps: [
+                    {
+                        name: "Helix",
+                        text: 'Hey there! I\'m <strong>Helix</strong>, your pet care assistant. This dashboard shows you everything about your pet\'s <span class="hl">finances</span>, <span class="hl">health</span>, and <span class="hl">wellness</span> — all in one place. Let me walk you through it!',
+                        position: "bottom-right",
+                    },
+                    {
+                        name: "Helix",
+                        text: "These tabs let you switch between views. Click the <span class=\"hl\">Health & Mood</span> tab to see your pet's wellness stats — I'll wait!",
+                        position: "near-element",
+                        highlight: ".dash-tab[data-tab='health']",
+                        click: ".dash-tab[data-tab='health']",
+                        clickHint: "Click Health & Mood",
+                        action: () =>
+                            window.switchTab("health", {
+                                currentTarget: document.querySelector(
+                                    ".dash-tab[data-tab='health']",
+                                ),
+                            }),
+                    },
+                    {
+                        name: "Helix",
+                        text: 'Nice! Here you can see your pet\'s <strong>Health</strong>, <strong>Happiness</strong>, <strong>Fullness</strong>, <strong>Energy</strong>, and <strong>Bond</strong> levels. Now click <span class="hl">AI Insights</span>!',
+                        position: "near-element",
+                        highlight: ".dash-tab[data-tab='ai']",
+                        click: ".dash-tab[data-tab='ai']",
+                        clickHint: "Click AI Insights",
+                        action: () =>
+                            window.switchTab("ai", {
+                                currentTarget: document.querySelector(
+                                    ".dash-tab[data-tab='ai']",
+                                ),
+                            }),
+                    },
+                    {
+                        name: "Helix",
+                        text: "The AI analyzes your spending and your pet's stats to give you <strong>personalized recommendations</strong>. It tells you if you're overspending or if your pet needs more care.",
+                        position: "bottom-right",
+                    },
+                    {
+                        name: "Helix",
+                        text: 'Need a quick answer? Click the <span class="hl">AI Chatbot</span> button to ask anything about your pet\'s stats, budget, or care routine.',
+                        position: "near-element",
+                        highlight: ".ai-chat-fab",
+                        click: ".ai-chat-fab",
+                        clickHint: "Click AI Chat",
+                        action: () => window.toggleChat(),
+                    },
+                    {
+                        name: "Helix",
+                        text: "That's the tour! Feel free to explore the finances tab to track spending. Remember, a healthy pet is a happy pet.\n\nIf you ever need a refresher, just click the <strong>Tutorial</strong> button in the bottom nav!",
+                        position: "bottom-right",
+                    },
+                ],
+            });
+            window.dashboardTour = dashboardTour;
+            if (document.readyState === "loading") {
+                window.addEventListener("DOMContentLoaded", () =>
+                    dashboardTour.start(),
+                );
+            } else {
+                dashboardTour.start();
+            }
+        </script>
+        <script src="shared-navbar.js?v=11"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                if (typeof helixNav !== "undefined") {
+                    helixNav.init({ page: "dash" });
+                }
+            });
+        </script>
+    </body>
+</html>

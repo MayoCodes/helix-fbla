@@ -1,0 +1,252 @@
+/* ═══════════════════════════════════════════
+   TUTORIAL POPUP V4 — Clean Text Bubble
+   ═══════════════════════════════════════════ */
+
+:root {
+    --tut-bg: #0d1b1e;
+    --tut-surface: #ffffff;
+    --tut-card: #f8fafc;
+    --tut-text: #0f172a;
+    --tut-muted: #64748b;
+    --tut-accent: #00bcd4;
+    --tut-accent-glow: rgba(0, 188, 212, 0.3);
+    --tut-highlight: #00bcd4;
+    --tut-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* ── TEXT BUBBLE (no avatar) ── */
+.tut-bubble {
+    position: fixed;
+    z-index: 100001;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 18px 20px;
+    box-shadow:
+        0 12px 32px rgba(0, 0, 0, 0.18),
+        0 0 0 1px rgba(0, 188, 212, 0.1);
+    width: min(380px, calc(100vw - 32px));
+    pointer-events: auto;
+    transform-origin: bottom left;
+    animation: tutBubbleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes tutBubbleIn {
+    from {
+        transform: scale(0.9) translateY(8px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.tut-bubble-name {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--tut-accent);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 6px;
+}
+
+.tut-bubble-text {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--tut-text);
+    font-weight: 500;
+}
+.tut-bubble-text strong {
+    color: #0d2a2a;
+    font-weight: 700;
+}
+.tut-bubble-text .hl {
+    color: var(--tut-accent);
+    font-weight: 700;
+    background: rgba(0, 188, 212, 0.12);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.tut-bubble-step {
+    margin-top: 10px;
+    font-size: 0.68rem;
+    color: var(--tut-muted);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* ── BUBBLE ACTIONS (gradient buttons) ── */
+.tut-bubble-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.tut-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    flex: 1;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 100002;
+}
+.tut-btn:active {
+    transform: scale(0.96);
+}
+
+/* Primary button — soft gradient */
+.tut-btn-primary {
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    color: #006064;
+    box-shadow: 0 2px 8px rgba(0, 188, 212, 0.15);
+    border: 1px solid rgba(0, 188, 212, 0.2);
+}
+.tut-btn-primary:hover {
+    background: linear-gradient(135deg, #b2ebf2 0%, #80deea 100%);
+    box-shadow: 0 4px 14px rgba(0, 188, 212, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Secondary button — light neutral */
+.tut-btn-secondary {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+.tut-btn-secondary:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    color: #334155;
+}
+
+/* Skip button — subtle */
+.tut-btn-skip {
+    background: transparent;
+    color: var(--tut-muted);
+    font-size: 0.72rem;
+    padding: 8px 12px;
+    flex: 0;
+}
+.tut-btn-skip:hover {
+    color: #ef4444;
+}
+
+/* ── HIGHLIGHT GLOW (on target element) ── */
+.tut-glow {
+    position: relative;
+    z-index: 99998 !important;
+    animation: tutGlowPulse 1.6s ease-in-out infinite;
+    border-radius: 12px;
+}
+@keyframes tutGlowPulse {
+    0%,
+    100% {
+        box-shadow:
+            0 0 0 4px rgba(0, 188, 212, 0.55),
+            0 0 32px rgba(0, 188, 212, 0.35),
+            0 0 0 8px rgba(0, 188, 212, 0.1);
+    }
+    50% {
+        box-shadow:
+            0 0 0 6px rgba(0, 188, 212, 0.7),
+            0 0 48px rgba(0, 188, 212, 0.5),
+            0 0 0 14px rgba(0, 188, 212, 0.05);
+    }
+}
+
+/* ── CLICK HINT LABEL ── */
+.tut-click-hint {
+    position: fixed;
+    z-index: 100002;
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    color: #006064;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 20px;
+    pointer-events: none;
+    font-family: inherit;
+    animation: tutBounce 1.2s ease-in-out infinite;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0, 188, 212, 0.25);
+    letter-spacing: 0.3px;
+    border: 1px solid rgba(0, 188, 212, 0.3);
+}
+@keyframes tutBounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+/* ── DIM OVERLAY (subtle) ── */
+.tut-dim {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 15, 20, 0.35);
+    z-index: 99997;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+.tut-dim.show {
+    opacity: 1;
+}
+
+/* ── PROGRESS DOTS ── */
+.tut-progress {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100003;
+    display: flex;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    padding: 8px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+.tut-progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    transition: all 0.3s ease;
+}
+.tut-progress-dot.active {
+    background: var(--tut-accent);
+    width: 24px;
+    border-radius: 4px;
+}
+.tut-progress-dot.done {
+    background: #00bcd4;
+}
+
+/* ── MOBILE ── */
+@media (max-width: 600px) {
+    .tut-bubble {
+        padding: 16px 16px;
+        width: calc(100vw - 24px);
+    }
+    .tut-bubble-text {
+        font-size: 0.85rem;
+    }
+    .tut-btn {
+        padding: 9px 14px;
+        font-size: 0.75rem;
+    }
+}

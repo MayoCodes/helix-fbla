@@ -24,11 +24,40 @@
   };
 
   const NAV_PAGES = [
-    { key: "home", label: "Home", href: "index.html", icon: homeIcon() },
-    { key: "chat", label: "Chat", href: "yeap.html", icon: chatIcon() },
-    { key: "tasks", label: "Tasks", href: "yeap.html", icon: tasksIcon() },
-    { key: "info", label: "Info", href: "instruct.html", icon: infoIcon() },
+    {
+      key: "home",
+      label: "Home",
+      href: "home.html",
+      icon: homeIcon(),
+    },
+    {
+      key: "dash",
+      label: "Dashboard",
+      href: "dash.html",
+      icon: tasksIcon(),
+    },
+    {
+      key: "shop",
+      label: "Store",
+      href: "shop.html",
+      icon: chatIcon(),
+    },
   ];
+
+  const NAV_ORDER = ["home", "dash", "shop"];
+
+  function openPageTutorial() {
+    const tour =
+      window.dashboardTour ||
+      window.kitchenTour ||
+      window.vetTour ||
+      window.parkTour ||
+      window.yeapTour;
+    if (tour) {
+      if (typeof tour.forceStart === "function") tour.forceStart();
+      else if (typeof tour.forceOpen === "function") tour.forceOpen();
+    }
+  }
 
   /* ── STATE ── */
   let db = null,
@@ -256,11 +285,19 @@
       .hn-empty-state .hn-add-btn:hover { background: #00acc1; transform: translateY(-1px); }
 
       @media (max-width: 480px) {
-        .hn-pet-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        #hn-pet-modal .hn-modal-card { padding: 22px; border-radius: 22px; }
-        .hn-btn { padding: 6px 10px; }
-        .hn-btn span { font-size: 0.52rem; }
-      }
+.hn-pet-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+#hn-pet-modal .hn-modal-card { padding: 22px; border-radius: 22px; }
+.hn-btn { padding: 6px 10px; }
+.hn-btn span { font-size: 0.52rem; }
+}
+
+.hn-tutorial {
+color: #7c9af7 !important;
+}
+.hn-tutorial:hover {
+background: rgba(124,154,247,0.1) !important;
+color: #6366f1 !important;
+}
     `;
     document.head.appendChild(s);
   }
@@ -274,27 +311,35 @@
     /* -- Bottom Nav -- */
     const nav = document.createElement("div");
     nav.id = "helix-bottom-nav";
+    const navItems = NAV_PAGES.map(
+      (p) =>
+        `<a class="hn-btn ${isActive(p.key)}" href="${p.href}" data-key="${p.key}">
+              ${p.icon}<span>${p.label}</span>
+            </a>`,
+    );
+    /* Order: Home, Dashboard | Hub | Store, Tutorial */
+    const homeDash = NAV_ORDER.slice(0, 2)
+      .map((key) => navItems.find((_, i) => NAV_PAGES[i].key === key))
+      .join("");
+    const store = navItems.find((_, i) => NAV_PAGES[i].key === "shop");
     nav.innerHTML = `
-      <a class="hn-btn ${isActive("home")}" href="index.html" data-key="home">
-        ${homeIcon()}<span>Home</span>
-      </a>
-      <a class="hn-btn ${isActive("chat")}" href="yeap.html" data-key="chat">
-        ${chatIcon()}<span>Chat</span>
-      </a>
-      <div class="hn-hub" id="hnHub" title="Switch Pet">
-        <div class="hn-hub-ring"></div>
-        <div class="hn-hub-avatar" id="hnHubAvatar">🐾</div>
-      </div>
-      <a class="hn-btn ${isActive("tasks")}" href="yeap.html" data-key="tasks">
-        ${tasksIcon()}<span>Tasks</span>
-      </a>
-      <a class="hn-btn ${isActive("info")}" href="instruct.html" data-key="info">
-        ${infoIcon()}<span>Info</span>
-      </a>
-    `;
+          ${homeDash}
+          <div class="hn-hub" id="hnHub" title="Switch Pet">
+            <div class="hn-hub-ring"></div>
+            <div class="hn-hub-avatar" id="hnHubAvatar">🐾</div>
+          </div>
+          ${store}
+          <button class="hn-btn hn-tutorial" id="hnTutorial" title="Tutorial">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Tutorial</span>
+          </button>
+        `;
     document.body.appendChild(nav);
 
     nav.querySelector("#hnHub").addEventListener("click", openModal);
+    nav
+      .querySelector("#hnTutorial")
+      .addEventListener("click", openPageTutorial);
 
     /* -- Modal -- */
     const modal = document.createElement("div");
@@ -325,10 +370,13 @@
 
   function isActive(key) {
     const map = {
-      home: ["index.html", "homepage.html", "home.html"],
-      chat: ["yeap.html"],
-      tasks: ["yeap.html"],
-      info: ["instruct.html"],
+      home: ["home.html", "index.html", "carepage.html", "teste.html"],
+      kitchen: ["kitchen.html"],
+      park: ["park.html"],
+      vet: ["vet.html"],
+      shop: ["shop.html"],
+      dash: ["dash.html"],
+      yeap: ["yeap.html"],
     };
     const current = window.location.pathname.split("/").pop() || "index.html";
     return map[key]?.includes(current) ? "active" : "";
@@ -339,24 +387,67 @@
      ═══════════════════════════════════════ */
   async function ensureAuth() {
     if (auth && currentUser) return;
-    try {
-      if (typeof firebase !== "undefined" && firebase.auth) {
-        auth = firebase.auth();
-        db = firebase.firestore();
-        currentUser = auth.currentUser;
-        if (!currentUser) {
-          await new Promise((resolve) => {
-            const unsub = auth.onAuthStateChanged((u) => {
-              currentUser = u;
-              unsub();
-              resolve();
+
+    /* Wait up to 10 seconds for Firebase to become available.
+         This handles ES module scripts that load asynchronously. */
+    const start = Date.now();
+    const timeout = 10000;
+    while (Date.now() - start < timeout) {
+      try {
+        /* Approach 1: Global firebase compat (firebase-app-compat.js) */
+        if (typeof firebase !== "undefined" && firebase.auth) {
+          auth = firebase.auth();
+          db = firebase.firestore();
+          currentUser = auth.currentUser;
+          if (!currentUser) {
+            await new Promise((resolve) => {
+              const unsub = auth.onAuthStateChanged((u) => {
+                currentUser = u;
+                unsub();
+                resolve();
+              });
             });
-          });
+          }
+          return;
         }
+
+        /* Approach 2: ES modules exposed on window (e.g. dash.html exposes window._auth + window._db) */
+        if (window._auth) {
+          auth = window._auth;
+          /* If _db isn't exposed, try to derive it from auth.app */
+          if (window._db) {
+            db = window._db;
+          } else if (auth.app) {
+            try {
+              const { getFirestore } =
+                await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+              db = getFirestore(auth.app);
+              window._db = db;
+            } catch (e) {
+              console.warn("[helix-nav] Could not derive db from auth.app:", e);
+            }
+          }
+          if (db) {
+            currentUser = auth.currentUser;
+            if (!currentUser) {
+              await new Promise((resolve) => {
+                const unsub = auth.onAuthStateChanged((u) => {
+                  currentUser = u;
+                  unsub();
+                  resolve();
+                });
+              });
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("[helix-nav] Firebase setup error:", e);
       }
-    } catch (e) {
-      console.warn("[helix-nav] Firebase not available:", e);
+      /* Wait 200ms before next check */
+      await new Promise((r) => setTimeout(r, 200));
     }
+    console.warn("[helix-nav] Firebase not available after timeout");
   }
 
   async function loadPets() {
@@ -497,8 +588,10 @@
       injectStyles();
       injectDOM();
       loadPets();
-      // Re-check auth after a moment in case firebase initializes late
-      setTimeout(loadPets, 2000);
+      // Retry multiple times in case firebase modules initialize late
+      setTimeout(loadPets, 500);
+      setTimeout(loadPets, 1500);
+      setTimeout(loadPets, 3000);
     },
     refresh() {
       loadPets();
