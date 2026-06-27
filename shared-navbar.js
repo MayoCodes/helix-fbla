@@ -284,6 +284,24 @@
       }
       .hn-empty-state .hn-add-btn:hover { background: #00acc1; transform: translateY(-1px); }
 
+            .hn-add-pet {
+              border: 2px dashed #00bcd4 !important;
+              background: rgba(0, 188, 212, 0.04) !important;
+              cursor: pointer;
+              transition: all .25s cubic-bezier(.23,1,.32,1);
+            }
+            .hn-add-pet:hover {
+              transform: translateY(-4px);
+              border-color: #00acc1 !important;
+              background: rgba(0, 188, 212, 0.08) !important;
+              box-shadow: 0 8px 24px rgba(0, 188, 212, 0.15);
+            }
+            .hn-add-pet .hn-pet-emoji {
+              border: 2px dashed #00bcd4 !important;
+              background: linear-gradient(135deg, #e0f7fa, #b2ebf2) !important;
+              color: #00bcd4;
+            }
+
       @media (max-width: 480px) {
 .hn-pet-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 #hn-pet-modal .hn-modal-card { padding: 22px; border-radius: 22px; }
@@ -530,17 +548,32 @@ color: #6366f1 !important;
         const active = pid === currentPetId;
         const level = pet.level || 1;
         return `
-        <div class="hn-pet-card ${active ? "active" : ""}" data-pid="${pid}">
-          <div class="hn-pet-badge">✓</div>
-          <div class="hn-pet-emoji" style="background: linear-gradient(135deg, ${traits.color}22, ${traits.color}44); border-color: ${traits.color}66;">
-            ${traits.icon}
-          </div>
-          <div class="hn-pet-name">${escapeHtml(pet.name || "Pet")}</div>
-          <div class="hn-pet-meta">Lv. ${level} · ${traits.name}</div>
-        </div>
-      `;
+            <div class="hn-pet-card ${active ? "active" : ""}" data-pid="${pid}">
+              <div class="hn-pet-badge">✓</div>
+              <div class="hn-pet-emoji" style="background: linear-gradient(135deg, ${traits.color}22, ${traits.color}44); border-color: ${traits.color}66;">
+                ${traits.icon}
+              </div>
+              <div class="hn-pet-name">${escapeHtml(pet.name || "Pet")}</div>
+              <div class="hn-pet-meta">Lv. ${level} · ${traits.name}</div>
+            </div>
+          `;
       })
       .join("");
+
+    // Add the + button to add a new pet
+    const addCard = document.createElement("div");
+    addCard.className = "hn-pet-card hn-add-pet";
+    addCard.innerHTML = `
+          <div class="hn-pet-emoji" style="background: linear-gradient(135deg, #e0f7fa, #b2ebf2); border: 2px dashed #00bcd4;">
+            ${addIcon()}
+          </div>
+          <div class="hn-pet-name" style="color: #00bcd4;">Add Pet</div>
+          <div class="hn-pet-meta">Create new</div>
+        `;
+    addCard.addEventListener("click", () => {
+      window.location.href = "yeap.html";
+    });
+    grid.appendChild(addCard);
 
     grid.querySelectorAll(".hn-pet-card").forEach((card) => {
       card.addEventListener("click", () => {

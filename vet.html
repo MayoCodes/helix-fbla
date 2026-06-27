@@ -67,110 +67,7 @@
                 left: 30%;
             }
 
-            /* Left Sidebar */
-            .sidebar {
-                width: 320px;
-                min-width: 320px;
-                background: #e8ecf1;
-                padding: 32px 24px;
-                display: flex;
-                flex-direction: column;
-                z-index: 1;
-                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.03);
-            }
-
-            .sidebar-header {
-                margin-bottom: 28px;
-            }
-
-            .sidebar-label {
-                font-size: 10px;
-                font-weight: 700;
-                color: #94a3b8;
-                letter-spacing: 0.15em;
-                text-transform: uppercase;
-                margin-bottom: 6px;
-            }
-
-            .sidebar-title-row {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-
-            .sidebar-title {
-                font-size: 24px;
-                font-weight: 800;
-                color: #111827;
-                letter-spacing: -0.02em;
-            }
-
-            .case-badge {
-                font-size: 10px;
-                font-weight: 700;
-                color: #9ca3af;
-                background: #dfe4ea;
-                padding: 4px 10px;
-                border-radius: 6px;
-                letter-spacing: 0.05em;
-            }
-
-            .cards-stack {
-                position: relative;
-                height: 420px;
-                width: 100%;
-            }
-
-            .patient-card {
-                background: white;
-                border-radius: 16px;
-                padding: 20px;
-                box-shadow:
-                    0 4px 20px rgba(0, 0, 0, 0.06),
-                    0 1px 2px rgba(0, 0, 0, 0.04);
-                position: absolute;
-                width: 100%;
-                left: 0;
-                transition:
-                    transform 0.25s ease,
-                    box-shadow 0.25s ease,
-                    z-index 0s;
-                cursor: pointer;
-            }
-
-            .patient-card:nth-child(1) {
-                top: 0;
-                left: 0;
-                transform: rotate(-2deg);
-                z-index: 4;
-            }
-
-            .patient-card:nth-child(2) {
-                top: 68px;
-                left: 4px;
-                transform: rotate(-2deg);
-                z-index: 3;
-            }
-
-            .patient-card:nth-child(3) {
-                top: 136px;
-                left: 8px;
-                transform: rotate(-2deg);
-                z-index: 2;
-            }
-
-            .patient-card:nth-child(4) {
-                top: 204px;
-                left: 12px;
-                transform: rotate(-2deg);
-                z-index: 1;
-            }
-
-            .patient-card:hover {
-                transform: rotate(0deg) translateY(-6px);
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-                z-index: 10;
-            }
+            /* Left sidebar (hidden — pet selection now via shared navbar) */
 
             .card-header {
                 display: flex;
@@ -277,6 +174,7 @@
                 align-items: center;
                 justify-content: center;
                 padding: 40px;
+                padding-left: 120px;
                 position: relative;
                 z-index: 1;
                 background: url("clipbg.png") no-repeat center center;
@@ -288,6 +186,7 @@
                 position: relative;
                 width: 100%;
                 max-width: 920px;
+                margin-left: 80px;
             }
 
             .clipboard-clip {
@@ -1520,70 +1419,96 @@
 
                 <div class="vitals-rings">
                     <svg width="180" height="180" viewBox="0 0 180 180">
+                        <!-- Outermost ring (Health - pink) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vetRingHp"
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#ff5a7e"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="490"
-                            stroke-dashoffset="490"
+                            stroke-dasharray="534"
+                            stroke-dashoffset="534"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
+                        <!-- Third ring (Energy - blue) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="70"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vetRingNrg"
+                            cx="90"
+                            cy="90"
+                            r="70"
+                            fill="none"
+                            stroke="#42a5f5"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-dasharray="440"
+                            stroke-dashoffset="440"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <!-- Second ring (Fullness - orange) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="55"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vetRingFd"
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="55"
                             fill="none"
                             stroke="#ffa726"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="377"
-                            stroke-dashoffset="377"
+                            stroke-dasharray="346"
+                            stroke-dashoffset="346"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
+                        <!-- Innermost ring (Happiness - green) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vetRingJoy"
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
-                            stroke="#26a69a"
-                            stroke-width="10"
+                            stroke="#66bb6a"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="264"
-                            stroke-dashoffset="264"
+                            stroke-dasharray="251"
+                            stroke-dashoffset="251"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
                     </svg>
@@ -1602,19 +1527,43 @@
                 </div>
                 <div class="vitals-stats-row">
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vetHp">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vetHp"
+                            style="color: #ff5a7e"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Health</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vetNrg">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vetNrg"
+                            style="color: #42a5f5"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Energy</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vetFd">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vetFd"
+                            style="color: #ffa726"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Fullness</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vetJoy">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vetJoy"
+                            style="color: #66bb6a"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Happiness</div>
                     </div>
                 </div>
@@ -1728,20 +1677,7 @@
             Simulate Emergency
         </button>
 
-        <!-- Left Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-label">Clinic Terminal HQ</div>
-                <div class="sidebar-title-row">
-                    <h1 class="sidebar-title">Pending Triage</h1>
-                    <span class="case-badge" id="caseBadge">0 CASES</span>
-                </div>
-            </div>
-
-            <div class="cards-stack" id="cardsStack">
-                <!-- Pet cards injected by JS -->
-            </div>
-        </aside>
+        <!-- Left sidebar (hidden — pet selection now via shared navbar) -->
 
         <!-- Main Content -->
         <main class="main">
@@ -2392,78 +2328,6 @@
                 return list;
             }
 
-            function renderCards() {
-                const stack = document.getElementById("cardsStack");
-                if (!stack) return;
-                const ids = Object.keys(userPets);
-                stack.innerHTML = "";
-
-                document.getElementById("caseBadge").textContent =
-                    ids.length + " CASE" + (ids.length !== 1 ? "S" : "");
-
-                ids.forEach((pid, idx) => {
-                    const pet = userPets[pid];
-                    const traits = PET_TRAITS[pet.type] || {
-                        name: "Pet",
-                        emoji: "🐾",
-                    };
-                    const isActive = pid === currentPetId;
-                    const urgent =
-                        (pet.health || 100) < 50 ||
-                        (pet.energy || 100) < 30 ||
-                        (pet.fullness || 100) < 30;
-                    const complaint = urgent
-                        ? "Critical Condition"
-                        : (pet.health || 100) < 70
-                          ? "Lethargy"
-                          : "Routine Checkup";
-
-                    const card = document.createElement("div");
-                    card.className =
-                        "patient-card" + (isActive ? "" : " placeholder-card");
-                    card.style.cssText = `
-                        top: ${idx * 68}px;
-                        left: ${idx * 4}px;
-                        transform: rotate(-2deg);
-                        z-index: ${4 - idx};
-                    `;
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <div>
-                                <span class="pet-name">${escapeHtml(pet.name || "Pet")}</span>
-                                <span class="pet-number">#${String(idx + 1).padStart(2, "0")}</span>
-                            </div>
-                        </div>
-                        <div class="card-row">
-                            <div>
-                                <div class="card-field-label">Species/Breed</div>
-                                <div class="card-field-value">${traits.name}</div>
-                            </div>
-                            ${urgent ? '<span class="urgent-badge">Urgent</span>' : ""}
-                        </div>
-                        <div>
-                            <div class="card-field-label">Chief Complaint</div>
-                            <div class="card-field-value">${complaint}</div>
-                        </div>
-                        <div class="card-footer">
-                            <span class="assigned-to">Assigned to: DR. SMITH</span>
-                            <button class="arrow-btn" aria-label="Open case" data-pid="${pid}">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </div>
-                    `;
-                    card.querySelector(".arrow-btn").addEventListener(
-                        "click",
-                        () => {
-                            selectPet(pid);
-                        },
-                    );
-                    stack.appendChild(card);
-                });
-            }
-
             function renderMain(pet) {
                 if (!pet) return;
                 activePet = pet;
@@ -2634,7 +2498,6 @@
 
                     /* Refresh UI */
                     renderMain(activePet);
-                    renderCards();
 
                     /* Refresh navbar pet data */
                     if (typeof helixNav !== "undefined") helixNav.refresh();
@@ -2663,7 +2526,6 @@
                 if (pid === currentPetId) return;
                 currentPetId = pid;
                 activePet = userPets[pid];
-                renderCards();
                 renderMain(activePet);
                 if (db && currentUser) {
                     await db
@@ -2718,7 +2580,6 @@
                             if (!currentPetId || !userPets[currentPetId]) {
                                 currentPetId = Object.keys(userPets)[0] || null;
                             }
-                            renderCards();
                             if (currentPetId) {
                                 renderMain(userPets[currentPetId]);
                             }
@@ -2804,11 +2665,14 @@
                 document.getElementById("vetJoy").textContent = joy;
 
                 /* Update rings */
-                const hpCirc = 2 * Math.PI * 78;
-                const fdCirc = 2 * Math.PI * 60;
-                const joyCirc = 2 * Math.PI * 42;
+                const hpCirc = 2 * Math.PI * 85; /* ~534 */
+                const nrgCirc = 2 * Math.PI * 70; /* ~440 */
+                const fdCirc = 2 * Math.PI * 55; /* ~346 */
+                const joyCirc = 2 * Math.PI * 40; /* ~251 */
                 document.getElementById("vetRingHp").style.strokeDashoffset =
                     hpCirc - (hpCirc * hp) / 100;
+                document.getElementById("vetRingNrg").style.strokeDashoffset =
+                    nrgCirc - (nrgCirc * nrg) / 100;
                 document.getElementById("vetRingFd").style.strokeDashoffset =
                     fdCirc - (fdCirc * fd) / 100;
                 document.getElementById("vetRingJoy").style.strokeDashoffset =

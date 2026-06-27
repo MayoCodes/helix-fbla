@@ -744,70 +744,96 @@
 
                 <div class="vitals-rings">
                     <svg width="180" height="180" viewBox="0 0 180 180">
+                        <!-- Outermost ring (Health - pink) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="kitchenRingHp"
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#ff5a7e"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="490"
-                            stroke-dashoffset="490"
+                            stroke-dasharray="534"
+                            stroke-dashoffset="534"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
+                        <!-- Third ring (Energy - blue) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="70"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="kitchenRingNrg"
+                            cx="90"
+                            cy="90"
+                            r="70"
+                            fill="none"
+                            stroke="#42a5f5"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-dasharray="440"
+                            stroke-dashoffset="440"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <!-- Second ring (Fullness - orange) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="55"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="kitchenRingFd"
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="55"
                             fill="none"
                             stroke="#ffa726"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="377"
-                            stroke-dashoffset="377"
+                            stroke-dasharray="346"
+                            stroke-dashoffset="346"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
+                        <!-- Innermost ring (Happiness - green) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="kitchenRingJoy"
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
-                            stroke="#26a69a"
-                            stroke-width="10"
+                            stroke="#66bb6a"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="264"
-                            stroke-dashoffset="264"
+                            stroke-dasharray="251"
+                            stroke-dashoffset="251"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
                     </svg>
@@ -828,19 +854,43 @@
                 </div>
                 <div class="vitals-stats-row">
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="kitchenHp">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="kitchenHp"
+                            style="color: #ff5a7e"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Health</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="kitchenNrg">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="kitchenNrg"
+                            style="color: #42a5f5"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Energy</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="kitchenFd">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="kitchenFd"
+                            style="color: #ffa726"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Fullness</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="kitchenJoy">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="kitchenJoy"
+                            style="color: #66bb6a"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Happiness</div>
                     </div>
                 </div>
@@ -1269,6 +1319,7 @@
 
                 regions.forEach((region) => {
                     const focusClass = region.dataset.focus;
+                    const index = parseInt(region.dataset.index);
 
                     region.addEventListener("mouseenter", () => {
                         kitchen.classList.add(focusClass);
@@ -1277,7 +1328,174 @@
                     region.addEventListener("mouseleave", () => {
                         kitchen.classList.remove(focusClass);
                     });
+
+                    /* Click to buy the dish */
+                    region.addEventListener("click", () => {
+                        buyDish(index);
+                    });
                 });
+            }
+
+            async function buyDish(index) {
+                /* Get current pet's data */
+                let pet = null;
+                let petId = null;
+                let uid = null;
+
+                if (
+                    typeof helixNav !== "undefined" &&
+                    helixNav.currentPetId &&
+                    helixNav.userPets
+                ) {
+                    petId = helixNav.currentPetId;
+                    pet = helixNav.userPets[petId];
+                }
+
+                if (!pet) {
+                    showAlert("error", "No pet selected!");
+                    return;
+                }
+
+                /* Get current user from Firebase */
+                if (
+                    typeof firebase !== "undefined" &&
+                    firebase.auth().currentUser
+                ) {
+                    uid = firebase.auth().currentUser.uid;
+                }
+
+                if (!uid) {
+                    showAlert("error", "Please sign in first!");
+                    return;
+                }
+
+                /* Get the food data for this pet type */
+                const petType = getPetType();
+                const data = foodData[petType];
+                if (!data || !data.dishes[index]) {
+                    showAlert("error", "Dish not found!");
+                    return;
+                }
+
+                const dish = data.dishes[index];
+                const cost = parseInt(dish.cost.replace("$", ""));
+
+                /* Get current budget */
+                const currentBudget =
+                    pet.costTracking?.budgetRemaining ??
+                    pet.costTracking?.coins ??
+                    500;
+
+                if (currentBudget < cost) {
+                    showAlert(
+                        "error",
+                        `Not enough coins! Need $${cost}, have $${currentBudget}.`,
+                    );
+                    return;
+                }
+
+                /* Parse effects from dish.effect */
+                let fullnessBoost = 0;
+                let happinessBoost = 0;
+                const effectStr = dish.effect.replace(/<br\s*\/?>/gi, ", ");
+                const fullnessMatch = effectStr.match(/\+\s*(\d+)\s*Fullness/);
+                const happinessMatch = effectStr.match(
+                    /\+\s*(\d+)\s*Happiness/,
+                );
+                if (fullnessMatch) fullnessBoost = parseInt(fullnessMatch[1]);
+                if (happinessMatch)
+                    happinessBoost = parseInt(happinessMatch[1]);
+
+                /* Apply stat changes */
+                const updates = {
+                    fullness: Math.min(
+                        100,
+                        (pet.fullness || 0) + fullnessBoost,
+                    ),
+                    happiness: Math.min(
+                        100,
+                        (pet.happiness || 0) + happinessBoost,
+                    ),
+                };
+
+                const newBudget = currentBudget - cost;
+
+                /* Save to database */
+                try {
+                    showLoading("Buying " + dish.name + "...");
+
+                    /* Update pet stats */
+                    await db
+                        .collection("users")
+                        .doc(uid)
+                        .collection("pets")
+                        .doc(petId)
+                        .update(updates);
+
+                    /* Update budget in user doc */
+                    await db
+                        .collection("users")
+                        .doc(uid)
+                        .set(
+                            {
+                                costTracking: {
+                                    budgetRemaining: newBudget,
+                                    foodSpent:
+                                        (pet.costTracking?.foodSpent || 0) +
+                                        cost,
+                                },
+                            },
+                            { merge: true },
+                        );
+
+                    /* Update local state */
+                    Object.assign(pet, updates);
+                    pet.costTracking = {
+                        ...(pet.costTracking || {}),
+                        budgetRemaining: newBudget,
+                        foodSpent: (pet.costTracking?.foodSpent || 0) + cost,
+                    };
+
+                    /* Update the pet in helixNav's userPets cache */
+                    if (
+                        typeof helixNav !== "undefined" &&
+                        helixNav.userPets &&
+                        helixNav.userPets[petId]
+                    ) {
+                        Object.assign(helixNav.userPets[petId], updates);
+                        helixNav.userPets[petId].costTracking =
+                            pet.costTracking;
+                    }
+
+                    /* Refresh UI */
+                    if (typeof renderKitchen === "function") renderKitchen();
+                    if (typeof updateKitchenVitals === "function")
+                        updateKitchenVitals();
+
+                    /* Refresh navbar */
+                    if (typeof helixNav !== "undefined") helixNav.refresh();
+
+                    hideLoading();
+                    showAlert(
+                        "success",
+                        `Bought ${dish.name}! +${fullnessBoost} Fullness${happinessBoost > 0 ? ", +" + happinessBoost + " Happiness" : ""} (-$${cost})`,
+                    );
+                } catch (e) {
+                    console.error("Kitchen buy error:", e);
+                    hideLoading();
+                    showAlert("error", `Error: ${e.message}`);
+                }
+            }
+
+            function showAlert(type, msg) {
+                /* Simple alert — can be enhanced later */
+                const icons = {
+                    success: "✅",
+                    error: "❌",
+                    warning: "⚠️",
+                    info: "ℹ️",
+                };
+                alert((icons[type] || "") + " " + msg);
             }
 
             function goBack() {
@@ -1352,12 +1570,16 @@
                 document.getElementById("kitchenJoy").textContent = joy;
 
                 /* Update rings (circumference = 2 * PI * r) */
-                const hpCirc = 2 * Math.PI * 78; /* ~490 */
-                const fdCirc = 2 * Math.PI * 60; /* ~377 */
-                const joyCirc = 2 * Math.PI * 42; /* ~264 */
+                const hpCirc = 2 * Math.PI * 85; /* ~534 */
+                const nrgCirc = 2 * Math.PI * 70; /* ~440 */
+                const fdCirc = 2 * Math.PI * 55; /* ~346 */
+                const joyCirc = 2 * Math.PI * 40; /* ~251 */
                 document.getElementById(
                     "kitchenRingHp",
                 ).style.strokeDashoffset = hpCirc - (hpCirc * hp) / 100;
+                document.getElementById(
+                    "kitchenRingNrg",
+                ).style.strokeDashoffset = nrgCirc - (nrgCirc * nrg) / 100;
                 document.getElementById(
                     "kitchenRingFd",
                 ).style.strokeDashoffset = fdCirc - (fdCirc * fd) / 100;
@@ -1378,7 +1600,7 @@
                 setInterval(updateKitchenVitals, 2000);
             });
         </script>
-        <script src="shared-navbar.js?v=13"></script>
+        <script src="shared-navbar.js?v=17"></script>
         <script>
             if (typeof helixNav !== "undefined") {
                 helixNav.init({

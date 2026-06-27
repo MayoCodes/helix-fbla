@@ -1986,23 +1986,8 @@
      NEW YEAP UI LAYOUT
      ═══════════════════════════════════════════ -->
 
-        <!-- TOP-LEFT PROFILE -->
-        <div class="yeap-top-left">
-            <div class="yeap-avatar-wrap">
-                <div class="yeap-avatar">
-                    <img src="https://i.pravatar.cc/150?img=12" alt="avatar" />
-                </div>
-                <div class="yeap-level-badge" id="yeapLevelBadge">Lv.1</div>
-            </div>
-            <div class="yeap-profile-info">
-                <div class="yeap-profile-sub" id="yeapProfileSub">
-                    Systems Admin
-                </div>
-                <div class="yeap-profile-name" id="yeapProfileName">
-                    Trainer
-                </div>
-            </div>
-        </div>
+        <!-- TOP-LEFT PROFILE (hidden — now shown in left card stack) -->
+        <div class="yeap-top-left" style="display: none"></div>
 
         <!-- TOP-RIGHT RESOURCES -->
         <div class="yeap-top-right">
@@ -2077,73 +2062,96 @@
 
                 <div class="vitals-rings">
                     <svg width="180" height="180" viewBox="0 0 180 180">
-                        <!-- Outer ring (Health - pink/red) -->
+                        <!-- Outermost ring (Health - pink) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vRingHp"
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#ff5a7e"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="490"
-                            stroke-dashoffset="490"
+                            stroke-dasharray="534"
+                            stroke-dashoffset="534"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
-                        <!-- Middle ring (Fullness - orange) -->
+                        <!-- Third ring (Energy - blue) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="70"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingNrg"
+                            cx="90"
+                            cy="90"
+                            r="70"
+                            fill="none"
+                            stroke="#42a5f5"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-dasharray="440"
+                            stroke-dashoffset="440"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <!-- Second ring (Fullness - orange) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="55"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vRingFd"
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="55"
                             fill="none"
                             stroke="#ffa726"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="377"
-                            stroke-dashoffset="377"
+                            stroke-dasharray="346"
+                            stroke-dashoffset="346"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
-                        <!-- Inner ring (Happiness - green) -->
+                        <!-- Innermost ring (Happiness - green) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vRingJoy"
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
-                            stroke="#26a69a"
-                            stroke-width="10"
+                            stroke="#66bb6a"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="264"
-                            stroke-dashoffset="264"
+                            stroke-dasharray="251"
+                            stroke-dashoffset="251"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
                     </svg>
@@ -2160,22 +2168,46 @@
                     <div class="vitals-footer-label">Health Care</div>
                     <div class="vitals-footer-pct" id="vitalsPct">95%</div>
                 </div>
-                <!-- Individual stat values -->
+                <!-- Individual stat values (color-coded to match rings) -->
                 <div class="vitals-stats-row">
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vitalsHp">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vitalsHp"
+                            style="color: #ff5a7e"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Health</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vitalsNrg">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vitalsNrg"
+                            style="color: #42a5f5"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Energy</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vitalsFd">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vitalsFd"
+                            style="color: #ffa726"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Fullness</div>
                     </div>
                     <div class="vitals-stat">
-                        <div class="vitals-stat-val" id="vitalsJoy">100</div>
+                        <div
+                            class="vitals-stat-val"
+                            id="vitalsJoy"
+                            style="color: #66bb6a"
+                        >
+                            100
+                        </div>
                         <div class="vitals-stat-lbl">Happiness</div>
                     </div>
                 </div>
@@ -2966,8 +2998,13 @@
             // FIREBASE LOAD / SAVE
             // ═══════════════════════════════════════════
             async function loadPetData() {
+                console.log(
+                    "[home] loadPetData called, currentUser:",
+                    currentUser,
+                );
                 showLoading("Loading your pets…");
                 if (!currentUser) {
+                    console.warn("[home] No current user");
                     hideLoading();
                     return;
                 }
@@ -3094,6 +3131,7 @@
             // UI
             // ═══════════════════════════════════════════
             function updateUI() {
+                console.log("[home] updateUI called");
                 try {
                     /* Safety checks */
                     if (!userData) userData = { costTracking: {} };
@@ -3103,21 +3141,34 @@
                     const _ct = userData.costTracking || {};
 
                     // ── YEAP UI updates ──
-                    document.getElementById("yeapCredits").textContent =
-                        Math.max(0, _ct.budgetRemaining || 0).toLocaleString();
-                    document.getElementById("yeapCores").textContent =
-                        petData.level || 1;
-                    document.getElementById("yeapLevelBadge").textContent =
-                        "Lv." + (petData.level || 1);
+                    const yeapCreditsEl =
+                        document.getElementById("yeapCredits");
+                    if (yeapCreditsEl)
+                        yeapCreditsEl.textContent = Math.max(
+                            0,
+                            _ct.budgetRemaining || 0,
+                        ).toLocaleString();
+                    const yeapCoresEl = document.getElementById("yeapCores");
+                    if (yeapCoresEl)
+                        yeapCoresEl.textContent = petData.level || 1;
+                    const yeapLevelBadgeEl =
+                        document.getElementById("yeapLevelBadge");
+                    if (yeapLevelBadgeEl)
+                        yeapLevelBadgeEl.textContent =
+                            "Lv." + (petData.level || 1);
                     if (currentUser) {
-                        document.getElementById("yeapProfileName").textContent =
-                            currentUser.displayName || "Trainer";
+                        const el = document.getElementById("yeapProfileName");
+                        if (el)
+                            el.textContent =
+                                currentUser.displayName || "Trainer";
                     }
 
                     // Profile mini card — shows Google account info
                     if (currentUser) {
-                        document.getElementById("pmcName").textContent =
-                            currentUser.displayName || "Trainer";
+                        const pmcNameEl = document.getElementById("pmcName");
+                        if (pmcNameEl)
+                            pmcNameEl.textContent =
+                                currentUser.displayName || "Trainer";
                         const avatarImg =
                             document.querySelector(".pmc-avatar img");
                         if (avatarImg && currentUser.photoURL) {
@@ -3141,11 +3192,24 @@
                     const nrg = Math.round(petData.energy || 0);
                     const fd = Math.round(petData.fullness || 0);
                     const joy = Math.round(petData.happiness || 0);
-                    const C_HP = 490,
-                        C_FD = 377,
-                        C_JOY = 264;
+                    const C_HP = 534,
+                        C_NRG = 440,
+                        C_FD = 346,
+                        C_JOY = 251;
+                    console.log(
+                        "[home] Updating rings - hp:",
+                        hp,
+                        "nrg:",
+                        nrg,
+                        "fd:",
+                        fd,
+                        "joy:",
+                        joy,
+                    );
                     document.getElementById("vRingHp").style.strokeDashoffset =
                         C_HP * (1 - hp / 100);
+                    document.getElementById("vRingNrg").style.strokeDashoffset =
+                        C_NRG * (1 - nrg / 100);
                     document.getElementById("vRingFd").style.strokeDashoffset =
                         C_FD * (1 - fd / 100);
                     document.getElementById("vRingJoy").style.strokeDashoffset =

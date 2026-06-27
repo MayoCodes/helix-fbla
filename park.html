@@ -10,11 +10,7 @@
         />
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-        <link rel="stylesheet" href="tutorial-popup.css?v=3" />
-        <script src="tutorial-popup.js?v=3"></script>
-        <script src="shared-navbar.js?v=8"></script>
         <style>
             :root {
                 --teal: #49a6a6;
@@ -48,7 +44,7 @@
                 inset: 0;
                 width: 100vw;
                 height: 100vh;
-                background: url("bg.jpg") center/cover no-repeat;
+                background: url("park.png") center/cover no-repeat;
                 z-index: 0;
             }
             .park-bg::after {
@@ -457,168 +453,188 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                background: none;
+                background-color: transparent;
                 transition: opacity 0.3s ease;
             }
             .pet-idle-wrap.hidden {
                 opacity: 0;
                 pointer-events: none;
             }
-            .pet-idle {
+            .paw-overlay {
+                display: none !important;
+            }
+            .anim-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 160;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background: transparent;
+            }
+            .anim-overlay.open {
+                display: flex;
+            }
+            .sprite-animator {
                 width: 200px;
-                height: auto;
-                image-rendering: auto;
+                height: 200px;
+                overflow: hidden;
+                background: none;
+                background-color: transparent;
+                background-repeat: no-repeat;
+                background-position: 0 0;
+            }
+            .pet-idle {
+                width: 300px;
+                height: 300px;
+                overflow: visible;
+                transform: translateX(-20px);
+                background: none;
+                background-color: transparent;
+                background-repeat: no-repeat;
+                background-position: 0 0;
                 filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3));
-                transition: transform 0.3s ease;
+            }
+            .pet-idle:not(.active) {
+                display: none;
             }
             .pet-click-zone {
                 position: absolute;
                 inset: 20px;
-                border: 2px dashed rgba(255, 255, 255, 0.25);
+                border: none;
                 border-radius: 20px;
                 cursor: pointer;
-                transition: all 0.3s ease;
-                background: rgba(255, 255, 255, 0.03);
-            }
-            .pet-click-zone:hover {
-                border-color: rgba(255, 255, 255, 0.5);
-                background: rgba(255, 255, 255, 0.06);
-            }
-            .pet-click-zone::before {
-                content: "";
-                position: absolute;
-                inset: 0;
-                background-image:
-                    linear-gradient(
-                        rgba(255, 255, 255, 0.1) 1px,
-                        transparent 1px
-                    ),
-                    linear-gradient(
-                        90deg,
-                        rgba(255, 255, 255, 0.1) 1px,
-                        transparent 1px
-                    );
-                background-size: 30px 30px;
-                border-radius: 18px;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                pointer-events: none;
-            }
-            .pet-click-zone:hover::before {
-                opacity: 1;
+                background: transparent;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
-            /* ── ACTION CIRCLES (extrude from pet on click) ── */
-            .action-ring {
-                position: absolute;
-                inset: 0;
+            /* ── RIGHT-SIDE PAW PRINT ── */
+            .paw-print {
+                position: fixed;
+                right: 30px;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 100;
+                width: 380px;
+                height: 380px;
                 pointer-events: none;
-                z-index: 55;
             }
-            .action-ring.show {
-                pointer-events: auto;
-            }
-
-            .action-orb {
+            .paw-toe {
                 position: absolute;
-                min-width: 80px;
-                padding: 14px 20px;
-                border-radius: 40px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                width: 68px;
+                height: 88px;
                 background: var(--glass);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
                 backdrop-filter: blur(16px);
                 -webkit-backdrop-filter: blur(16px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: auto;
+                box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+                transition: all 0.2s ease;
+                overflow: hidden;
+            }
+            .paw-toe:nth-child(1) {
+                top: 30px;
+                left: 0;
+                transform: rotate(-25deg);
+            }
+            .paw-toe:nth-child(2) {
+                top: 0;
+                left: 45px;
+                transform: rotate(-8deg);
+            }
+            .paw-toe:nth-child(3) {
+                top: 0;
+                right: 45px;
+                transform: rotate(8deg);
+            }
+            .paw-toe:nth-child(4) {
+                top: 30px;
+                right: 0;
+                transform: rotate(25deg);
+            }
+            .paw-toe:hover {
+                background: var(--glass-h);
+                border-color: rgba(73, 166, 166, 0.4);
+                box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
+            }
+            .paw-heel {
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100px;
+                height: 80px;
+                background: var(--glass);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+            }
+            .paw-btn {
+                width: 100%;
+                height: 100%;
+                border: none;
+                background: transparent;
+                cursor: pointer;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 gap: 2px;
-                cursor: pointer;
-                font-family: "Nunito", sans-serif;
-                box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-                transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-                opacity: 0;
-                transform: scale(0);
-                z-index: 56;
-                pointer-events: none;
                 color: #fff;
+                font-family: "Nunito", sans-serif;
+                padding: 4px;
+                border-radius: 50%;
             }
-            .action-ring.show .action-orb {
-                opacity: 1;
-                transform: scale(1);
-                pointer-events: auto;
-            }
-            .action-orb:hover {
-                background: var(--glass-h);
-                border-color: rgba(73, 166, 166, 0.4);
-                transform: scale(1.1) !important;
-                box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
-            }
-            .action-orb .a-lbl {
-                font-size: 0.7rem;
+            .paw-btn-lbl {
+                font-size: 0.65rem;
                 font-weight: 800;
                 color: var(--teal-lt);
                 text-transform: uppercase;
-                letter-spacing: 1.2px;
+                letter-spacing: 0.5px;
                 line-height: 1.2;
-                font-family: "Nunito", sans-serif;
+                text-align: center;
                 text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
             }
-            .action-orb .a-cost {
+            .paw-btn-cost {
                 font-size: 0.55rem;
                 font-weight: 900;
-                color: rgba(255, 255, 255, 0.4);
-                letter-spacing: 1px;
+                color: rgba(255, 255, 255, 0.5);
+                letter-spacing: 0.5px;
             }
-
-            /* Radial positions — farther out to clear center box */
-            .action-orb.tailwag {
-                top: -8%;
-                left: 50%;
-                transform: translateX(-50%) scale(0);
-                transition-delay: 0s;
+            .paw-toe-svg {
+                pointer-events: all;
+                cursor: pointer;
             }
-            .action-ring.show .action-orb.tailwag {
-                transform: translateX(-50%) scale(1);
+            .paw-toe-svg ellipse,
+            .paw-toe-svg path {
+                transition:
+                    fill 0.2s ease,
+                    stroke 0.2s ease;
             }
-            .action-orb.tailwag:hover {
-                transform: translateX(-50%) scale(1.1) !important;
+            .paw-toe-svg:hover ellipse,
+            .paw-toe-svg:hover path {
+                fill: rgba(73, 166, 166, 0.35) !important;
+                stroke: rgba(73, 166, 166, 0.5) !important;
             }
-            .action-orb.backflip {
-                top: 22%;
-                left: -4%;
-                transform: translateY(-50%) scale(0);
-                transition-delay: 0.04s;
+            .paw-toe-svg ellipse,
+            .paw-toe-svg path {
+                transition:
+                    fill 0.2s ease,
+                    stroke 0.2s ease;
             }
-            .action-ring.show .action-orb.backflip {
-                transform: translateY(-50%) scale(1);
-            }
-            .action-orb.backflip:hover {
-                transform: translateY(-50%) scale(1.1) !important;
-            }
-            .action-orb.dig {
-                top: 22%;
-                right: -4%;
-                left: auto;
-                transform: translateY(-50%) scale(0);
-                transition-delay: 0.08s;
-            }
-            .action-ring.show .action-orb.dig {
-                transform: translateY(-50%) scale(1);
-            }
-            .action-orb.dig:hover {
-                transform: translateY(-50%) scale(1.1) !important;
-            }
-            .action-orb.rollover {
-                bottom: -8%;
-                left: 50%;
-                transform: translateX(-50%) scale(0);
-                transition-delay: 0.12s;
-            }
-            .action-ring.show .action-orb.rollover {
-                transform: translateX(-50%) scale(1);
-            }
-            .action-orb.rollover:hover {
-                transform: translateX(-50%) scale(1.1) !important;
+            .paw-toe-svg:hover ellipse,
+            .paw-toe-svg:hover path {
+                fill: rgba(73, 166, 166, 0.35) !important;
+                stroke: rgba(73, 166, 166, 0.5) !important;
             }
 
             /* Sprite inside pet-center plays animation in-place */
@@ -626,7 +642,12 @@
                 position: absolute;
                 top: 50%;
                 left: 50%;
+                width: 300px;
+                height: 300px;
                 transform: translate(-50%, -50%);
+                overflow: hidden;
+                background: none;
+                background-color: transparent;
                 background-repeat: no-repeat;
                 background-position: 0 0;
                 border-radius: 20px;
@@ -635,6 +656,11 @@
             }
             .pet-center-sprite.active {
                 display: block;
+            }
+            #petCenterSprite,
+            #pawPetIdle,
+            #animSprite {
+                background-image: none;
             }
 
             /* ── XP BAR ── */
@@ -683,7 +709,6 @@
                 height: 100%;
                 background: linear-gradient(90deg, #f4c430, #ff9800);
                 border-radius: 5px;
-                transition: width 0.6s cubic-bezier(0.23, 1, 0.32, 1);
                 box-shadow: 0 0 12px rgba(244, 196, 48, 0.3);
                 position: relative;
             }
@@ -700,7 +725,6 @@
                     rgba(255, 255, 255, 0.25),
                     transparent
                 );
-                animation: xpShimmer 2s infinite;
             }
             @keyframes xpShimmer {
                 0% {
@@ -741,16 +765,63 @@
                     height: 240px;
                 }
                 .pet-idle-wrap {
-                    width: 220px;
-                    height: 220px;
+                    width: 240px;
+                    height: 240px;
                 }
                 .pet-idle {
-                    width: 160px;
+                    width: 240px;
+                    height: 240px;
+                    background: none;
+                    background-color: transparent;
+                }
+                .pet-center-sprite {
+                    width: 240px;
+                    height: 240px;
                 }
                 .xp-bar-container {
                     width: calc(100vw - 48px);
                     right: 12px;
                     bottom: 90px;
+                }
+                .paw-print {
+                    right: 12px;
+                    width: 140px;
+                    height: 200px;
+                }
+                .paw-toe {
+                    width: 50px;
+                    height: 65px;
+                }
+                .paw-toe:nth-child(1) {
+                    top: 20px;
+                    left: 0;
+                    transform: rotate(-25deg);
+                }
+                .paw-toe:nth-child(2) {
+                    top: 0;
+                    left: 32px;
+                    transform: rotate(-8deg);
+                }
+                .paw-toe:nth-child(3) {
+                    top: 0;
+                    right: 32px;
+                    transform: rotate(8deg);
+                }
+                .paw-toe:nth-child(4) {
+                    top: 20px;
+                    right: 0;
+                    transform: rotate(25deg);
+                }
+                .paw-heel {
+                    width: 70px;
+                    height: 55px;
+                    bottom: 5px;
+                }
+                .paw-btn-lbl {
+                    font-size: 0.55rem;
+                }
+                .paw-btn-cost {
+                    font-size: 0.5rem;
                 }
             }
         </style>
@@ -849,70 +920,96 @@
                 <div class="vitals-sub">VITALS SYNC</div>
                 <div class="vitals-rings">
                     <svg width="180" height="180" viewBox="0 0 180 180">
+                        <!-- Outermost ring (Health - pink) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vRingHp"
                             cx="90"
                             cy="90"
-                            r="78"
+                            r="85"
                             fill="none"
                             stroke="#ff5a7e"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="490"
-                            stroke-dashoffset="490"
+                            stroke-dasharray="534"
+                            stroke-dashoffset="534"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
+                        <!-- Third ring (Energy - blue) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="70"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            id="vRingNrg"
+                            cx="90"
+                            cy="90"
+                            r="70"
+                            fill="none"
+                            stroke="#42a5f5"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-dasharray="440"
+                            stroke-dashoffset="440"
+                            style="transition: stroke-dashoffset 0.6s ease"
+                        />
+                        <!-- Second ring (Fullness - orange) -->
+                        <circle
+                            cx="90"
+                            cy="90"
+                            r="55"
+                            fill="none"
+                            stroke="#eee"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vRingFd"
                             cx="90"
                             cy="90"
-                            r="60"
+                            r="55"
                             fill="none"
                             stroke="#ffa726"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="377"
-                            stroke-dashoffset="377"
+                            stroke-dasharray="346"
+                            stroke-dashoffset="346"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
+                        <!-- Innermost ring (Happiness - green) -->
                         <circle
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
                             stroke="#eee"
-                            stroke-width="10"
+                            stroke-width="8"
                             stroke-linecap="round"
                         />
                         <circle
                             id="vRingJoy"
                             cx="90"
                             cy="90"
-                            r="42"
+                            r="40"
                             fill="none"
-                            stroke="#26a69a"
-                            stroke-width="10"
+                            stroke="#66bb6a"
+                            stroke-width="8"
                             stroke-linecap="round"
-                            stroke-dasharray="264"
-                            stroke-dashoffset="264"
+                            stroke-dasharray="251"
+                            stroke-dashoffset="251"
                             style="transition: stroke-dashoffset 0.6s ease"
                         />
                     </svg>
@@ -951,6 +1048,28 @@
             <div class="menu-card">
                 <button
                     class="menu-item"
+                    id="menuHome"
+                    onclick="window.location.href = 'home.html'"
+                >
+                    <svg
+                        class="menu-item-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                        />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span class="menu-item-label">Home</span>
+                </button>
+                <button
+                    class="menu-item"
+                    id="menuKitchen"
                     onclick="window.location.href = 'kitchen.html'"
                 >
                     <svg
@@ -962,40 +1081,16 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                     >
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M2 12h20" />
                         <path
-                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
                         />
+                        <polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
                     <span class="menu-item-label">Kitchen</span>
                 </button>
                 <button
-                    class="menu-item active"
-                    onclick="window.location.href = 'park.html'"
-                >
-                    <svg
-                        class="menu-item-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M12 22v-8" />
-                        <path
-                            d="M12 14a4 4 0 0 1 4-4h4a4 4 0 0 0-4-4 4 4 0 0 0-4 4z"
-                        />
-                        <path
-                            d="M12 14a4 4 0 0 0-4-4H4a4 4 0 0 1 4-4 4 4 0 0 1 4 4z"
-                        />
-                        <path d="M12 6V2" />
-                    </svg>
-                    <span class="menu-item-label">Park</span>
-                </button>
-                <button
                     class="menu-item"
+                    id="menuVet"
                     onclick="window.location.href = 'vet.html'"
                 >
                     <svg
@@ -1007,12 +1102,16 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                     >
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                        <path d="M9 11l3 3L22 4" />
+                        <path
+                            d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                        />
                     </svg>
                     <span class="menu-item-label">Vet</span>
                 </button>
                 <button
                     class="menu-item"
+                    id="menuStore"
                     onclick="window.location.href = 'shop.html'"
                 >
                     <svg
@@ -1055,49 +1154,284 @@
         <div class="park-center" id="parkCenter">
             <!-- Idle state -->
             <div class="pet-idle-wrap" id="idleWrap">
-                <img
-                    src="Dogidle.png"
-                    alt="Pet"
-                    class="pet-idle"
-                    id="petIdle"
-                />
                 <div
                     class="pet-click-zone"
                     id="petClickZone"
-                    onclick="toggleActions()"
-                ></div>
+                    onclick="openPaw()"
+                >
+                    <div class="pet-idle active" id="petIdle"></div>
+                </div>
                 <!-- Sprite plays in-place over idle -->
                 <div class="pet-center-sprite" id="petCenterSprite"></div>
             </div>
 
             <!-- RADIAL ACTION RING (extrudes from pet) -->
-            <div class="action-ring" id="actionRing">
-                <button
-                    class="action-orb tailwag"
-                    onclick="playAnim('tailwag')"
-                >
-                    <span class="a-lbl">Tail Wag</span>
-                    <span class="a-cost">5 energy</span>
-                </button>
-                <button
-                    class="action-orb backflip"
-                    onclick="playAnim('backflip')"
-                >
-                    <span class="a-lbl">Backflip</span>
-                    <span class="a-cost">5 energy</span>
-                </button>
-                <button class="action-orb dig" onclick="playAnim('dig')">
-                    <span class="a-lbl">Dig</span>
-                    <span class="a-cost">12 energy</span>
-                </button>
-                <button
-                    class="action-orb rollover"
-                    onclick="playAnim('rollover')"
-                >
-                    <span class="a-lbl">Roll Over</span>
-                    <span class="a-cost">4 energy</span>
-                </button>
+            <div class="paw-overlay" id="pawOverlay">
+                <div class="pet-idle" id="pawPetIdle"></div>
             </div>
+            <div class="anim-overlay" id="animOverlay">
+                <div class="sprite-animator" id="animSprite"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT-SIDE PAW PRINT -->
+        <div class="paw-print" id="pawPrint">
+            <svg
+                viewBox="0 0 440 420"
+                xmlns="http://www.w3.org/2000/svg"
+                style="width: 100%; height: 100%; overflow: visible"
+            >
+                <defs>
+                    <filter
+                        id="pawBlur"
+                        x="-20%"
+                        y="-20%"
+                        width="140%"
+                        height="140%"
+                    >
+                        <feGaussianBlur stdDeviation="1.5" />
+                    </filter>
+                </defs>
+
+                <!-- TOE 1 - far left: Paw Raise -->
+                <g class="paw-toe-svg" onclick="playAnim('paw')">
+                    <ellipse
+                        cx="55"
+                        cy="145"
+                        rx="52"
+                        ry="63"
+                        transform="rotate(-30 55 145)"
+                        filter="url(#pawBlur)"
+                        fill="rgba(8,28,28,0.4)"
+                    />
+                    <ellipse
+                        cx="55"
+                        cy="145"
+                        rx="52"
+                        ry="63"
+                        transform="rotate(-30 55 145)"
+                        fill="rgba(8,28,28,0.65)"
+                        stroke="rgba(255,255,255,0.1)"
+                        stroke-width="2"
+                    />
+                    <text
+                        x="55"
+                        y="138"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        PAW
+                    </text>
+                    <text
+                        x="55"
+                        y="153"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        RAISE
+                    </text>
+                    <text
+                        x="55"
+                        y="167"
+                        text-anchor="middle"
+                        fill="rgba(255,255,255,0.5)"
+                        font-size="11"
+                        font-weight="900"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        3 energy
+                    </text>
+                </g>
+
+                <!-- TOE 2 - inner left: Dig -->
+                <g class="paw-toe-svg" onclick="playAnim('dig')">
+                    <ellipse
+                        cx="155"
+                        cy="75"
+                        rx="48"
+                        ry="60"
+                        transform="rotate(-10 155 75)"
+                        filter="url(#pawBlur)"
+                        fill="rgba(8,28,28,0.4)"
+                    />
+                    <ellipse
+                        cx="155"
+                        cy="75"
+                        rx="48"
+                        ry="60"
+                        transform="rotate(-10 155 75)"
+                        fill="rgba(8,28,28,0.65)"
+                        stroke="rgba(255,255,255,0.1)"
+                        stroke-width="2"
+                    />
+                    <text
+                        x="155"
+                        y="70"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        DIG
+                    </text>
+                    <text
+                        x="155"
+                        y="87"
+                        text-anchor="middle"
+                        fill="rgba(255,255,255,0.5)"
+                        font-size="11"
+                        font-weight="900"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        9 energy
+                    </text>
+                </g>
+
+                <!-- TOE 3 - inner right: Backflip -->
+                <g class="paw-toe-svg" onclick="playAnim('backflip')">
+                    <ellipse
+                        cx="285"
+                        cy="75"
+                        rx="48"
+                        ry="60"
+                        transform="rotate(10 285 75)"
+                        filter="url(#pawBlur)"
+                        fill="rgba(8,28,28,0.4)"
+                    />
+                    <ellipse
+                        cx="285"
+                        cy="75"
+                        rx="48"
+                        ry="60"
+                        transform="rotate(10 285 75)"
+                        fill="rgba(8,28,28,0.65)"
+                        stroke="rgba(255,255,255,0.1)"
+                        stroke-width="2"
+                    />
+                    <text
+                        x="285"
+                        y="65"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        BACK
+                    </text>
+                    <text
+                        x="285"
+                        y="80"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        FLIP
+                    </text>
+                    <text
+                        x="285"
+                        y="96"
+                        text-anchor="middle"
+                        fill="rgba(255,255,255,0.5)"
+                        font-size="11"
+                        font-weight="900"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        25 energy
+                    </text>
+                </g>
+
+                <!-- TOE 4 - far right: Roll Over -->
+                <g class="paw-toe-svg" onclick="playAnim('roll')">
+                    <ellipse
+                        cx="385"
+                        cy="145"
+                        rx="52"
+                        ry="63"
+                        transform="rotate(30 385 145)"
+                        filter="url(#pawBlur)"
+                        fill="rgba(8,28,28,0.4)"
+                    />
+                    <ellipse
+                        cx="385"
+                        cy="145"
+                        rx="52"
+                        ry="63"
+                        transform="rotate(30 385 145)"
+                        fill="rgba(8,28,28,0.65)"
+                        stroke="rgba(255,255,255,0.1)"
+                        stroke-width="2"
+                    />
+                    <text
+                        x="385"
+                        y="138"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        ROLL
+                    </text>
+                    <text
+                        x="385"
+                        y="153"
+                        text-anchor="middle"
+                        fill="#7fcece"
+                        font-size="13"
+                        font-weight="800"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        OVER
+                    </text>
+                    <text
+                        x="385"
+                        y="167"
+                        text-anchor="middle"
+                        fill="rgba(255,255,255,0.5)"
+                        font-size="11"
+                        font-weight="900"
+                        font-family="Nunito,sans-serif"
+                        pointer-events="none"
+                    >
+                        16 energy
+                    </text>
+                </g>
+
+                <!-- HEEL pad -->
+                <g style="cursor: default; pointer-events: none">
+                    <path
+                        d="M 220 410 C 164 410, 100 385, 92 336 C 84 296, 112 256, 152 236 C 176 224, 200 220, 220 220 C 240 220, 264 224, 288 236 C 328 256, 356 296, 348 336 C 340 385, 276 410, 220 410 Z"
+                        filter="url(#pawBlur)"
+                        fill="rgba(8,28,28,0.4)"
+                    />
+                    <path
+                        d="M 220 410 C 164 410, 100 385, 92 336 C 84 296, 112 256, 152 236 C 176 224, 200 220, 220 220 C 240 220, 264 224, 288 236 C 328 256, 356 296, 348 336 C 340 385, 276 410, 220 410 Z"
+                        fill="rgba(8,28,28,0.65)"
+                        stroke="rgba(255,255,255,0.1)"
+                        stroke-width="2"
+                    />
+                </g>
+            </svg>
         </div>
 
         <!-- XP BAR (bottom-right of viewport) -->
@@ -1179,7 +1513,7 @@
         </div>
 
         <script src="overlay.js"></script>
-        <script src="shared-navbar.js?v=8"></script>
+        <script src="shared-navbar.js?v=17"></script>
         <script>
             // ═══════════════════════════════════════════
             // FIREBASE
@@ -1221,8 +1555,10 @@
             };
             let userPets = {},
                 currentPetId = null;
-            let userData = { coins: 0 };
-            let spriteInterval = null;
+            let userData = { costTracking: { budgetRemaining: 0 } };
+            let userProfileData = {};
+            const spriteIntervals = new Map();
+            let actionTimeout = null;
 
             const PET_TRAITS = {
                 a: { name: "Cat", emoji: "🐱" },
@@ -1235,41 +1571,167 @@
             // Adjust frameW/frameH to match your sprite sheets
             // ═══════════════════════════════════════════
             const SPRITE_CONFIG = {
-                tailwag: {
-                    src: "Tailwag.png",
-                    frames: 16,
-                    frameW: 280,
-                    frameH: 280,
-                    fps: 12,
-                    cols: 4,
-                    rows: 4,
+                b: {
+                    idle: {
+                        src: "Dogidle.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 12,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    paw: {
+                        src: "Paw.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 12,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    dig: {
+                        src: "Dig.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 12,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    roll: {
+                        src: "Roll.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 12,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    backflip: {
+                        src: "Backflip.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 12,
+                        cols: 6,
+                        rows: 6,
+                    },
                 },
-                dig: {
-                    src: "Dig.png",
-                    frames: 16,
-                    frameW: 280,
-                    frameH: 280,
-                    fps: 12,
-                    cols: 4,
-                    rows: 4,
+                a: {
+                    idle: {
+                        src: "leopardIdle.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 8,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    paw: {
+                        src: "stalk.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 8,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    dig: {
+                        src: "sprint.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    roll: {
+                        src: "pounce.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    backflip: {
+                        src: "Twister.png",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
                 },
-                backflip: {
-                    src: "Backflip.png",
-                    frames: 16,
-                    frameW: 280,
-                    frameH: 280,
-                    fps: 12,
-                    cols: 4,
-                    rows: 4,
+                c: {
+                    idle: {
+                        src: "parrotIdle.png?v=20260626-2",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 8,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    paw: {
+                        src: "Hop.png?v=20260626-2",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    dig: {
+                        src: "wingspread.png?v=20260626-2",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    roll: {
+                        src: "Spin.png?v=20260626-3",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
+                    backflip: {
+                        src: "Loop.png?v=20260626-2",
+                        frames: 36,
+                        frameW: 170,
+                        frameH: 170,
+                        fps: 10,
+                        cols: 6,
+                        rows: 6,
+                    },
                 },
-                rollover: {
-                    src: "Rollover.png",
-                    frames: 16,
-                    frameW: 280,
-                    frameH: 280,
-                    fps: 12,
-                    cols: 4,
-                    rows: 4,
+            };
+
+            const PAW_LABELS = {
+                a: {
+                    paw: ["STALK", ""],
+                    dig: ["SPRINT", ""],
+                    roll: ["POUNCE", ""],
+                    backflip: ["TWISTER", ""],
+                },
+                b: {
+                    paw: ["PAW", "RAISE"],
+                    dig: ["DIG", ""],
+                    roll: ["ROLL", "OVER"],
+                    backflip: ["BACK", "FLIP"],
+                },
+                c: {
+                    paw: ["HOP", ""],
+                    dig: ["WING", "SPREAD"],
+                    roll: ["SPIN", ""],
+                    backflip: ["LOOP", ""],
                 },
             };
 
@@ -1279,36 +1741,35 @@
             // ACTION STATS
             // ═══════════════════════════════════════════
             const ACTION_STATS = {
-                tailwag: {
+                paw: {
+                    label: "Paw Raise",
                     happiness: 6,
-                    energy: 2,
+                    energy: 3,
                     fullness: 0,
-                    xp: 3,
-                    tiredXp: 2,
+                    xp: 4,
                 },
                 dig: {
+                    label: "Dig",
                     happiness: 8,
-                    energy: -9,
-                    fullness: -1,
+                    energy: 9,
+                    fullness: 1,
                     xp: 8,
-                    tiredXp: 4,
                 },
-                rollover: {
+                roll: {
+                    label: "Roll Over",
                     happiness: 10,
-                    energy: -16,
-                    fullness: -2,
+                    energy: 16,
+                    fullness: 2,
                     xp: 14,
-                    tiredXp: 7,
                 },
                 backflip: {
+                    label: "Backflip",
                     happiness: 12,
-                    energy: -25,
-                    fullness: -3,
+                    energy: 25,
+                    fullness: 3,
                     xp: 22,
-                    tiredXp: 11,
                 },
             };
-
             // ═══════════════════════════════════════════
             // DATA LOADING
             // ═══════════════════════════════════════════
@@ -1330,21 +1791,16 @@
                         .get();
                     if (userDoc.exists) {
                         const d = userDoc.data();
+                        userProfileData = d;
                         currentPetId = d.currentPetId;
-                        userData.coins = d.coins || d.budgetRemaining || 0;
-                        document.getElementById("yeapCredits").textContent =
-                            userData.coins;
-                        document.getElementById("pmcCoins").textContent =
-                            "$" + userData.coins;
-                        document.getElementById("yeapProfileName").textContent =
-                            d.displayName || "Trainer";
-                        document.getElementById("pmcName").textContent =
-                            d.displayName || "Trainer";
-                        if (d.photoURL) {
-                            document.getElementById("topAvatar").src =
-                                d.photoURL;
-                            document.getElementById("pmcAvatar").src =
-                                d.photoURL;
+                        userData = d.userData || {
+                            costTracking: {
+                                budgetRemaining:
+                                    d.coins || d.budgetRemaining || 0,
+                            },
+                        };
+                        if (!userData.costTracking) {
+                            userData.costTracking = { budgetRemaining: 0 };
                         }
                     }
 
@@ -1364,6 +1820,7 @@
                     }
 
                     updateUI();
+                    restartIdleSprite();
                 } catch (e) {
                     console.error("loadPetData error:", e);
                 }
@@ -1383,30 +1840,97 @@
                 }
             }
 
-            // ═══════════════════════════════════════════
-            // UI UPDATES
-            // ═══════════════════════════════════════════
+            function updatePawLabels() {
+                const labels = PAW_LABELS[petData.type] || PAW_LABELS.b;
+                document.querySelectorAll(".paw-toe-svg").forEach((toe) => {
+                    const actionMatch = toe
+                        .getAttribute("onclick")
+                        ?.match(/playAnim\(['\"](\w+)['\"]\)/);
+                    const action = actionMatch?.[1];
+                    if (!action || !labels[action]) return;
+
+                    const labelLines = Array.from(
+                        toe.querySelectorAll('text[font-size="13"]'),
+                    );
+                    if (labelLines.length === 1) {
+                        const secondLine = labelLines[0].cloneNode(false);
+                        const firstY = parseFloat(
+                            labelLines[0].getAttribute("y"),
+                        );
+                        secondLine.setAttribute("y", firstY + 15);
+                        const energyLine = toe.querySelector(
+                            'text[font-size="11"]',
+                        );
+                        toe.insertBefore(secondLine, energyLine);
+                        labelLines.push(secondLine);
+                    }
+
+                    labelLines[0].textContent = labels[action][0];
+                    labelLines[1].textContent = labels[action][1];
+
+                    const energyLine = toe.querySelector(
+                        'text[font-size="11"]',
+                    );
+                    if (energyLine) {
+                        if (!energyLine.dataset.baseY) {
+                            energyLine.dataset.baseY =
+                                energyLine.getAttribute("y");
+                        }
+                        const baseY = parseFloat(energyLine.dataset.baseY);
+                        energyLine.setAttribute(
+                            "y",
+                            baseY + (labels[action][1] ? 14 : 0),
+                        );
+                    }
+                });
+            }
+
             function updateUI() {
                 const p = petData;
+                const budgetRemaining = Math.max(
+                    0,
+                    userData.costTracking?.budgetRemaining || 0,
+                );
+                const displayName =
+                    currentUser?.displayName ||
+                    userProfileData.displayName ||
+                    "Trainer";
+                const photoURL =
+                    currentUser?.photoURL || userProfileData.photoURL;
+
+                document.getElementById("yeapCredits").textContent =
+                    budgetRemaining.toLocaleString();
+                document.getElementById("yeapCores").textContent = p.level || 1;
+                document.getElementById("yeapLevelBadge").textContent =
+                    "Lv." + (p.level || 1);
+                document.getElementById("yeapProfileName").textContent =
+                    displayName;
+                document.getElementById("pmcName").textContent = displayName;
+                document.getElementById("pmcCoins").textContent =
+                    "$" + budgetRemaining;
+                if (photoURL) {
+                    document.getElementById("topAvatar").src = photoURL;
+                    document.getElementById("pmcAvatar").src = photoURL;
+                }
                 document.getElementById("vitalsPetName").textContent =
                     p.name || "Pet";
                 document.getElementById("pmcSub").textContent =
-                    "Lv. " + (p.level || 1) + " Trainer";
-                document.getElementById("yeapLevelBadge").textContent =
-                    "Lv." + (p.level || 1);
-
-                const hp = p.health || 0;
-                const fd = p.fullness || 0;
-                const joy = p.happiness || 0;
-                const nrg = p.energy || 0;
-
+                    "Lv. " +
+                    (p.level || 1) +
+                    " · " +
+                    (PET_TRAITS[p.type]?.name || "Pet");
+                const hp = p.health || 0,
+                    fd = p.fullness || 0,
+                    joy = p.happiness || 0,
+                    nrg = p.energy || 0;
                 document.getElementById("vRingHp").style.strokeDashoffset =
-                    490 - (490 * hp) / 100;
+                    534 - (534 * hp) / 100;
+                document.getElementById("vRingNrg").style.strokeDashoffset =
+                    440 - (440 * nrg) / 100;
                 document.getElementById("vRingFd").style.strokeDashoffset =
-                    377 - (377 * fd) / 100;
+                    346 - (346 * fd) / 100;
                 document.getElementById("vRingJoy").style.strokeDashoffset =
-                    264 - (264 * joy) / 100;
-
+                    251 - (251 * joy) / 100;
                 document.getElementById("vitalsHp").textContent =
                     Math.round(hp);
                 document.getElementById("vitalsNrg").textContent =
@@ -1415,122 +1939,106 @@
                     Math.round(fd);
                 document.getElementById("vitalsJoy").textContent =
                     Math.round(joy);
-
                 const avg = (hp + nrg + fd + joy) / 4;
                 document.getElementById("vitalsPct").textContent =
                     Math.round(avg) + "%";
-
-                const xp = p.experience || 0;
-                const xpNext = p.experienceToNextLevel || 100;
-                const xpPct = Math.min(100, (xp / xpNext) * 100);
+                const xp = p.experience || 0,
+                    xpNext = p.experienceToNextLevel || 100,
+                    xpPct = Math.min(100, (xp / xpNext) * 100);
                 document.getElementById("xpValue").textContent =
                     Math.round(xp) + " / " + Math.round(xpNext);
                 document.getElementById("xpFill").style.width = xpPct + "%";
-
-                if (p.type === "b") {
-                    document.getElementById("petIdle").src = "Dogidle.png";
-                }
+                updatePawLabels();
             }
 
-            // ═══════════════════════════════════════════
-            // RADIAL ACTION RING
-            // ═══════════════════════════════════════════
-            function toggleActions() {
-                document.getElementById("actionRing").classList.toggle("show");
+            function openPaw() {
+                /* paw print is always visible; no-op */
             }
 
-            // ═══════════════════════════════════════════
-            // SPRITE ANIMATOR (requestAnimationFrame — smooth)
-            // ═══════════════════════════════════════════
-            let sprRaf = null;
-            let sprEl = null;
-            let sprCfg = null;
-            let sprFrame = 0;
-            let sprLastT = 0;
+            function closePaw() {
+                /* paw print is always visible; no-op */
+            }
 
-            function startSpriteAnim(element, key) {
-                const cfg = SPRITE_CONFIG[key];
-                if (!cfg) return;
-                stopSpriteAnim();
-                sprCfg = cfg;
-                sprEl = element;
-                sprFrame = 0;
-                sprLastT = performance.now();
+            function getSpriteConfig(key) {
+                const petSprites =
+                    SPRITE_CONFIG[petData.type] || SPRITE_CONFIG.b;
+                return petSprites[key] || SPRITE_CONFIG.b[key];
+            }
 
-                // Set the spritesheet as background at actual pixel size
+            function restartIdleSprite() {
+                const idleEl = document.getElementById("petIdle");
+                if (!idleEl) return;
+                idleEl.style.display = "";
+                startSpriteAnim(idleEl, "idle", true);
+            }
+
+            function startSpriteAnim(element, key, loop = true) {
+                const cfg = getSpriteConfig(key);
+                if (!cfg || !element) return;
+                stopSpriteAnim(element);
                 element.style.backgroundImage = `url(${cfg.src})`;
-                const sheetW = cfg.cols * cfg.frameW;
-                const sheetH = cfg.rows * cfg.frameH;
-                element.style.backgroundSize = `${sheetW}px ${sheetH}px`;
-                // Element itself = one frame cell
-                element.style.width = cfg.frameW + "px";
-                element.style.height = cfg.frameH + "px";
-
-                // Show frame 0
-                element.style.backgroundPosition = "0px 0px";
-
-                const interval = 1000 / cfg.fps;
-                function tick(now) {
-                    const dt = now - sprLastT;
-                    if (dt >= interval) {
-                        sprFrame++;
-                        if (sprFrame >= cfg.frames) {
-                            sprFrame = 0;
+                element.style.backgroundSize = `${cfg.cols * 100}% ${cfg.rows * 100}%`;
+                element.classList.add("active");
+                let frame = 0;
+                const step = () => {
+                    const col = frame % cfg.cols;
+                    const row = Math.floor(frame / cfg.cols);
+                    element.style.backgroundPosition = `${col * (100 / (cfg.cols - 1))}% ${row * (100 / (cfg.rows - 1))}%`;
+                    frame++;
+                    if (frame >= cfg.frames) {
+                        if (loop) frame = 0;
+                        else {
+                            stopSpriteAnim(element);
+                            return;
                         }
-                        const col = sprFrame % cfg.cols;
-                        const row = Math.floor(sprFrame / cfg.cols);
-                        element.style.backgroundPosition = `-${col * cfg.frameW}px -${row * cfg.frameH}px`;
-                        sprLastT = now;
                     }
-                    sprRaf = requestAnimationFrame(tick);
-                }
-                sprRaf = requestAnimationFrame(tick);
+                };
+                step();
+                spriteIntervals.set(element, setInterval(step, 1000 / cfg.fps));
             }
 
-            function stopSpriteAnim() {
-                if (sprRaf) {
-                    cancelAnimationFrame(sprRaf);
-                    sprRaf = null;
+            function stopSpriteAnim(element) {
+                if (!element) return;
+                const interval = spriteIntervals.get(element);
+                if (interval) {
+                    clearInterval(interval);
+                    spriteIntervals.delete(element);
                 }
-                const el = document.getElementById("petCenterSprite");
-                if (el) {
-                    el.style.backgroundImage = "";
-                    el.style.backgroundPosition = "";
-                    el.style.backgroundSize = "";
-                    el.style.width = "";
-                    el.style.height = "";
-                }
-                sprEl = null;
-                sprCfg = null;
-                sprFrame = 0;
+                element.classList.remove("active");
             }
 
-            // ═══════════════════════════════════════════
-            // ANIMATION PLAYER
-            // ═══════════════════════════════════════════
+            const animQueue = [];
+            let isAnimating = false;
+
             function playAnim(key) {
                 const stats = ACTION_STATS[key];
                 if (!stats) return;
+                if ((petData.energy || 0) < stats.energy) {
+                    showAlert(
+                        "warning",
+                        "Not enough energy to perform this action!",
+                    );
+                    return;
+                }
+                animQueue.push(key);
+                processAnimQueue();
+            }
 
-                // Apply stats
-                const isTired = (petData.energy || 0) < 20;
-                const xpGain = isTired ? stats.tiredXp : stats.xp;
-
+            function processAnimQueue() {
+                if (isAnimating || animQueue.length === 0) return;
+                isAnimating = true;
+                const key = animQueue.shift();
+                const stats = ACTION_STATS[key];
                 petData.happiness = Math.min(
                     100,
                     Math.max(0, (petData.happiness || 0) + stats.happiness),
                 );
-                petData.energy = Math.min(
-                    100,
-                    Math.max(0, (petData.energy || 0) + stats.energy),
-                );
+                petData.energy = Math.max(0, petData.energy - stats.energy);
                 petData.fullness = Math.min(
                     100,
                     Math.max(0, (petData.fullness || 0) + stats.fullness),
                 );
-                petData.experience = (petData.experience || 0) + xpGain;
-
-                // Level up check
+                petData.experience = (petData.experience || 0) + stats.xp;
                 if (
                     petData.experience >= (petData.experienceToNextLevel || 100)
                 ) {
@@ -1543,32 +2051,41 @@
                         "Level Up! Your pet is now level " + petData.level,
                     );
                 }
-
                 updateUI();
                 savePetData();
 
-                // Hide idle img, show sprite in-place, hide action ring
-                document.getElementById("petIdle").style.display = "none";
-                document.getElementById("actionRing").classList.remove("show");
-                const sprite = document.getElementById("petCenterSprite");
-                sprite.classList.add("active");
-                startSpriteAnim(sprite, key);
-
-                // Restore after duration
-                const cfg = SPRITE_CONFIG[key];
+                const idleEl = document.getElementById("petIdle");
+                const centerSprite = document.getElementById("petCenterSprite");
+                if (idleEl) {
+                    idleEl.classList.remove("active");
+                    idleEl.style.display = "none";
+                }
+                if (centerSprite) startSpriteAnim(centerSprite, key, false);
+                const cfg = getSpriteConfig(key);
                 const duration = Math.max(2500, (cfg.frames / cfg.fps) * 1000);
-                setTimeout(() => {
-                    stopSpriteAnim();
-                    sprite.classList.remove("active");
-                    document.getElementById("petIdle").style.display = "block";
+                if (actionTimeout) clearTimeout(actionTimeout);
+                actionTimeout = setTimeout(() => {
+                    closeAnim();
                 }, duration);
             }
 
-            // ═══════════════════════════════════════════
-            // NAVIGATION
-            // ═══════════════════════════════════════════
+            function closeAnim() {
+                const centerSprite = document.getElementById("petCenterSprite");
+                if (centerSprite) stopSpriteAnim(centerSprite);
+                if (actionTimeout) {
+                    clearTimeout(actionTimeout);
+                    actionTimeout = null;
+                }
+                isAnimating = false;
+                restartIdleSprite();
+                /* Process next animation in queue */
+                if (animQueue.length > 0) {
+                    setTimeout(() => processAnimQueue(), 500);
+                }
+            }
+
             function goBaseCamp() {
-                window.location.href = "yeap.html";
+                window.location.href = "carepage.html";
             }
             function goCareCenter() {
                 window.location.href = "vet.html";
@@ -1580,21 +2097,19 @@
                 /* already here */
             }
             function openSetupModal() {
-                window.location.href = "yeap.html";
+                window.location.href =
+                    "carepage.html?addPet=1&return=park.html";
             }
 
-            // ═══════════════════════════════════════════
-            // ALERT
-            // ═══════════════════════════════════════════
             function showAlert(type, msg) {
                 const ov = document.getElementById("alertOv");
                 const em = document.getElementById("aEm");
                 const ms = document.getElementById("aMsg");
                 const icons = {
-                    info: "ℹ️",
-                    success: "✅",
-                    error: "❌",
-                    warning: "⚠️",
+                    info: "??",
+                    success: "?",
+                    error: "?",
+                    warning: "??",
                 };
                 em.textContent = icons[type] || icons.info;
                 ms.textContent = msg;
@@ -1604,60 +2119,21 @@
                 document.getElementById("alertOv").style.display = "none";
             }
 
-            // ═══════════════════════════════════════════
-            // PARK TOUR
-            // ═══════════════════════════════════════════
-            const parkTour = new TutorialPopup({
-                storageKey: "tutorialPopupParkSeen",
-                tabs: [
-                    {
-                        id: "overview",
-                        title: "Park Overview",
-                        content: [
-                            "<strong>The Park</strong> is where you can play with your pet and help them grow. Interact with your pet, track their vitals, and earn experience.",
-                            "Use the action buttons to play, train, and bond with your pet. Each action affects their stats and grants XP.",
-                        ],
-                    },
-                    {
-                        id: "vitals",
-                        title: "Pet Vitals",
-                        content: [
-                            "The <strong>left panel</strong> shows your active pet's vitals: Health, Happiness, Fullness, and Energy.",
-                            "The ring chart gives a quick visual overview of overall wellness. Keep all stats balanced for a happy pet.",
-                        ],
-                    },
-                    {
-                        id: "actions",
-                        title: "Actions & Rewards",
-                        content: [
-                            "Click your pet to reveal <strong>action buttons</strong> around them: Tail Wag, Dig, Backflip, and Rollover.",
-                            "Each action costs energy and grants stat boosts plus XP. Some actions work better when your pet is tired.",
-                            "Watch your pet's level and XP bar in the bottom-right corner as you play.",
-                        ],
-                    },
-                    {
-                        id: "navigation",
-                        title: "Quick Navigation",
-                        content: [
-                            "Use the <strong>bottom nav bar</strong> to quickly jump between the Kitchen, Park, and Vet.",
-                            "Click the <strong>center avatar</strong> to switch between your pets at any time.",
-                        ],
-                    },
-                ],
-            });
-            window.parkTour = parkTour;
-            if (document.readyState === "loading") {
-                window.addEventListener("DOMContentLoaded", () =>
-                    parkTour.open(),
-                );
-            } else {
-                parkTour.open();
-            }
-
-            // ═══════════════════════════════════════════
-            // INIT
-            // ═══════════════════════════════════════════
             document.addEventListener("DOMContentLoaded", () => {
+                const centerSprite = document.getElementById("petCenterSprite");
+                const pawPetIdle = document.getElementById("pawPetIdle");
+                const animSprite = document.getElementById("animSprite");
+                if (centerSprite) centerSprite.style.backgroundImage = "none";
+                if (pawPetIdle) pawPetIdle.style.backgroundImage = "none";
+                if (animSprite) animSprite.style.backgroundImage = "none";
+                document.getElementById("animSprite").style.display = "none";
+                requestAnimationFrame(() => {
+                    startSpriteAnim(
+                        document.getElementById("petIdle"),
+                        "idle",
+                        true,
+                    );
+                });
                 loadPetData();
                 if (typeof helixNav !== "undefined") {
                     helixNav.init({
@@ -1666,6 +2142,7 @@
                             currentPetId = pid;
                             petData = { ...petData, ...pet };
                             updateUI();
+                            closeAnim();
                         },
                     });
                 }
