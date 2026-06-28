@@ -654,6 +654,8 @@
                 background-color: transparent;
                 background-repeat: no-repeat;
                 background-position: 0 0;
+                image-rendering: pixelated;
+                image-rendering: crisp-edges;
                 border-radius: 20px;
                 display: none;
                 z-index: 51;
@@ -1564,7 +1566,8 @@
                         rows: 6,
                     },
                     backflip: {
-                        src: "Backflip.png?v=20260627-1",
+                        /* Local 2D pixel-art sheet. Never replace with a GLB model. */
+                        src: "./Backflip.png?v=20260628-pixel",
                         frames: 36,
                         frameW: 170,
                         frameH: 170,
@@ -1915,6 +1918,9 @@
                 const normalizedType =
                     { cat: "a", dog: "b", bird: "c" }[petData.type] ||
                     petData.type;
+                if (normalizedType === "b" && key === "backflip") {
+                    return SPRITE_CONFIG.b.backflip;
+                }
                 const petSprites =
                     SPRITE_CONFIG[normalizedType] || SPRITE_CONFIG.b;
                 return petSprites[key] || SPRITE_CONFIG.b[key];

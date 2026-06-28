@@ -107,7 +107,8 @@
             .nreq {
                 font-size: 13px;
                 letter-spacing: 0.04em;
-                padding: 9px 22px;
+                line-height: 1;
+                padding: 8px 22px;
                 border: 1.5px solid currentColor;
                 border-radius: 7px;
                 background: transparent;
@@ -585,9 +586,9 @@
                 background: rgba(255, 255, 255, 0.09);
                 color: rgba(255, 255, 255, 0.8);
                 border-radius: 12px;
-                padding: 12px 15px;
-                font-size: 12.5px;
-                line-height: 1.55;
+                padding: 14px 18px;
+                font-size: 14px;
+                line-height: 1.6;
                 flex: 1;
             }
             .cbub.usr {
@@ -636,79 +637,20 @@
    CHAT SECTION
 ───────────────────────────────────────────────────────── */
             #s-chat {
-                height: 300vh;
+                height: 200vh;
             }
             #s-chat .pin {
-                background: rgba(0, 0, 0, 0.82);
-                overflow-y: scroll;
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
-            #s-chat .pin::-webkit-scrollbar {
-                display: none;
+                background: rgba(0, 0, 0, 0.85);
+                align-items: stretch;
             }
 
-            .chat-ui {
-                position: absolute;
-                top: 58%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: min(600px, 88vw);
-                display: flex;
-                flex-direction: column;
-                gap: 22px;
-                z-index: 5;
-            }
-            .cm {
-                background: white;
-                color: var(--text);
-                border-radius: 16px;
-                padding: 20px 24px;
-                font-size: 15px;
-                line-height: 1.55;
-                opacity: 0;
-                transform: translateY(32px);
+            /* ─────────────────────────────────────────────────────────
+   CARE ROUTINES SECTION
+───────────────────────────────────────────────────────── */
+            .care-card {
                 transition:
-                    opacity 0.55s ease,
-                    transform 0.55s ease;
-            }
-            .cm.show {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            .cm.ai {
-                background: transparent;
-                border: 1.5px solid rgba(255, 255, 255, 0.14);
-                color: rgba(255, 255, 255, 0.86);
-                display: flex;
-                align-items: flex-start;
-                gap: 14px;
-                padding: 16px 20px;
-            }
-            .cm-av {
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                flex-shrink: 0;
-                overflow: hidden;
-                background: var(--dark2);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .cm-av img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                border-radius: 50%;
-            }
-            .cm-body {
-                flex: 1;
-            }
-            .cm-badge {
-                font-size: 11px;
-                opacity: 0.5;
-                margin-left: 8px;
+                    opacity 0.5s ease,
+                    transform 0.5s ease;
             }
 
             /* ─────────────────────────────────────────────────────────
@@ -824,8 +766,10 @@
                 border: 1.5px solid rgba(255, 255, 255, 0.22);
                 color: white;
                 border-radius: 7px;
-                padding: 12px 24px;
-                font-size: 13px;
+                padding: 16px 28px;
+                min-height: 180px;
+                font-size: 16px;
+                line-height: 1.7;
                 cursor: pointer;
                 text-decoration: none;
                 background: transparent;
@@ -2600,18 +2544,20 @@
                 </div>
             </div>
 
-            <!-- ══════ CHAT ══════ -->
+            <!-- ══════ CARE ROUTINES ══════ -->
             <div id="s-chat" class="sec">
-                <div class="pin">
+                <div class="pin" style="flex-direction: column; padding: 0">
                     <div
                         style="
-                            position: absolute;
-                            top: 72px;
+                            position: sticky;
+                            top: 0;
                             left: 0;
                             right: 0;
                             text-align: center;
                             z-index: 6;
-                            padding: 0 52px;
+                            padding: 60px 52px 40px;
+                            background: rgba(0, 0, 0, 0.6);
+                            backdrop-filter: blur(8px);
                         "
                     >
                         <h2
@@ -2626,34 +2572,315 @@
                         >
                             Each Pet Has Its Own
                             <em style="font-style: italic; color: var(--teal-l)"
-                                >Personality.</em
+                                >Care Routine.</em
                             >
                         </h2>
                     </div>
-                    <div class="chat-ui">
-                        <div class="cm" id="cm1">
-                            Hey Mochi, you feeling okay today? You seemed a
-                            little tired this morning.
-                        </div>
-                        <div class="cm ai" id="cm2">
-                            <div class="cm-av">✦</div>
-                            <div class="cm-body">
-                                *wags tail slowly* I'm okay… just a little low
-                                on energy. Maybe a snack would help?
-                            </div>
-                        </div>
-                        <div class="cm" id="cm3">
-                            Sure! Do you want to go to the park later?
-                        </div>
-                        <div class="cm ai" id="cm4">
-                            <div class="cm-av">✦</div>
-                            <div class="cm-body">
-                                *jumps up* YES. Yes yes yes. I've been waiting
-                                ALL day for you to ask that.<span
-                                    class="cm-badge"
-                                    >Happiness +15</span
+                    <div
+                        style="
+                            display: grid;
+                            grid-template-columns: repeat(4, 1fr);
+                            gap: 24px;
+                            padding: 160px 6vw 80px;
+                            width: 100%;
+                            max-width: 1400px;
+                            margin: 0 auto;
+                            flex: 1;
+                            align-content: center;
+                        "
+                    >
+                        <!-- Kitchen -->
+                        <div
+                            class="care-card"
+                            id="cm1"
+                            style="
+                                background: rgba(255, 255, 255, 0.07);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                border-radius: 16px;
+                                padding: 28px 24px;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 14px;
+                                opacity: 0;
+                                transform: translateY(24px);
+                                transition:
+                                    opacity 0.5s ease,
+                                    transform 0.5s ease;
+                            "
+                        >
+                            <div
+                                style="
+                                    width: 44px;
+                                    height: 44px;
+                                    background: rgba(79, 209, 197, 0.15);
+                                    border-radius: 12px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#4FD1C5"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
                                 >
+                                    <path
+                                        d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"
+                                    />
+                                    <path
+                                        d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"
+                                    />
+                                    <path d="M12 4v6" />
+                                    <path d="M2 18h20" />
+                                </svg>
                             </div>
+                            <h3
+                                style="
+                                    font-family:
+                                        &quot;Playfair Display&quot;, serif;
+                                    font-size: 20px;
+                                    color: #fff;
+                                    margin: 0;
+                                "
+                            >
+                                Kitchen
+                            </h3>
+                            <p
+                                style="
+                                    font-size: 13px;
+                                    line-height: 1.6;
+                                    color: rgba(255, 255, 255, 0.6);
+                                    margin: 0;
+                                "
+                            >
+                                Track feeding schedules, manage dietary needs,
+                                and log every meal. Your pet's nutrition is the
+                                foundation of their health.
+                            </p>
+                        </div>
+
+                        <!-- Vet -->
+                        <div
+                            class="care-card"
+                            id="cm2"
+                            style="
+                                background: rgba(255, 255, 255, 0.07);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                border-radius: 16px;
+                                padding: 28px 24px;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 14px;
+                                opacity: 0;
+                                transform: translateY(24px);
+                                transition:
+                                    opacity 0.5s ease,
+                                    transform 0.5s ease;
+                            "
+                        >
+                            <div
+                                style="
+                                    width: 44px;
+                                    height: 44px;
+                                    background: rgba(246, 173, 85, 0.15);
+                                    border-radius: 12px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#F6AD55"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v3a6 6 0 0 0 6 6 6 6 0 0 0 6-6 4 4 0 0 0 4-4V4a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v4H9V4a2 2 0 0 0-2-2z"
+                                    />
+                                    <circle cx="20" cy="13" r="2" />
+                                </svg>
+                            </div>
+                            <h3
+                                style="
+                                    font-family:
+                                        &quot;Playfair Display&quot;, serif;
+                                    font-size: 20px;
+                                    color: #fff;
+                                    margin: 0;
+                                "
+                            >
+                                Vet
+                            </h3>
+                            <p
+                                style="
+                                    font-size: 13px;
+                                    line-height: 1.6;
+                                    color: rgba(255, 255, 255, 0.6);
+                                    margin: 0;
+                                "
+                            >
+                                Monitor your pet's health. Authorize medical
+                                interventions to boost stats and keep them
+                                healthy. Schedule checkups and track
+                                vaccinations.
+                            </p>
+                        </div>
+
+                        <!-- Park -->
+                        <div
+                            class="care-card"
+                            id="cm3"
+                            style="
+                                background: rgba(255, 255, 255, 0.07);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                border-radius: 16px;
+                                padding: 28px 24px;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 14px;
+                                opacity: 0;
+                                transform: translateY(24px);
+                                transition:
+                                    opacity 0.5s ease,
+                                    transform 0.5s ease;
+                            "
+                        >
+                            <div
+                                style="
+                                    width: 44px;
+                                    height: 44px;
+                                    background: rgba(159, 122, 234, 0.15);
+                                    border-radius: 12px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#4FD1C5"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <circle cx="12" cy="5" r="3" />
+                                    <path
+                                        d="M6.5 8a2 2 0 0 0-1.9 1.3L2 17.8a2 2 0 0 0 1.8 3h16.4a2 2 0 0 0 1.8-3l-2.6-8.5A2 2 0 0 0 17.5 8z"
+                                    />
+                                </svg>
+                            </div>
+                            <h3
+                                style="
+                                    font-family:
+                                        &quot;Playfair Display&quot;, serif;
+                                    font-size: 20px;
+                                    color: #fff;
+                                    margin: 0;
+                                "
+                            >
+                                Park
+                            </h3>
+                            <p
+                                style="
+                                    font-size: 13px;
+                                    line-height: 1.6;
+                                    color: rgba(255, 255, 255, 0.6);
+                                    margin: 0;
+                                "
+                            >
+                                Schedule outdoor walks and park visits. Fresh
+                                air and exercise keep your pet healthy, happy,
+                                and full of energy.
+                            </p>
+                        </div>
+
+                        <!-- Store -->
+                        <div
+                            class="care-card"
+                            id="cm4"
+                            style="
+                                background: rgba(255, 255, 255, 0.07);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                border-radius: 16px;
+                                padding: 28px 24px;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 14px;
+                                opacity: 0;
+                                transform: translateY(24px);
+                                transition:
+                                    opacity 0.5s ease,
+                                    transform 0.5s ease;
+                            "
+                        >
+                            <div
+                                style="
+                                    width: 44px;
+                                    height: 44px;
+                                    background: rgba(252, 129, 129, 0.15);
+                                    border-radius: 12px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                "
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="#F6AD55"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <circle cx="9" cy="21" r="1" />
+                                    <circle cx="20" cy="21" r="1" />
+                                    <path
+                                        d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                                    />
+                                </svg>
+                            </div>
+                            <h3
+                                style="
+                                    font-family:
+                                        &quot;Playfair Display&quot;, serif;
+                                    font-size: 20px;
+                                    color: #fff;
+                                    margin: 0;
+                                "
+                            >
+                                Store
+                            </h3>
+                            <p
+                                style="
+                                    font-size: 13px;
+                                    line-height: 1.6;
+                                    color: rgba(255, 255, 255, 0.6);
+                                    margin: 0;
+                                "
+                            >
+                                Browse and shop for food, toys, and accessories.
+                                Track spending and find the best deals to keep
+                                your pet happy without breaking the budget.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -3511,9 +3738,13 @@
                     1,
                 );
                 ["cm1", "cm2", "cm3", "cm4"].forEach((id, i) => {
-                    document
-                        .getElementById(id)
-                        .classList.toggle("show", prog > i * 0.2 + 0.05);
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const show = prog > i * 0.15 + 0.05;
+                    el.style.opacity = show ? "1" : "0";
+                    el.style.transform = show
+                        ? "translateY(0)"
+                        : "translateY(24px)";
                 });
             }
 

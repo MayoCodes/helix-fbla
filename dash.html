@@ -73,6 +73,18 @@
 
             async function loadUserData(uid) {
                 try {
+                    /* Update profile bar with Google user info */
+                    const user = auth.currentUser;
+                    if (user) {
+                        document.querySelector(".username").textContent =
+                            user.displayName || "User";
+                        const avatarEl = document.getElementById("avatar");
+                        if (avatarEl) {
+                            avatarEl.textContent = (user.displayName || "U")
+                                .charAt(0)
+                                .toUpperCase();
+                        }
+                    }
                     const userDoc = await db.collection("users").doc(uid).get();
                     if (!userDoc.exists) {
                         showEmpty();
@@ -126,6 +138,7 @@
                 renderStats(pet, ct);
                 renderMainChart(ct);
                 renderCategoryChart(ct);
+                renderSpendingHappinessChart(pet, ct);
                 renderBudgetDonut(ct);
                 renderTransactions(ct);
                 renderTasks(pet);
@@ -207,8 +220,21 @@
                     data.push(parseFloat(running.toFixed(2)));
                 });
                 if (labels.length === 0) {
-                    labels.push("No data");
-                    data.push(0);
+                    /* Simulate sample data */
+                    const today = new Date();
+                    const sampleAmounts = [12, 8, 15, 5, 22, 18, 10];
+                    for (let i = 6; i >= 0; i--) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - i);
+                        labels.push(
+                            d.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                            }),
+                        );
+                        running += sampleAmounts[6 - i];
+                        data.push(parseFloat(running.toFixed(2)));
+                    }
                 }
                 destroyChart("mainChart");
                 const ctx = document
@@ -462,33 +488,26 @@
             }
 
             function renderTasks(pet) {
-                const tasks = pet.tasksCompleted || {};
-                const done = Object.entries(tasks).filter(([, v]) => v);
-                const pending = Object.entries(tasks).filter(([, v]) => !v);
+                const TASKS = [
+                    { id: "homework", label: "Homework" },
+                    { id: "walk_outside", label: "Walk Outside" },
+                    { id: "read", label: "Read" },
+                    { id: "make_bed", label: "Make Bed" },
+                    { id: "clean_desk", label: "Clean Desk" },
+                    { id: "do_dishes", label: "Do Dishes" },
+                    { id: "fold_laundry", label: "Fold Laundry" },
+                    { id: "drink_water", label: "Drink Water" },
+                ];
+                const done = pet.tasksCompleted || {};
                 const container = document.getElementById("tasks-list");
                 if (!container) return;
-                let html = "";
-                done.forEach(([k]) => {
-                    html += `<div class="task-row">
-                        <div class="task-check done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
-                        <span class="task-text done">${k
-                            .replace(/_/g, " ")
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}</span>
-                    </div>`;
-                });
-                pending.forEach(([k]) => {
-                    html += `<div class="task-row">
-                        <div class="task-check"></div>
-                        <span class="task-text">${k
-                            .replace(/_/g, " ")
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}</span>
-                    </div>`;
-                });
-                if (html === "") {
-                    html =
-                        '<div class="task-row"><div class="task-check"></div><span class="task-text">No tasks yet</span></div>';
-                }
-                container.innerHTML = html;
+                container.innerHTML = TASKS.map((t) => {
+                    const isDone = !!done[t.id];
+                    return `<div class="task-row">
+                                    <div class="task-check${isDone ? " done" : ""}">${isDone ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>' : ""}</div>
+                                    <span class="task-text${isDone ? " done" : ""}">${t.label}</span>
+                                </div>`;
+                }).join("");
             }
 
             function showEmpty() {
@@ -516,6 +535,7 @@
                     setTimeout(() => {
                         renderMainChart(ct);
                         renderCategoryChart(ct);
+                        renderSpendingHappinessChart(pet, ct);
                         renderBudgetDonut(ct);
                     }, 10);
                 } else if (tabId === "health") {
@@ -526,9 +546,10 @@
                     const ct =
                         pet?.costTracking || userData?.costTracking || {};
                     setTimeout(() => {
+                        renderSpendingForecast(pet, ct);
                         renderAITabCharts(pet, ct);
                         renderAIInsights(pet, ct);
-                    }, 10);
+                    }, 20);
                 }
             };
 
@@ -579,7 +600,7 @@
                             messages: [
                                 {
                                     role: "system",
-                                    content: `You are a helpful HELIX AI assistant. Give short, specific, actionable advice in 2-3 sentences max. Be friendly. Current pet data: ${JSON.stringify(context)}`,
+                                    content: `You are a helpful HELIX AI assistant for a virtual pet game. Give short, specific, actionable advice in 2-3 sentences max. Be friendly and encouraging. You can advise on pet care, budgeting, feeding, exercise, and general wellbeing. Current pet data: ${JSON.stringify(context)}`,
                                 },
                                 { role: "user", content: msg },
                             ],
@@ -591,10 +612,51 @@
                         "Sorry, I couldn't process that.";
                     document.getElementById("loading-msg")?.remove();
                     messagesDiv.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
-                } catch {
+                } catch (e) {
                     document.getElementById("loading-msg")?.remove();
-                    if (pet)
-                        messagesDiv.innerHTML += `<div class="chat-msg bot">${pet.name} is at ${Math.round(pet.health ?? 100)}% health and ${Math.round(pet.happiness ?? 100)}% happiness. Keep up the care routine!</div>`;
+                    if (pet) {
+                        const msgLower = msg.toLowerCase();
+                        let reply = "";
+                        if (
+                            msgLower.includes("health") ||
+                            msgLower.includes("sick")
+                        ) {
+                            reply = `${pet.name}'s health is at ${Math.round(pet.health ?? 100)}%. ${pet.health < 70 ? "Consider visiting the vet soon!" : "Looking good!"}`;
+                        } else if (
+                            msgLower.includes("happ") ||
+                            msgLower.includes("mood")
+                        ) {
+                            reply = `${pet.name}'s happiness is at ${Math.round(pet.happiness ?? 100)}%. ${pet.happiness < 70 ? "Try playing with them more!" : "They seem happy!"}`;
+                        } else if (
+                            msgLower.includes("hungry") ||
+                            msgLower.includes("food") ||
+                            msgLower.includes("full")
+                        ) {
+                            reply = `${pet.name}'s fullness is at ${Math.round(pet.fullness ?? 100)}%. ${pet.fullness < 50 ? "Time for a meal!" : "They're well fed."}`;
+                        } else if (
+                            msgLower.includes("energy") ||
+                            msgLower.includes("tired") ||
+                            msgLower.includes("sleepy")
+                        ) {
+                            reply = `${pet.name}'s energy is at ${Math.round(pet.energy ?? 100)}%. ${pet.energy < 40 ? "They need rest!" : "They're full of energy!"}`;
+                        } else if (
+                            msgLower.includes("budget") ||
+                            msgLower.includes("money") ||
+                            msgLower.includes("spend")
+                        ) {
+                            reply = `You've spent $${(ct.totalSpent || 0).toFixed(2)} of your $${(ct.monthlyBudget || 200).toFixed(2)} budget. $${(ct.budgetRemaining ?? 200).toFixed(2)} remaining.`;
+                        } else if (
+                            msgLower.includes("level") ||
+                            msgLower.includes("xp")
+                        ) {
+                            reply = `${pet.name} is level ${pet.level || 1} with ${pet.experience || 0} XP. Keep caring for them to level up!`;
+                        } else {
+                            reply = `${pet.name} is doing well! Health: ${Math.round(pet.health ?? 100)}%, Happiness: ${Math.round(pet.happiness ?? 100)}%, Fullness: ${Math.round(pet.fullness ?? 100)}%, Energy: ${Math.round(pet.energy ?? 100)}%. Keep up the care routine!`;
+                        }
+                        messagesDiv.innerHTML += `<div class="chat-msg bot">${reply}</div>`;
+                    } else {
+                        messagesDiv.innerHTML += `<div class="chat-msg bot">Welcome to HELIX AI! Select a pet first, then ask me anything about pet care, budgeting, or your pet's wellbeing.</div>`;
+                    }
                 }
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             };
@@ -661,6 +723,71 @@
 
             function renderHealthTabCharts(pet) {
                 if (!pet) return;
+                /* Radar Chart - Pet Stats */
+                destroyChart("healthRadar");
+                const radarCtx = document
+                    .getElementById("healthRadar")
+                    .getContext("2d");
+                chartInstances["healthRadar"] = new Chart(radarCtx, {
+                    type: "radar",
+                    data: {
+                        labels: ["Health", "Happiness", "Fullness", "Energy"],
+                        datasets: [
+                            {
+                                label: pet.name || "Pet",
+                                data: [
+                                    Math.round(pet.health ?? 0),
+                                    Math.round(pet.happiness ?? 0),
+                                    Math.round(pet.fullness ?? 0),
+                                    Math.round(pet.energy ?? 0),
+                                ],
+                                backgroundColor: "rgba(0,188,212,0.15)",
+                                borderColor: "#00bcd4",
+                                borderWidth: 2,
+                                pointBackgroundColor: "#00bcd4",
+                                pointBorderColor: "#fff",
+                                pointBorderWidth: 2,
+                                pointRadius: 5,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: "bottom",
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 12,
+                                    font: { size: 11 },
+                                },
+                            },
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 20,
+                                    display: false,
+                                },
+                                grid: {
+                                    color: "rgba(0,0,0,0.06)",
+                                },
+                                angleLines: {
+                                    color: "rgba(0,0,0,0.06)",
+                                },
+                                pointLabels: {
+                                    font: { size: 12, weight: "600" },
+                                    color: "#374151",
+                                },
+                            },
+                        },
+                    },
+                });
+                /* Bar Chart - Pet Stats */
                 destroyChart("healthTabBar");
                 const ctx = document
                     .getElementById("healthTabBar")
@@ -725,6 +852,339 @@
                     Math.round(pet.energy ?? 0) + "%";
                 document.getElementById("health-tab-bond").textContent =
                     Math.round(pet.bond ?? 0) + "%";
+            }
+
+            function renderSpendingHappinessChart(pet, ct) {
+                const txList = thisMonthTx(ct.transactions);
+                const sorted = [...txList].sort((a, b) => a.date - b.date);
+                let running = 0;
+                const labels = [];
+                const spendingData = [];
+                sorted.forEach((tx) => {
+                    running += tx.amount || 0;
+                    labels.push(
+                        new Date(tx.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                        }),
+                    );
+                    spendingData.push(parseFloat(running.toFixed(2)));
+                });
+                /* Generate happiness data points based on spending */
+                const happinessData = spendingData.map((s) => {
+                    const ratio = s / (ct.monthlyBudget || 200);
+                    return Math.max(
+                        0,
+                        Math.round((pet.happiness ?? 100) * (1 - ratio * 0.5)),
+                    );
+                });
+                if (labels.length === 0) {
+                    /* Simulate sample data */
+                    const today = new Date();
+                    const sampleAmounts = [12, 8, 15, 5, 22, 18, 10];
+                    let sampleRunning = 0;
+                    for (let i = 6; i >= 0; i--) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - i);
+                        labels.push(
+                            d.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                            }),
+                        );
+                        sampleRunning += sampleAmounts[6 - i];
+                        spendingData.push(parseFloat(sampleRunning.toFixed(2)));
+                        const ratio = sampleRunning / (ct.monthlyBudget || 200);
+                        happinessData.push(
+                            Math.max(
+                                0,
+                                Math.round(
+                                    (pet.happiness ?? 100) * (1 - ratio * 0.5),
+                                ),
+                            ),
+                        );
+                    }
+                }
+                destroyChart("spendingHappiness");
+                const ctx = document
+                    .getElementById("spendingHappiness")
+                    .getContext("2d");
+                const grad = ctx.createLinearGradient(0, 0, 0, 260);
+                grad.addColorStop(0, "rgba(0,188,212,0.2)");
+                grad.addColorStop(1, "rgba(0,188,212,0)");
+                chartInstances["spendingHappiness"] = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                type: "bar",
+                                label: "Spending ($)",
+                                data: spendingData,
+                                backgroundColor: "rgba(0,188,212,0.6)",
+                                borderColor: "#00bcd4",
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                yAxisID: "y",
+                            },
+                            {
+                                type: "line",
+                                label: "Happiness (%)",
+                                data: happinessData,
+                                borderColor: "#ff7043",
+                                backgroundColor: "transparent",
+                                borderWidth: 2.5,
+                                tension: 0.4,
+                                pointBackgroundColor: "#ff7043",
+                                pointBorderColor: "#fff",
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                yAxisID: "y1",
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: "bottom",
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 12,
+                                    font: { size: 11 },
+                                },
+                            },
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                position: "left",
+                                ticks: { callback: (v) => "$" + v },
+                                grid: { color: "#f3f4f6" },
+                                border: { display: false },
+                                title: {
+                                    display: true,
+                                    text: "Spending ($)",
+                                    color: "#00bcd4",
+                                },
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                max: 100,
+                                position: "right",
+                                ticks: { callback: (v) => v + "%" },
+                                grid: { display: false },
+                                border: { display: false },
+                                title: {
+                                    display: true,
+                                    text: "Happiness (%)",
+                                    color: "#ff7043",
+                                },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
+            }
+
+            function renderSpendingForecast(pet, ct) {
+                const txList = thisMonthTx(ct.transactions);
+                const sorted = [...txList].sort((a, b) => a.date - b.date);
+                const daysInMonth = new Date(
+                    new Date().getFullYear(),
+                    new Date().getMonth() + 1,
+                    0,
+                ).getDate();
+                const dayOfMonth = new Date().getDate();
+                const totalSpent = ct.totalSpent || 0;
+                const budget = ct.monthlyBudget || 200;
+                const dailyAvg = dayOfMonth > 0 ? totalSpent / dayOfMonth : 0;
+                /* Build date labels for the rest of the month */
+                const labels = [];
+                const actualData = [];
+                const forecastData = [];
+                /* Past days */
+                for (let d = 1; d <= dayOfMonth; d++) {
+                    labels.push(
+                        new Date(
+                            new Date().getFullYear(),
+                            new Date().getMonth(),
+                            d,
+                        ).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                        }),
+                    );
+                    const dayTx = sorted
+                        .filter((tx) => {
+                            const txDate = new Date(tx.date);
+                            return txDate.getDate() === d;
+                        })
+                        .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                    actualData.push(
+                        parseFloat(
+                            (
+                                totalSpent -
+                                sorted
+                                    .slice(
+                                        sorted.indexOf(
+                                            sorted.find(
+                                                (tx) =>
+                                                    new Date(
+                                                        tx.date,
+                                                    ).getDate() === d,
+                                            ),
+                                        ) + 1,
+                                    )
+                                    .reduce((s, tx) => s + (tx.amount || 0), 0)
+                            ).toFixed(2),
+                        ),
+                    );
+                    forecastData.push(null);
+                }
+                /* Future days */
+                for (
+                    let d = dayOfMonth + 1;
+                    d <= Math.min(daysInMonth, dayOfMonth + 10);
+                    d++
+                ) {
+                    labels.push(
+                        new Date(
+                            new Date().getFullYear(),
+                            new Date().getMonth(),
+                            d,
+                        ).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                        }),
+                    );
+                    actualData.push(null);
+                    forecastData.push(
+                        parseFloat(
+                            (totalSpent + dailyAvg * (d - dayOfMonth)).toFixed(
+                                2,
+                            ),
+                        ),
+                    );
+                }
+                if (labels.length === 0) {
+                    /* Simulate sample data */
+                    const today = new Date();
+                    const sampleAmounts = [12, 8, 15, 5, 22, 18, 10];
+                    let sampleTotal = 0;
+                    const sampleDayOfMonth = 5;
+                    for (let i = 6; i >= 0; i--) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - i);
+                        labels.push(
+                            d.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                            }),
+                        );
+                        sampleTotal += sampleAmounts[6 - i];
+                        if (i > 0) {
+                            actualData.push(parseFloat(sampleTotal.toFixed(2)));
+                            forecastData.push(null);
+                        } else {
+                            actualData.push(null);
+                            forecastData.push(
+                                parseFloat((sampleTotal + 8).toFixed(2)),
+                            );
+                        }
+                    }
+                    for (let i = 1; i <= 3; i++) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() + i);
+                        labels.push(
+                            d.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                            }),
+                        );
+                        actualData.push(null);
+                        forecastData.push(
+                            parseFloat((sampleTotal + 8 * (i + 1)).toFixed(2)),
+                        );
+                    }
+                }
+                destroyChart("spendingForecast");
+                const ctx = document
+                    .getElementById("spendingForecast")
+                    .getContext("2d");
+                chartInstances["spendingForecast"] = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: "Actual Spending",
+                                data: actualData,
+                                borderColor: "#00bcd4",
+                                backgroundColor: "transparent",
+                                borderWidth: 2.5,
+                                tension: 0.3,
+                                pointRadius: 3,
+                                pointBackgroundColor: "#00bcd4",
+                                spanGaps: false,
+                            },
+                            {
+                                label: "Forecast",
+                                data: forecastData,
+                                borderColor: "#ff7043",
+                                borderDash: [6, 4],
+                                backgroundColor: "transparent",
+                                borderWidth: 2,
+                                tension: 0.3,
+                                pointRadius: 3,
+                                pointBackgroundColor: "#ff7043",
+                                pointStyle: "triangle",
+                                spanGaps: false,
+                            },
+                            {
+                                label: "Budget",
+                                data: labels.map(() => budget),
+                                borderColor: "#94a3b8",
+                                borderDash: [4, 4],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                fill: false,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: "bottom",
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 12,
+                                    font: { size: 11 },
+                                },
+                            },
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { callback: (v) => "$" + v },
+                                grid: { color: "#f3f4f6" },
+                                border: { display: false },
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                            },
+                        },
+                    },
+                });
             }
 
             function renderAITabCharts(pet, ct) {
@@ -1157,7 +1617,14 @@
                 width: 34px;
                 height: 34px;
                 border-radius: 50%;
-                object-fit: cover;
+                background: #b2dfdb;
+                color: #004d40;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: 700;
+                flex-shrink: 0;
             }
 
             /* Content */
@@ -1822,7 +2289,7 @@
             }
             .chat-msg.bot {
                 background: #252536;
-                color: var(--text);
+                color: #ffffff;
                 align-self: flex-start;
                 border-bottom-left-radius: 4px;
             }
@@ -2051,12 +2518,8 @@
                                 <line x1="21" x2="9" y1="12" y2="12" />
                             </svg>
                         </button>
-                        <span class="username">Alex Rivera</span>
-                        <img
-                            class="avatar"
-                            src="https://i.pravatar.cc/150?img=32"
-                            alt="User"
-                        />
+                        <span class="username" id="username">Alex Rivera</span>
+                        <div class="avatar" id="avatar">A</div>
                     </div>
                 </div>
 
@@ -2121,6 +2584,17 @@
                             </div>
                             <div class="chart-container">
                                 <canvas id="mainChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    Spending vs Happiness
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="spendingHappiness"></canvas>
                             </div>
                         </div>
 
@@ -2282,6 +2756,17 @@
                         </div>
                         <div class="card">
                             <div class="card-header">
+                                <div class="card-title">Pet Stats Radar</div>
+                            </div>
+                            <div
+                                class="chart-container"
+                                style="max-width: 400px; margin: 0 auto"
+                            >
+                                <canvas id="healthRadar"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
                                 <div class="card-title">Pet Wellness</div>
                             </div>
                             <div class="chart-container">
@@ -2349,8 +2834,16 @@
                             <div class="card-header">
                                 <div class="card-title">Spending Forecast</div>
                                 <div class="card-subtitle">
-                                    AI-projected month-end total
+                                    Actual spending vs projected month-end total
                                 </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="spendingForecast"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Spending Summary</div>
                             </div>
                             <div class="chart-container">
                                 <canvas id="aiTabProjected"></canvas>
@@ -2363,19 +2856,6 @@
             <!-- Right sidebar -->
             <aside class="right-sidebar">
                 <div class="right-sidebar-inner">
-                    <div class="right-sidebar-section">
-                        <div class="right-sidebar-title">Past Transactions</div>
-                        <div class="right-sidebar-list" id="tx-list">
-                            <div class="right-sidebar-item">
-                                <div class="right-sidebar-text">
-                                    <div class="right-sidebar-title">
-                                        Loading...
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="right-sidebar-section">
                         <div class="right-sidebar-title">Tasks</div>
                         <div class="right-sidebar-list" id="tasks-list">
@@ -2570,7 +3050,7 @@
                 dashboardTour.start();
             }
         </script>
-        <script src="shared-navbar.js?v=11"></script>
+        <script src="shared-navbar.js?v=18"></script>
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 if (typeof helixNav !== "undefined") {
