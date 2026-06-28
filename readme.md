@@ -1,271 +1,268 @@
-# Helix - 3D Virtual Pet Care Platform
+# Helix: 3D Virtual Pet Care Platform
 
-> **FBLA Introduction to Programming | 2025-2026** | **Topic:** Build a Virtual Pet
+> FBLA Introduction to Programming, 2025-2026 topic: Build a Virtual Pet
 
-Helix is a browser-based virtual pet care platform where users adopt a 3D-rendered Cat, Dog, or Bird and keep it healthy through daily care actions, tasks, and in-app purchases. Every action has a dollar cost tracked against a monthly $500 budget. Expenses are categorized and shown in Chart.js dashboards, and purchases are blocked once the budget runs out.
+Helix is a browser-based virtual pet platform where users adopt a cat, dog, or bird, care for its needs, build a bond, earn XP, and manage a shared account budget. The experience is split across focused gameplay pages for home interactions, feeding, play, veterinary care, analytics, and accessories.
 
----
+## Current Features
 
-## Features
+- Email/password and Google authentication through Firebase Authentication
+- Multiple pets per account with a shared pet selector
+- Cat, dog, and bird profiles with separate stats and progression
+- Health, energy, fullness, happiness, bond, level, and XP tracking
+- Account-level budget shared by every pet
+- Interactive 3D pets and accessories using Babylon.js and Three.js
+- Sprite-sheet play animations in the Park
+- Stat-aware food and veterinary interventions
+- AI chat, task generation, and dashboard insights through Groq-backed endpoints
+- Guided page tutorials
+- Firestore persistence and live listeners on supported pages
 
-<details>
-<summary><strong>Pet Customization</strong></summary>
+## Main Pages
 
-Users pick a pet type (Cat, Dog, or Bird), give it a name, and buy accessories from the 3D Shop. Each type has unique personality traits, task sets, and a live Babylon.js 3D model. Multiple pets can be owned and switched between at any time using the shared bottom navigation bar.
-
-</details>
-
-<details>
-<summary><strong>Pet Care Actions</strong></summary>
-
-| Action | Stat Effects | Cost | XP |
-|---|---|---|---|
-| Feed | +30 Fullness, +5 Health, +10 Happiness | $10 | 10 |
-| Play with Toy | +20 Happiness, -15 Energy, -10 Fullness | $15 | 15 |
-| Rest | +40 Energy, +5 Health | Free | 5 |
-| Health Check at Vet | Health restored to 100 | $50 | 20 |
-
-</details>
-
-<details>
-<summary><strong>Emotion and Reaction System</strong></summary>
-
-The pet's mood appears as an icon in the stat board and a speech bubble above the 3D model, driven by the combined state of all four stats. The AI chat panel generates stat-aware dialogue and flags concerns when something needs attention.
-
-</details>
-
-<details>
-<summary><strong>Pet Growth and Progression</strong></summary>
-
-Pets earn XP from care actions and tasks. Leveling up gives 50 bonus coins, restores +20 Health and Happiness, and raises the next XP threshold by 50%. Bond points from completed tasks drive age stage progression: Baby (0-24), Young (25-49), Adult (50-74), Senior (75-100).
-
-</details>
-
-<details>
-<summary><strong>AI-Powered Features</strong></summary>
-
-Helix uses the Anthropic Claude API for an **AI Task Generator** that creates personalized daily tasks based on the pet's current stats, and an **AI Chat Panel** where the pet responds in character based on its live mood. Additionally, Helix integrates the **Cerebras API** running `llama-4-scout-17b-16e-instruct` for fast, low-latency AI inference on select features.
-
-</details>
-
-<details>
-<summary><strong>3D Accessory Shop</strong></summary>
-
-Nine purchasable accessories (collars, hats, glasses, bow ties, etc.) are displayed as interactive Three.js 3D models with full rotation. Prices range from $35-$250 and a confirmation modal validates the user's coin balance before purchase.
-
-</details>
-
-<details>
-<summary><strong>Interactive Tutorials</strong></summary>
-
-Each page features an interactive guided tour powered by the `TutorialGuide` system. Users click through steps, highlighted elements glow to draw attention, and the guide walks through key features with clickable prompts.
-
-</details>
-
-<details>
-<summary><strong>Real-Time Database Sync</strong></summary>
-
-All pet data, budgets, and user information sync in real-time across pages using Firestore's `onSnapshot` listener. Changes made on one page (e.g., buying food in the Kitchen) immediately reflect on all other pages.
-
-</details>
-
----
-
-## Program Structure
-
-Helix is a multi-page HTML/JS/CSS application backed by Firebase. Each page is self-contained, pulls shared libraries via CDN, and loads `app.js` for auth, loading overlays, and notifications. All pet state persists in Cloud Firestore under the user's UID.
-
-```
-helix-fblav2/
-├── index.html            # Landing page with auth modal
-├── home.html             # Main gameplay screen (Babylon.js 3D pet, vitals overlay)
-├── kitchen.html          # Nutrition/food purchase page with interactive dishes
-├── park.html             # Play area with sprite sheet animations
-├── vet.html              # Vet clinic with treatment plans and emergency simulator
-├── dash.html             # Analytics dashboard (Chart.js + expense tracking)
-├── shop.html             # 3D accessory shop (Three.js)
-├── carepage.html         # Care center with tasks and daily activities
-├── instruct.html         # Instructions and help
-├── privacy.html          # Privacy policy
-├── support.html          # Support page
-│
-├── shared-navbar.js      # Bottom navigation bar (shared across all pages)
-├── tutorial-popup.js     # Interactive guided tour system (TutorialGuide)
-├── tutorial-popup.css    # Tutorial popup styles
-├── app.js                # Shared auth, loading overlay, notifications
-├── loading.js            # Loading overlay with spinner
-├── overlay.js            # Floating logo button overlay
-│
-├── style_new.css         # Global styles
-├── landing-style.css     # Landing page styles
-│
-├── bg.jpg, bg.hdr        # Background textures
-├── dog_kitchen.png       # Kitchen backgrounds
-├── cat_kitchen.png
-├── bird_kitchen.png
-├── clipbg.png            # Vet clipboard background
-├── logo.png              # App logo
-│
-├── models/               # 3D GLB models (accessories)
-├── api/                  # API configuration
-├── models/               # 3D model files
-├── node_modules/         # Dependencies
-├── package.json          # Project configuration
-└── README.md             # This file
-```
-
----
-
-## Pages
-
-| Page | Description | Key Features |
-|------|-------------|--------------|
-| **index.html** | Landing page with auth modal | Google login, email/password signup |
-| **home.html** | Main gameplay screen | Babylon.js 3D pet, vitals overlay, speech bubbles, left menu navigation |
-| **kitchen.html** | Nutrition & food purchases | Interactive dish selection, real-time stat updates, budget tracking |
-| **park.html** | Play area with animations | Sprite sheet animations (idle, tailwag, dig, backflip, rollover), XP bar |
-| **vet.html** | Vet clinic with treatments | Treatment plans, intervention authorization, medical emergency simulator |
-| **dash.html** | Analytics dashboard | Chart.js charts, budget breakdown, AI insights, spending forecast |
-| **carepage.html** | Care center | Daily tasks, AI-generated tasks, pet care actions |
-| **shop.html** | 3D accessory shop | Three.js 3D models, rotation, purchase modal |
-| **privacy.html** | Privacy policy | Legal information |
-| **support.html** | Support page | Help and contact information |
-
----
-
-## Libraries Used
-
-| Library | Version | Purpose |
+| Page | Purpose | Notable Features |
 |---|---|---|
-| Firebase (App, Auth, Firestore) | 9.22.0 (compat) | Authentication and real-time database |
-| Babylon.js + Loaders | Latest | 3D pet rendering and GLB model loading |
-| Three.js + GLTFLoader + OrbitControls | r128 / 0.128.0 | 3D shop showcase with rotation |
-| Chart.js | 4.4.1 | Doughnut, bar, and line charts on the dashboard |
-| Google Fonts | N/A | Typography across all pages (Inter, Nunito, Plus Jakarta Sans, Lilita One, Outfit) |
-| Cerebras API (`llama-4-scout-17b-16e-instruct`) | Latest | Fast AI inference for task generation and chat |
-| Anthropic Claude API | Latest | AI-powered task generation and pet chat |
+| `index.html` | Landing and authentication | Google sign-in, email sign-up, login |
+| `home.html` | Main pet experience | 3D pet, vitals, tasks, AI chat, Bond/XP bar |
+| `kitchen.html` | Feeding | Pet-specific dishes, stat effects, account budget deductions |
+| `park.html` | Play and exercise | Pet-specific sprite animations, energy costs, XP gains |
+| `vet.html` | Veterinary care | Stat-driven interventions, atomic treatment purchases, emergency simulator |
+| `dash.html` | Analytics | Budget charts, pet summaries, AI-generated insights |
+| `shop.html` | Accessory store | Interactive Three.js previews, purchases, shared navigation |
+| `carepage.html` | Legacy care experience | Care actions and task systems retained for compatibility |
+| `instruct.html` | Instructions | User help and gameplay guidance |
+| `privacy.html` | Privacy | Privacy information |
+| `support.html` | Support | Help and contact information |
 
-> All UI layout, design, and code was written from scratch by the competing team. No templates or starter kits were used.
-
----
+`homepage.html`, `dashboard.html`, `dashboard-2.html`, `indexOld.html`, `teste.html`, and other test files are older or experimental implementations. New development should target the main pages listed above.
 
 ## Shared Components
 
-### Bottom Navigation Bar (`shared-navbar.js`)
+### Shared navigation
 
-A unified bottom navigation bar used across all pages, featuring:
-- **Home** → home.html
-- **Dashboard** → dash.html
-- **Store** → shop.html
-- **Tutorial** → Interactive guided tour for the current page
-- **Pet Switcher** (center avatar) → Opens a modal to switch between pets or add new ones
+`shared-navbar.js` injects the bottom navigation used by Home, Kitchen, Park, Vet, Dashboard, and Shop. It provides:
 
-### Tutorial Guide (`tutorial-popup.js`)
+- Links to Home, Dashboard, and Store
+- A page tutorial button
+- A central pet selector
+- An inline Add Pet flow
+- Firestore persistence for the selected pet
 
-An interactive walkthrough system with:
-- Floating text bubbles with a guide character
-- Element highlighting with glowing effects
-- Click-to-advance prompts
-- Progress indicators
-- Smart positioning that avoids overlapping elements
+The Add Pet form creates a document in the signed-in user's `pets` subcollection and makes that pet active. It does not use the legacy `yeap.html` route.
 
-### Vitals Overlay
+### Tutorial system
 
-A left-side card stack (on home, kitchen, vet) showing:
-- **Profile Mini Card** – Google account name, photo, level, coins
-- **Vitals Card** – 4 concentric rings (Health, Energy, Fullness, Happiness) with real-time updates
-- **Menu Card** – Navigation buttons to Kitchen, Park, Vet, Store
+`tutorial-popup.js` and `tutorial-popup.css` provide guided walkthroughs with highlighted elements, progress controls, and positioning rules.
 
----
+### Loading and application helpers
 
-## Database Schema
+- `app.js` contains shared Firebase initialization, authentication helpers, loading UI, and notifications for pages that include it.
+- `loading.js` provides the Home loading experience.
+- Some pages initialize Firebase locally because the project is a multi-page application rather than a bundled frontend.
 
+### Legacy overlay
+
+`overlay.js` and `nav.html` are legacy files. Current main pages do not depend on the old floating navigation button.
+
+## Pet Systems
+
+### Stats
+
+Each pet has four primary care stats from 0 to 100:
+
+- Health
+- Energy
+- Fullness
+- Happiness
+
+Actions update only the selected pet. Kitchen purchases affect fullness and happiness. Park actions consume energy and award XP. Vet interventions are selected from the pet's current stat thresholds.
+
+### Bond and XP
+
+Bond and XP are stored per pet:
+
+- `bond` represents the relationship with the owner.
+- `experience` tracks progress toward the next level.
+- `experienceToNextLevel` stores the current XP target.
+- `level` increases when XP reaches the target.
+
+Home and Park display the selected pet's Bond/XP information from the same Firestore pet document.
+
+### Park animations
+
+Park uses 6 by 6 sprite sheets with 36 frames. The action key resolves to a different asset for each pet type. Examples include:
+
+- Dog: `Paw.png`, `Dig.png`, `Roll.png`, `Backflip.png`
+- Cat: `stalk.png`, `sprint.png`, `pounce.png`, `Twister.png`
+- Bird: `Hop.png`, `wingspread.png`, `Spin.png`, `Loop.png`
+
+### Veterinary interventions
+
+Vet recommendations vary with health, energy, fullness, and happiness. Critical, high, medium, and routine options are generated from stat thresholds. Treatment authorization uses a Firestore transaction so the pet update and account budget deduction succeed or fail together.
+
+## Account Budget
+
+Money is owned by the user account, not by an individual pet. The canonical balance is:
+
+```text
+users/{uid}.userData.costTracking.budgetRemaining
 ```
-users/{uid}/
-├── displayName: string
+
+Kitchen and Vet read and write this account-level value. Pet documents contain care and progression data, not the authoritative balance. Some legacy pages and older records may still contain copied `costTracking` fields for compatibility, but new code should not treat those copies as the source of truth.
+
+## Firestore Structure
+
+```text
+users/{uid}
+├── name: string
 ├── email: string
 ├── photoURL: string
+├── createdAt: server timestamp
 ├── currentPetId: string
-├── userData: {
-│   └── costTracking: {
-│       ├── budgetRemaining: number
-│       ├── monthlyBudget: number
+├── userData
+│   └── costTracking
+│       ├── totalSpent: number
 │       ├── foodSpent: number
 │       ├── vetSpent: number
-│       └── transactions: array
-│   }
-│   └── coins: number
-│   └── aiTasks: array
-│   └── usingAITasks: boolean
-│   └── tasksCompleted: object
-│
-└── pets/{petId}/
+│       ├── toySpent: number
+│       ├── monthlyBudget: number
+│       ├── budgetRemaining: number
+│       ├── transactions: array
+│       └── lastMonthReset: number
+└── pets/{petId}
     ├── name: string
-    ├── type: "a" | "b" | "c" (cat, dog, bird)
-    ├── age: string
+    ├── type: "a" | "b" | "c"
+    ├── age: "baby" | "young" | "adult" | "senior"
+    ├── personality: string
     ├── level: number
     ├── experience: number
     ├── experienceToNextLevel: number
-    ├── health: number (0-100)
-    ├── happiness: number (0-100)
-    ├── fullness: number (0-100)
-    ├── energy: number (0-100)
+    ├── health: number
+    ├── energy: number
+    ├── fullness: number
+    ├── happiness: number
     ├── bond: number
-    ├── personality: string
-    ├── lastUpdated: timestamp
-    └── costTracking: { budgetRemaining, monthlyBudget, ... }
+    ├── tasksCompleted: object
+    ├── aiTasks: array
+    ├── usingAITasks: boolean
+    ├── adoptionDate: number
+    ├── lastTaskReset: number
+    └── lastUpdated: number
 ```
 
----
+Pet type values map as follows:
 
-## Setup & Running
+| Value | Pet |
+|---|---|
+| `a` | Cat |
+| `b` | Dog |
+| `c` | Bird |
 
-### Prerequisites
-- Node.js (v14+)
-- A Firebase project with Firestore and Auth enabled
+## AI Integration
 
-### Installation
+Current AI features use Groq-backed endpoints:
+
+- `api/groq.js` is a serverless proxy that reads `GROQ_API_KEY` from the server environment.
+- `dash.html` calls `/api/groq` and requests `llama-3.3-70b-versatile`.
+- Home and Care use the configured Helix Groq worker endpoint for chat and task generation.
+
+Do not place private API keys in browser JavaScript. Configure `GROQ_API_KEY` in the deployment environment when using the serverless API route.
+
+## Libraries
+
+| Library | Version or Source | Purpose |
+|---|---|---|
+| Firebase App, Auth, Firestore | 9.22.0 compat CDN on primary pages | Authentication and persistence |
+| Babylon.js and loaders | CDN | Pet and preview rendering |
+| Three.js, GLTFLoader, OrbitControls | r128 CDN | Accessory store rendering |
+| Chart.js | CDN | Dashboard charts |
+| Font Awesome | CDN through shared navigation | Shared pet icons |
+| Google Fonts | CDN | Interface typography |
+| `@gltf-transform/core` | Package dependency | GLB asset tooling |
+| `@gltf-transform/functions` | Package dependency | GLB transformation helpers |
+
+## Project Layout
+
+```text
+helix-fblav2/
+├── index.html
+├── home.html
+├── kitchen.html
+├── park.html
+├── vet.html
+├── dash.html
+├── shop.html
+├── carepage.html
+├── instruct.html
+├── privacy.html
+├── support.html
+├── app.js
+├── loading.js
+├── shared-navbar.js
+├── tutorial-popup.js
+├── tutorial-popup.css
+├── vitals-overlay.js
+├── api/
+│   └── groq.js
+├── models/
+│   └── model1.glb through model9.glb
+├── *.glb
+├── *.png
+├── package.json
+└── readme.md
+```
+
+## Local Setup
+
+### Requirements
+
+- Node.js 18 or newer
+- npm
+- A Firebase project with Authentication and Firestore enabled
+
+### Run locally
+
 ```bash
-# Clone the repository
-git clone https://github.com/<your-repo>/helix-fblav2.git
-cd helix-fblav2
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm start
 ```
 
-The server will start at `http://localhost:3000` and open `index.html` in your browser.
+The start script launches `live-server` on `http://localhost:3000` and opens `index.html`.
 
-### Firebase Configuration
-The Firebase configuration is embedded in `app.js` and individual page scripts. To use your own Firebase project:
+The application should be served over HTTP rather than opened directly with `file://`. Firebase, modules, model loading, and API requests may not work correctly from a local file URL.
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Create a new project and enable **Firestore** and **Authentication** (Google provider)
-3. Copy your `firebaseConfig` object
-4. Replace the config in `app.js` and the relevant page scripts
+### Firebase configuration
 
----
+Firebase configuration currently appears in `app.js` and in several self-contained pages. To use another Firebase project:
 
-## Attribution and Credits
+1. Create a Firebase project.
+2. Enable Firestore.
+3. Enable the desired Authentication providers.
+4. Replace each active `firebaseConfig` object with the new project configuration.
+5. Deploy Firestore security rules that restrict each user to their own user document and pet subcollection.
 
-| Resource | Author / Source | License | Usage |
-|---|---|---|---|
-| Firebase SDK | Google LLC | Apache 2.0 | Authentication and database |
-| Babylon.js | Microsoft / Babylon.js contributors | Apache 2.0 | 3D pet rendering |
-| Three.js | Mr.doob and contributors | MIT | 3D shop showcase |
-| Chart.js | Chart.js contributors | MIT | Analytics charts |
-| Google Fonts | Google LLC | SIL Open Font License | Typography |
-| Cerebras API | Cerebras Systems | Proprietary (API) | Fast AI inference (`llama-4-scout-17b-16e-instruct`) |
+No Firestore rules file is currently included in this repository. Deployed rules must be reviewed separately in the Firebase console or deployment project.
 
-**FBLA Topic Partnership:** This topic was created by FBLA in partnership with [code.org](https://code.org).
+## Development Notes
 
----
+- Use `home.html` as the canonical home experience. `homepage.html` is legacy.
+- Use `shop.html` as the store page.
+- Keep budget writes under `userData.costTracking` on the user document.
+- Keep stats, bond, XP, tasks, and progression on the pet document.
+- Use `{ merge: true }` for partial Firestore document updates unless a full replacement is intentional.
+- Prefer transactions when one action changes both a pet document and the account budget.
+- Increment shared script query versions when browser caching would otherwise retain an old implementation.
+- Preserve exact case in asset names. Hosting environments may treat `DogIdle.png` and `Dogidle.png` as different files.
 
-> [!IMPORTANT]
-> *Helix was developed independently by the competing team. No advisers, parents, or outside individuals assisted in the planning, coding, or preparation of this project, in accordance with FBLA Competitor Responsibility guidelines.*
+## Attribution
 
-**FBLA Chapter:** South Brunswick High School | **Division:** High School (9th & 10th Grade)
-**Event:** Introduction to Programming | **School Year:** 2025-2026
+| Resource | Source | License |
+|---|---|---|
+| Firebase SDK | Google | Apache 2.0 |
+| Babylon.js | Babylon.js contributors | Apache 2.0 |
+| Three.js | Three.js contributors | MIT |
+| Chart.js | Chart.js contributors | MIT |
+| Font Awesome Free | Fonticons | Font Awesome Free License |
+| Google Fonts | Google and individual font authors | SIL Open Font License |
+
+Project-specific code, interface design, pet logic, and integration work were created for the Helix FBLA project.

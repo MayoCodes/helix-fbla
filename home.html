@@ -15,7 +15,7 @@
         <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
         <script src="loading.js"></script>
         <script src="tutorial-popup.js?v=4"></script>
-        <script src="shared-navbar.js?v=16"></script>
+        <script src="shared-navbar.js?v=18"></script>
         <style>
             :root {
                 --teal: #49a6a6;
@@ -132,11 +132,14 @@
                 background: rgba(0, 0, 0, 0.5);
                 backdrop-filter: blur(12px);
                 border-radius: 12px;
-                padding: 10px 16px;
+                padding: 10px 14px 12px;
+                min-width: 210px;
+            }
+            .yeap-resource-header {
                 display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                min-width: 100px;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 7px;
             }
             .yeap-resource-label {
                 font-size: 0.6rem;
@@ -147,13 +150,24 @@
                 font-family: "Inter", sans-serif;
             }
             .yeap-resource-value {
-                font-size: 1rem;
+                font-size: 0.72rem;
                 font-weight: 700;
                 color: #fff;
                 font-family: "Inter", sans-serif;
             }
-            .yeap-resource-value.cores {
-                color: #00d2ff;
+            .yeap-bond-track {
+                height: 7px;
+                overflow: hidden;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.13);
+            }
+            .yeap-bond-fill {
+                width: 0;
+                height: 100%;
+                border-radius: inherit;
+                background: #fff;
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+                transition: width 0.4s ease;
             }
 
             /* ── LEFT ACTIVE-LINK PANEL ── */
@@ -1992,12 +2006,13 @@
         <!-- TOP-RIGHT RESOURCES -->
         <div class="yeap-top-right">
             <div class="yeap-resource-pill">
-                <div class="yeap-resource-label">Credits</div>
-                <div class="yeap-resource-value" id="yeapCredits">0</div>
-            </div>
-            <div class="yeap-resource-pill">
-                <div class="yeap-resource-label">Cores</div>
-                <div class="yeap-resource-value cores" id="yeapCores">1</div>
+                <div class="yeap-resource-header">
+                    <div class="yeap-resource-label">Bond / XP</div>
+                    <div class="yeap-resource-value" id="yeapBondValue">Bond 0 · XP 0 / 100</div>
+                </div>
+                <div class="yeap-bond-track">
+                    <div class="yeap-bond-fill" id="yeapBondFill"></div>
+                </div>
             </div>
         </div>
 
@@ -2509,7 +2524,6 @@
             </div>
         </div>
 
-        <script src="overlay.js"></script>
         <!-- MASTERY TRACK POPUP -->
         <div class="mastery-track-popup" id="masteryTrackPopup">
             <div class="mtp-header">
@@ -3141,16 +3155,24 @@
                     const _ct = userData.costTracking || {};
 
                     // ── YEAP UI updates ──
-                    const yeapCreditsEl =
-                        document.getElementById("yeapCredits");
-                    if (yeapCreditsEl)
-                        yeapCreditsEl.textContent = Math.max(
-                            0,
-                            _ct.budgetRemaining || 0,
-                        ).toLocaleString();
-                    const yeapCoresEl = document.getElementById("yeapCores");
-                    if (yeapCoresEl)
-                        yeapCoresEl.textContent = petData.level || 1;
+                    const bond = Math.max(
+                        0,
+                        Math.min(100, Number(petData.bond) || 0),
+                    );
+                    const xp = Math.max(0, Number(petData.experience) || 0);
+                    const xpNext = Math.max(
+                        1,
+                        Number(petData.experienceToNextLevel) || 100,
+                    );
+                    const xpPct = Math.min(100, (xp / xpNext) * 100);
+                    const yeapBondValueEl =
+                        document.getElementById("yeapBondValue");
+                    if (yeapBondValueEl)
+                        yeapBondValueEl.textContent = `Bond ${Math.round(bond)} · XP ${Math.round(xp)} / ${Math.round(xpNext)}`;
+                    const yeapBondFillEl =
+                        document.getElementById("yeapBondFill");
+                    if (yeapBondFillEl)
+                        yeapBondFillEl.style.width = `${xpPct}%`;
                     const yeapLevelBadgeEl =
                         document.getElementById("yeapLevelBadge");
                     if (yeapLevelBadgeEl)
