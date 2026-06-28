@@ -579,6 +579,12 @@
                 background: #f3f4f6;
                 color: #6b7280;
             }
+            .authorize-btn.ready {
+                color: #fff;
+                background: #00acc1;
+                border-color: #00acc1;
+            }
+            .authorize-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
             .intervention-list {
                 display: flex;
@@ -680,6 +686,26 @@
                 border-color: #00bcd4;
                 background: #f0fdfa;
             }
+            .intervention-item.selected {
+                border-color: #00bcd4;
+                background: #ecfeff;
+                box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.12);
+            }
+            .intervention-item.selected .intervention-check {
+                border-color: #00bcd4;
+                background: #00bcd4;
+                box-shadow: inset 0 0 0 4px #fff;
+            }
+            .vet-message {
+                position: fixed; top: 24px; left: 50%; transform: translate(-50%, -12px);
+                z-index: 20000; max-width: min(440px, calc(100vw - 32px));
+                padding: 12px 18px; border-radius: 12px; color: #fff;
+                background: #0f766e; box-shadow: 0 12px 32px rgba(0,0,0,.2);
+                font-size: 13px; font-weight: 700; opacity: 0;
+                transition: opacity .2s, transform .2s; pointer-events: none;
+            }
+            .vet-message.error { background: #b91c1c; }
+            .vet-message.show { opacity: 1; transform: translate(-50%, 0); }
             .intervention-item[data-priority="critical"] {
                 border-color: #fecaca;
                 background: linear-gradient(to right, #fef2f2, #fff);
@@ -1899,7 +1925,7 @@
             </div>
         </main>
         <script src="app.js"></script>
-        <script src="shared-navbar.js?v=16"></script>
+        <script src="shared-navbar.js?v=18"></script>
         <script>
             /* ═══════════════════════════════════════════
                VET PAGE — LIVE PET DATA
@@ -1972,10 +1998,13 @@
             }
 
             let vetPreviewEng = null,
-                vetPreviewSc = null;
+                vetPreviewSc = null,
+                vetPreviewKey = null;
             function loadVetPreview(petType) {
                 const cvs = document.getElementById("patientAvatarCanvas");
                 if (!cvs) return;
+                const previewKey = `${petType}:${localStorage.getItem("currentAccessory") || "none"}`;
+                if (vetPreviewEng && vetPreviewKey === previewKey) return;
                 if (vetPreviewEng) {
                     try {
                         vetPreviewEng.stopRenderLoop();
@@ -1984,6 +2013,7 @@
                     vetPreviewEng = null;
                     vetPreviewSc = null;
                 }
+                vetPreviewKey = previewKey;
                 const eng = new BABYLON.Engine(cvs, true, {
                     preserveDrawingBuffer: true,
                     stencil: true,
@@ -2052,6 +2082,10 @@
             let userPets = {},
                 currentPetId = null;
             let activePet = null;
+            /* Shared by every pet owned by this account. */
+            let userData = { costTracking: { budgetRemaining: 500 } };
+            let selectedIntervention = null;
+            let treatmentInProgress = false;
 
             /* use db & auth from app.js; do NOT redeclare */
 
@@ -2065,44 +2099,62 @@
                 );
             }
 
+            function showVetMessage(message, type = "success") {
+                let el = document.getElementById("vetMessage");
+                if (!el) {
+                    el = document.createElement("div");
+                    el.id = "vetMessage";
+                    el.className = "vet-message";
+                    document.body.appendChild(el);
+                }
+                el.textContent = message;
+                el.className = `vet-message ${type}`;
+                requestAnimationFrame(() => el.classList.add("show"));
+                clearTimeout(showVetMessage.timer);
+                showVetMessage.timer = setTimeout(
+                    () => el.classList.remove("show"),
+                    2800,
+                );
+            }
+
             function getSymptoms(pet) {
                 const s = [];
-                if ((pet.health || 100) < 40)
+                if ((pet.health ?? 100) < 40)
                     s.push({
                         color: "red",
                         text: "Severely low health — immediate attention required.",
                     });
-                else if ((pet.health || 100) < 70)
+                else if ((pet.health ?? 100) < 70)
                     s.push({
                         color: "yellow",
                         text: "Health declining — monitor closely.",
                     });
-                if ((pet.energy || 100) < 30)
+                if ((pet.energy ?? 100) < 30)
                     s.push({
                         color: "red",
                         text: "Critically low energy — rest and nutrition advised.",
                     });
-                else if ((pet.energy || 100) < 50)
+                else if ((pet.energy ?? 100) < 50)
                     s.push({
                         color: "yellow",
                         text: "Low energy levels detected.",
                     });
-                if ((pet.fullness || 100) < 30)
+                if ((pet.fullness ?? 100) < 30)
                     s.push({
                         color: "red",
                         text: "Severe hunger — feeding required immediately.",
                     });
-                else if ((pet.fullness || 100) < 60)
+                else if ((pet.fullness ?? 100) < 60)
                     s.push({
                         color: "yellow",
                         text: "Mild dehydration / hunger indicated.",
                     });
-                if ((pet.happiness || 100) < 30)
+                if ((pet.happiness ?? 100) < 30)
                     s.push({
                         color: "red",
                         text: "Extreme distress — social interaction needed.",
                     });
-                else if ((pet.happiness || 100) < 50)
+                else if ((pet.happiness ?? 100) < 50)
                     s.push({
                         color: "yellow",
                         text: "Mood low — play and attention recommended.",
@@ -2117,10 +2169,10 @@
 
             function getInterventions(pet) {
                 const list = [];
-                const hp = pet.health || 100;
-                const nrg = pet.energy || 100;
-                const fd = pet.fullness || 100;
-                const joy = pet.happiness || 100;
+                const hp = pet.health ?? 100;
+                const nrg = pet.energy ?? 100;
+                const fd = pet.fullness ?? 100;
+                const joy = pet.happiness ?? 100;
 
                 /* ── HEALTH INTERVENTIONS ── */
                 if (hp < 20) {
@@ -2186,6 +2238,14 @@
                         effect: { energy: 30 },
                         priority: "critical",
                     });
+                    list.push({
+                        id: "metabolic_stabilization",
+                        name: "Metabolic Stabilization",
+                        desc: "Rapid glucose screening, warming support, and monitored nutrient infusion.",
+                        price: 135,
+                        effect: { energy: 22 },
+                        priority: "critical",
+                    });
                 } else if (nrg < 30) {
                     list.push({
                         id: "iv_therapy",
@@ -2224,6 +2284,14 @@
                         effect: { fullness: 35 },
                         priority: "critical",
                     });
+                    list.push({
+                        id: "critical_nutrition",
+                        name: "Critical Nutrition Therapy",
+                        desc: "Veterinary recovery food with anti-nausea support and assisted feeding.",
+                        price: 145,
+                        effect: { fullness: 28 },
+                        priority: "critical",
+                    });
                 } else if (fd < 30) {
                     list.push({
                         id: "nutrition_package",
@@ -2260,6 +2328,14 @@
                         desc: "Immediate behavioral therapy and environmental enrichment.",
                         price: 150,
                         effect: { happiness: 30 },
+                        priority: "critical",
+                    });
+                    list.push({
+                        id: "calming_care",
+                        name: "Calming Care Session",
+                        desc: "Low-stress handling, sensory calming, and one-on-one social support.",
+                        price: 90,
+                        effect: { happiness: 22 },
                         priority: "critical",
                     });
                 } else if (joy < 30) {
@@ -2341,11 +2417,7 @@
                 const nrg = Math.round(pet.energy || 0);
                 const fd = Math.round(pet.fullness || 0);
                 const joy = Math.round(pet.happiness || 0);
-                /* Get budget from pet's costTracking or userData */
-                const budget =
-                    pet.costTracking?.budgetRemaining ??
-                    userData?.costTracking?.budgetRemaining ??
-                    500;
+                const budget = userData.costTracking?.budgetRemaining ?? 500;
 
                 loadVetPreview(pet.type);
                 document.getElementById("patientName").textContent =
@@ -2398,11 +2470,16 @@
 
                 const intList = document.getElementById("interventionList");
                 const interventions = getInterventions(pet);
+                selectedIntervention = null;
+                const authorizeBtn = document.getElementById("authorizeBtn");
+                authorizeBtn.textContent = "Select to Authorize";
+                authorizeBtn.classList.remove("ready");
+                authorizeBtn.disabled = true;
                 intList.innerHTML = interventions
                     .map(
                         (i) => `
-                                <div class="intervention-item" data-id="${i.id}" data-priority="${i.priority}">
-                                    <div class="intervention-check" onclick="authorizeIntervention('${i.id}', ${i.price}, ${JSON.stringify(i.effect).replace(/"/g, "&quot;")})"></div>
+                                <div class="intervention-item" data-id="${i.id}" data-priority="${i.priority}" onclick="selectIntervention('${i.id}')">
+                                    <div class="intervention-check"></div>
                                     <div class="intervention-info">
                                         <div class="intervention-name">
                                             ${i.name}
@@ -2418,101 +2495,102 @@
                     .join("");
             }
 
-            async function authorizeIntervention(id, price, effect) {
+            function selectIntervention(id) {
+                const option = getInterventions(activePet).find(
+                    (item) => item.id === id,
+                );
+                if (!option || treatmentInProgress) return;
+                selectedIntervention = option;
+                document.querySelectorAll(".intervention-item").forEach((el) =>
+                    el.classList.toggle("selected", el.dataset.id === id),
+                );
+                const button = document.getElementById("authorizeBtn");
+                button.textContent = `Authorize ${formatMoney(option.price)}`;
+                button.classList.add("ready");
+                button.disabled = false;
+            }
+
+            async function authorizeIntervention() {
                 if (!activePet || !currentPetId || !db || !currentUser) {
-                    showAlert("Unable to authorize — please sign in.", "error");
+                    showVetMessage("Unable to authorize — please sign in.", "error");
+                    return;
+                }
+                if (!selectedIntervention || treatmentInProgress) {
+                    showVetMessage("Select an intervention first.", "error");
                     return;
                 }
 
-                /* Check if user has enough budget */
-                const currentBudget =
-                    activePet.costTracking?.budgetRemaining ??
-                    userData?.costTracking?.budgetRemaining ??
-                    500;
-
-                if (currentBudget < price) {
-                    showAlert(
-                        `Insufficient funds. Need $${price - currentBudget} more.`,
-                        "error",
-                    );
-                    return;
-                }
-
-                /* Apply the intervention effects */
-                const updates = {
-                    health: Math.min(
-                        100,
-                        (activePet.health || 0) + (effect.health || 0),
-                    ),
-                    energy: Math.min(
-                        100,
-                        (activePet.energy || 0) + (effect.energy || 0),
-                    ),
-                    fullness: Math.min(
-                        100,
-                        (activePet.fullness || 0) + (effect.fullness || 0),
-                    ),
-                    happiness: Math.min(
-                        100,
-                        (activePet.happiness || 0) + (effect.happiness || 0),
-                    ),
-                };
-
-                /* Update budget */
-                const newBudget = currentBudget - price;
-
-                /* Save to database */
+                const treatment = selectedIntervention;
+                const button = document.getElementById("authorizeBtn");
+                treatmentInProgress = true;
+                button.disabled = true;
+                button.textContent = "Authorizing…";
                 try {
                     showLoading("Authorizing intervention...");
+                    const userRef = db.collection("users").doc(currentUser.uid);
+                    const petRef = userRef.collection("pets").doc(currentPetId);
+                    let committed = null;
 
-                    /* Update pet stats */
-                    await db
-                        .collection("users")
-                        .doc(currentUser.uid)
-                        .collection("pets")
-                        .doc(currentPetId)
-                        .update(updates);
+                    await db.runTransaction(async (transaction) => {
+                        const userSnap = await transaction.get(userRef);
+                        const petSnap = await transaction.get(petRef);
+                        if (!petSnap.exists) throw new Error("Pet record not found.");
 
-                    /* Update budget in user doc */
-                    await db
-                        .collection("users")
-                        .doc(currentUser.uid)
-                        .set(
-                            {
-                                costTracking: {
-                                    budgetRemaining: newBudget,
-                                    vetSpent:
-                                        (userData?.costTracking?.vetSpent ||
-                                            0) + price,
-                                },
-                            },
+                        const account = userSnap.data()?.userData || {};
+                        const costs = account.costTracking || {
+                            budgetRemaining: 500,
+                        };
+                        const currentBudget = costs.budgetRemaining ?? 500;
+                        if (currentBudget < treatment.price) {
+                            throw new Error(
+                                `Insufficient funds. Need $${treatment.price - currentBudget} more.`,
+                            );
+                        }
+
+                        const pet = petSnap.data();
+                        const effect = treatment.effect || {};
+                        const updates = {
+                            health: Math.min(100, (pet.health ?? 0) + (effect.health || 0)),
+                            energy: Math.min(100, (pet.energy ?? 0) + (effect.energy || 0)),
+                            fullness: Math.min(100, (pet.fullness ?? 0) + (effect.fullness || 0)),
+                            happiness: Math.min(100, (pet.happiness ?? 0) + (effect.happiness || 0)),
+                            lastUpdated: Date.now(),
+                        };
+                        const nextCosts = {
+                            ...costs,
+                            budgetRemaining: currentBudget - treatment.price,
+                            vetSpent: (costs.vetSpent || 0) + treatment.price,
+                        };
+
+                        transaction.update(petRef, updates);
+                        transaction.set(
+                            userRef,
+                            { userData: { ...account, costTracking: nextCosts } },
                             { merge: true },
                         );
+                        committed = { updates, nextCosts };
+                    });
 
-                    /* Update local state */
-                    Object.assign(activePet, updates);
-                    activePet.costTracking = {
-                        ...(activePet.costTracking || {}),
-                        budgetRemaining: newBudget,
-                    };
-
-                    /* Refresh UI */
+                    Object.assign(activePet, committed.updates);
+                    userData.costTracking = committed.nextCosts;
+                    selectedIntervention = null;
                     renderMain(activePet);
-
-                    /* Refresh navbar pet data */
                     if (typeof helixNav !== "undefined") helixNav.refresh();
-
                     hideLoading();
-                    showAlert(
-                        `Intervention authorized! ${Object.keys(updates)
-                            .filter((k) => updates[k] > 0)
-                            .join(", ")} improved.`,
-                        "success",
-                    );
+                    showVetMessage(`${treatment.name} completed successfully.`);
                 } catch (e) {
                     console.error("Intervention error:", e);
                     hideLoading();
-                    showAlert(`Error: ${e.message}`, "error");
+                    showVetMessage(
+                        e.message || "Treatment could not be completed.",
+                        "error",
+                    );
+                } finally {
+                    treatmentInProgress = false;
+                    if (selectedIntervention) {
+                        button.disabled = false;
+                        button.textContent = `Authorize ${formatMoney(selectedIntervention.price)}`;
+                    }
                 }
             }
 
@@ -2524,6 +2602,10 @@
 
             async function selectPet(pid) {
                 if (pid === currentPetId) return;
+                if (!userPets[pid]) {
+                    showVetMessage("That pet is still loading. Please try again.", "error");
+                    return;
+                }
                 currentPetId = pid;
                 activePet = userPets[pid];
                 renderMain(activePet);
@@ -2550,9 +2632,16 @@
                         .doc(user.uid)
                         .onSnapshot((userDoc) => {
                             if (userDoc.exists) {
-                                userData = userDoc.data();
+                                const accountDoc = userDoc.data();
+                                userData = accountDoc.userData || {
+                                    costTracking: { budgetRemaining: 500 },
+                                };
+                                if (!userData.costTracking)
+                                    userData.costTracking = {
+                                        budgetRemaining: 500,
+                                    };
                                 /* If current pet changed, update */
-                                const newPetId = userData.currentPetId;
+                                const newPetId = accountDoc.currentPetId;
                                 if (newPetId && newPetId !== currentPetId) {
                                     currentPetId = newPetId;
                                     if (userPets[currentPetId]) {
@@ -2604,6 +2693,9 @@
                 c: '<svg viewBox="0 0 24 24" fill="none" stroke="#00acc1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 9-8.5c0-3.5-2.5-7-7-7-3.5 0-6 2.5-6 6 0 1.5.5 2.5 1.5 3.5L6 18h.5"/><path d="M9 18a3.5 3.5 0 0 0 6 0"/></svg>',
             };
 
+            document
+                .getElementById("authorizeBtn")
+                .addEventListener("click", authorizeIntervention);
             loadData();
 
             /* ── VITALS OVERLAY (live from database) ── */
@@ -2623,10 +2715,10 @@
 
                 if (!pet) return;
 
-                const hp = Math.round(pet.health || 100);
-                const nrg = Math.round(pet.energy || 100);
-                const fd = Math.round(pet.fullness || 100);
-                const joy = Math.round(pet.happiness || 100);
+                const hp = Math.round(pet.health ?? 100);
+                const nrg = Math.round(pet.energy ?? 100);
+                const fd = Math.round(pet.fullness ?? 100);
+                const joy = Math.round(pet.happiness ?? 100);
 
                 /* Update name and level */
                 /* Update name (Google account) and level */
@@ -2651,10 +2743,7 @@
                     pet.name || "Pet";
 
                 /* Update coins (budgetRemaining) */
-                const coins =
-                    pet.costTracking?.budgetRemaining ??
-                    pet.costTracking?.coins ??
-                    0;
+                const coins = userData.costTracking?.budgetRemaining ?? 0;
                 document.getElementById("vetCoins").textContent =
                     `$${Math.max(0, coins)}`;
 
@@ -2737,7 +2826,6 @@
                 vetTour.start();
             }
         </script>
-        <script src="shared-navbar.js?v=16"></script>
         <script>
             /* ═══════════════════════════════════════════
                        EMERGENCY SIMULATOR
@@ -3039,10 +3127,10 @@
                 }
 
                 return {
-                    hp: pet.health || 100,
-                    nrg: pet.energy || 100,
-                    fd: pet.fullness || 100,
-                    joy: pet.happiness || 100,
+                    hp: pet.health ?? 100,
+                    nrg: pet.energy ?? 100,
+                    fd: pet.fullness ?? 100,
+                    joy: pet.happiness ?? 100,
                     type: pet.type || "b",
                     name: pet.name || "your pet",
                 };

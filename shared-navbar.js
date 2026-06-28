@@ -68,6 +68,7 @@
   let pageKey = "other";
   let onPetSelectCb = null;
   let modalOpen = false;
+  let newPetType = null;
 
   /* ═══════════════════════════════════════
      ICONS (SVG strings)
@@ -284,6 +285,37 @@
       }
       .hn-empty-state .hn-add-btn:hover { background: #00acc1; transform: translateY(-1px); }
 
+      .hn-add-view { display: none; }
+      .hn-add-view.open { display: block; }
+      .hn-pet-view.hidden { display: none; }
+      .hn-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+      .hn-type-option {
+        border: 2px solid #e2e8f0; border-radius: 18px; background: #fff;
+        padding: 18px 8px; cursor: pointer; text-align: center; color: #64748b;
+        font: 700 .78rem "Inter", system-ui, sans-serif; transition: all .2s;
+      }
+      .hn-type-option i { display: block; margin-bottom: 9px; font-size: 28px !important; }
+      .hn-type-option:hover, .hn-type-option.selected {
+        border-color: #00bcd4; color: #008fa5; background: rgba(0,188,212,.06);
+        box-shadow: 0 0 0 3px rgba(0,188,212,.1);
+      }
+      .hn-pet-name-input {
+        width: 100%; border: 2px solid #e2e8f0; border-radius: 14px; padding: 13px 15px;
+        outline: none; font: 600 .9rem "Inter", system-ui, sans-serif; color: #1e293b;
+      }
+      .hn-pet-name-input:focus { border-color: #00bcd4; box-shadow: 0 0 0 3px rgba(0,188,212,.1); }
+      .hn-create-error { min-height: 18px; margin: 7px 2px 4px; color: #e04f5f; font: 600 .72rem "Inter", sans-serif; }
+      .hn-create-pet-btn {
+        width: 100%; border: 0; border-radius: 14px; padding: 13px; cursor: pointer;
+        background: #00bcd4; color: #fff; font: 800 .85rem "Inter", sans-serif; transition: all .2s;
+      }
+      .hn-create-pet-btn:hover { background: #00acc1; transform: translateY(-1px); }
+      .hn-create-pet-btn:disabled { opacity: .55; cursor: wait; transform: none; }
+      .hn-back-link {
+        border: 0; background: none; color: #00acc1; cursor: pointer; padding: 0 0 16px;
+        font: 700 .78rem "Inter", sans-serif;
+      }
+
             .hn-add-pet {
               border: 2px dashed #00bcd4 !important;
               background: rgba(0, 188, 212, 0.04) !important;
@@ -365,22 +397,54 @@ color: #6366f1 !important;
     modal.innerHTML = `
       <div class="hn-backdrop" id="hnBackdrop"></div>
       <div class="hn-modal-card">
-        <div class="hn-modal-header">
-          <div>
-            <h2>Your Pets</h2>
-            <p>Select a pet to switch</p>
+        <div class="hn-pet-view" id="hnPetView">
+          <div class="hn-modal-header">
+            <div>
+              <h2>Your Pets</h2>
+              <p>Select a pet to switch</p>
+            </div>
+            <button class="hn-modal-close" id="hnModalClose" aria-label="Close">
+              ${closeX()}
+            </button>
           </div>
-          <button class="hn-modal-close" id="hnModalClose" aria-label="Close">
-            ${closeX()}
-          </button>
+          <div class="hn-pet-grid" id="hnPetGrid"></div>
         </div>
-        <div class="hn-pet-grid" id="hnPetGrid"></div>
+        <div class="hn-add-view" id="hnAddView">
+          <button class="hn-back-link" id="hnAddBack">← Back to pets</button>
+          <div class="hn-modal-header">
+            <div><h2>Choose Your New Pet!</h2><p>Pick a companion and give them a name</p></div>
+            <button class="hn-modal-close" id="hnAddClose" aria-label="Close">${closeX()}</button>
+          </div>
+          <div class="hn-type-grid" id="hnTypeGrid">
+            <button class="hn-type-option" data-type="a">${catIcon()}Cat</button>
+            <button class="hn-type-option" data-type="b">${dogIcon()}Dog</button>
+            <button class="hn-type-option" data-type="c">${birdIcon()}Bird</button>
+          </div>
+          <input class="hn-pet-name-input" id="hnNewPetName" maxlength="20" placeholder="Name your pet…" />
+          <div class="hn-create-error" id="hnCreateError"></div>
+          <button class="hn-create-pet-btn" id="hnCreatePet">Start Your Journey!</button>
+        </div>
       </div>
     `;
     document.body.appendChild(modal);
 
     modal.querySelector("#hnBackdrop").addEventListener("click", closeModal);
     modal.querySelector("#hnModalClose").addEventListener("click", closeModal);
+    modal.querySelector("#hnAddClose").addEventListener("click", closeModal);
+    modal.querySelector("#hnAddBack").addEventListener("click", showPetView);
+    modal.querySelector("#hnTypeGrid").addEventListener("click", (e) => {
+      const option = e.target.closest(".hn-type-option");
+      if (!option) return;
+      newPetType = option.dataset.type;
+      modal.querySelectorAll(".hn-type-option").forEach((el) =>
+        el.classList.toggle("selected", el === option),
+      );
+      modal.querySelector("#hnCreateError").textContent = "";
+    });
+    modal.querySelector("#hnCreatePet").addEventListener("click", createPet);
+    modal.querySelector("#hnNewPetName").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") createPet();
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeModal();
     });
@@ -394,7 +458,6 @@ color: #6366f1 !important;
       vet: ["vet.html"],
       shop: ["shop.html"],
       dash: ["dash.html"],
-      yeap: ["yeap.html"],
     };
     const current = window.location.pathname.split("/").pop() || "index.html";
     return map[key]?.includes(current) ? "active" : "";
@@ -526,6 +589,22 @@ color: #6366f1 !important;
     document.body.style.overflow = "";
   }
 
+  function showAddPetView() {
+    newPetType = null;
+    document.getElementById("hnPetView").classList.add("hidden");
+    document.getElementById("hnAddView").classList.add("open");
+    document.querySelectorAll(".hn-type-option").forEach((el) => el.classList.remove("selected"));
+    document.getElementById("hnNewPetName").value = "";
+    document.getElementById("hnCreateError").textContent = "";
+    setTimeout(() => document.getElementById("hnNewPetName").focus(), 50);
+  }
+
+  function showPetView() {
+    document.getElementById("hnAddView").classList.remove("open");
+    document.getElementById("hnPetView").classList.remove("hidden");
+    renderModal();
+  }
+
   function renderModal() {
     const grid = document.getElementById("hnPetGrid");
     if (!grid) return;
@@ -536,9 +615,10 @@ color: #6366f1 !important;
           <span class="hn-empty-emoji">🐾</span>
           <h3>No pets yet</h3>
           <p>Adopt your first companion to get started.</p>
-          <a class="hn-add-btn" href="yeap.html">${addIcon()} Adopt a Pet</a>
+          <button class="hn-add-btn" id="hnEmptyAdd">${addIcon()} Adopt a Pet</button>
         </div>
       `;
+      grid.querySelector("#hnEmptyAdd").addEventListener("click", showAddPetView);
       return;
     }
     grid.innerHTML = ids
@@ -570,12 +650,10 @@ color: #6366f1 !important;
           <div class="hn-pet-name" style="color: #00bcd4;">Add Pet</div>
           <div class="hn-pet-meta">Create new</div>
         `;
-    addCard.addEventListener("click", () => {
-      window.location.href = "yeap.html";
-    });
+    addCard.addEventListener("click", showAddPetView);
     grid.appendChild(addCard);
 
-    grid.querySelectorAll(".hn-pet-card").forEach((card) => {
+    grid.querySelectorAll(".hn-pet-card:not(.hn-add-pet)").forEach((card) => {
       card.addEventListener("click", () => {
         const pid = card.dataset.pid;
         if (pid === currentPetId) {
@@ -587,6 +665,70 @@ color: #6366f1 !important;
     });
   }
 
+  async function createPet() {
+    const nameInput = document.getElementById("hnNewPetName");
+    const errorEl = document.getElementById("hnCreateError");
+    const button = document.getElementById("hnCreatePet");
+    const name = nameInput.value.trim();
+    if (!newPetType) {
+      errorEl.textContent = "Please select a pet.";
+      return;
+    }
+    if (!name) {
+      errorEl.textContent = "Please enter a pet name.";
+      nameInput.focus();
+      return;
+    }
+    await ensureAuth();
+    if (!currentUser || !db) {
+      errorEl.textContent = "Please sign in before adding a pet.";
+      return;
+    }
+
+    const now = Date.now();
+    const pid = now.toString();
+    const pet = {
+      name,
+      type: newPetType,
+      age: "baby",
+      level: 1,
+      experience: 0,
+      experienceToNextLevel: 100,
+      health: 100,
+      happiness: 100,
+      fullness: 100,
+      energy: 100,
+      bond: 0,
+      personality: newPetType === "a" ? "independent, curious, and quietly affectionate" : newPetType === "b" ? "loyal, playful, and eager to please" : "bright, social, and fond of mimicking sounds",
+      tasksCompleted: {},
+      aiTasks: [],
+      usingAITasks: false,
+      lastTaskReset: now,
+      adoptionDate: now,
+      lastUpdated: now,
+    };
+
+    button.disabled = true;
+    button.textContent = "Creating…";
+    errorEl.textContent = "";
+    try {
+      await db.collection("users").doc(currentUser.uid).collection("pets").doc(pid).set(pet);
+      await db.collection("users").doc(currentUser.uid).set({ currentPetId: pid }, { merge: true });
+      userPets[pid] = pet;
+      currentPetId = pid;
+      updateHubAvatar();
+      closeModal();
+      /* Reload so each page hydrates the newly created pet into its own cache. */
+      window.location.reload();
+    } catch (e) {
+      console.error("[helix-nav] createPet error:", e);
+      errorEl.textContent = "Could not create your pet. Please try again.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Start Your Journey!";
+    }
+  }
+
   async function selectPet(pid) {
     currentPetId = pid;
     updateHubAvatar();
@@ -594,13 +736,6 @@ color: #6366f1 !important;
     closeModal();
     if (typeof onPetSelectCb === "function") {
       onPetSelectCb(pid, userPets[pid]);
-    } else {
-      // Default: soft-reload page so it picks up new pet
-      // If we're on yeap.html, the page should handle its own reload
-      if (!window.location.pathname.includes("yeap.html")) {
-        // On non-yeap pages, just update the UI without full reload
-        // Pages that care about pet data should listen via onPetSelect
-      }
     }
   }
 

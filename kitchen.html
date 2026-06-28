@@ -23,6 +23,30 @@
                 appId: "1:154951525413:web:3fa89cc765fcec9cf0cbcc",
             };
             firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+
+            function showLoading(message = "Loading...") {
+                let overlay = document.getElementById("loadingOverlay");
+                if (!overlay) {
+                    overlay = document.createElement("div");
+                    overlay.id = "loadingOverlay";
+                    overlay.style.cssText = `
+                        position: fixed; inset: 0; z-index: 99999;
+                        display: flex; align-items: center; justify-content: center;
+                        background: rgba(5, 11, 11, 0.85); color: white;
+                        font: 600 15px "Plus Jakarta Sans", sans-serif;
+                    `;
+                    document.body.appendChild(overlay);
+                }
+                overlay.textContent = message;
+                overlay.style.display = "flex";
+            }
+
+            function hideLoading() {
+                const overlay = document.getElementById("loadingOverlay");
+                if (overlay) overlay.style.display = "none";
+            }
         </script>
         <style>
             * {
@@ -984,12 +1008,6 @@
 
         <div class="kitchen dog" id="kitchen">
             <button class="back-btn" onclick="goBack()">← Back</button>
-            <button
-                class="tutorial-btn"
-                onclick="window.kitchenTour?.forceOpen()"
-            >
-                Documentation
-            </button>
             <div class="pet-label" id="pet-label">Dog Kitchen</div>
             <div class="overlay"></div>
 
@@ -1279,6 +1297,9 @@
                 c: '<svg viewBox="0 0 24 24" fill="none" stroke="#00acc1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 9-8.5c0-3.5-2.5-7-7-7-3.5 0-6 2.5-6 6 0 1.5.5 2.5 1.5 3.5L6 18h.5"/><path d="M9 18a3.5 3.5 0 0 0 6 0"/></svg>',
             };
 
+            /* Money belongs to the signed-in account, never to an individual pet. */
+            let accountCostTracking = { budgetRemaining: 500 };
+
             function renderKitchen() {
                 const pet = getPetType();
                 const kitchen = document.getElementById("kitchen");
@@ -1380,11 +1401,20 @@
                 const dish = data.dishes[index];
                 const cost = parseInt(dish.cost.replace("$", ""));
 
-                /* Get current budget */
+                /* Always read the shared account budget from the user document. */
+                let storedCostTracking;
+                try {
+                    const userDoc = await db.collection("users").doc(uid).get();
+                    storedCostTracking =
+                        userDoc.data()?.userData?.costTracking || {};
+                    accountCostTracking = storedCostTracking;
+                } catch (e) {
+                    console.error("Unable to load account budget:", e);
+                    showAlert("error", "Unable to load your account balance.");
+                    return;
+                }
                 const currentBudget =
-                    pet.costTracking?.budgetRemaining ??
-                    pet.costTracking?.coins ??
-                    500;
+                    storedCostTracking.budgetRemaining ?? 500;
 
                 if (currentBudget < cost) {
                     showAlert(
@@ -1438,11 +1468,14 @@
                         .doc(uid)
                         .set(
                             {
-                                costTracking: {
-                                    budgetRemaining: newBudget,
-                                    foodSpent:
-                                        (pet.costTracking?.foodSpent || 0) +
-                                        cost,
+                                userData: {
+                                    costTracking: {
+                                        ...storedCostTracking,
+                                        budgetRemaining: newBudget,
+                                        foodSpent:
+                                            (storedCostTracking.foodSpent || 0) +
+                                            cost,
+                                    },
                                 },
                             },
                             { merge: true },
@@ -1450,10 +1483,10 @@
 
                     /* Update local state */
                     Object.assign(pet, updates);
-                    pet.costTracking = {
-                        ...(pet.costTracking || {}),
+                    accountCostTracking = {
+                        ...storedCostTracking,
                         budgetRemaining: newBudget,
-                        foodSpent: (pet.costTracking?.foodSpent || 0) + cost,
+                        foodSpent: (storedCostTracking.foodSpent || 0) + cost,
                     };
 
                     /* Update the pet in helixNav's userPets cache */
@@ -1463,8 +1496,6 @@
                         helixNav.userPets[petId]
                     ) {
                         Object.assign(helixNav.userPets[petId], updates);
-                        helixNav.userPets[petId].costTracking =
-                            pet.costTracking;
                     }
 
                     /* Refresh UI */
@@ -1476,10 +1507,6 @@
                     if (typeof helixNav !== "undefined") helixNav.refresh();
 
                     hideLoading();
-                    showAlert(
-                        "success",
-                        `Bought ${dish.name}! +${fullnessBoost} Fullness${happinessBoost > 0 ? ", +" + happinessBoost + " Happiness" : ""} (-$${cost})`,
-                    );
                 } catch (e) {
                     console.error("Kitchen buy error:", e);
                     hideLoading();
@@ -1556,10 +1583,7 @@
                     pet.name || "Pet";
 
                 /* Update coins (budgetRemaining) */
-                const coins =
-                    pet.costTracking?.budgetRemaining ??
-                    pet.costTracking?.coins ??
-                    0;
+                const coins = accountCostTracking.budgetRemaining ?? 0;
                 document.getElementById("kitchenCoins").textContent =
                     `$${Math.max(0, coins)}`;
 
@@ -1596,11 +1620,22 @@
             /* Update vitals when DOM is ready and when navbar updates */
             document.addEventListener("DOMContentLoaded", () => {
                 updateKitchenVitals();
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (!user) return;
+                    db.collection("users")
+                        .doc(user.uid)
+                        .onSnapshot((doc) => {
+                            accountCostTracking =
+                                doc.data()?.userData?.costTracking ||
+                                accountCostTracking;
+                            updateKitchenVitals();
+                        });
+                });
                 /* Refresh every 2 seconds to catch database changes */
                 setInterval(updateKitchenVitals, 2000);
             });
         </script>
-        <script src="shared-navbar.js?v=17"></script>
+        <script src="shared-navbar.js?v=18"></script>
         <script>
             if (typeof helixNav !== "undefined") {
                 helixNav.init({

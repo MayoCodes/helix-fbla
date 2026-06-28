@@ -150,8 +150,12 @@
                 color: #fff;
                 font-family: "Inter", sans-serif;
             }
-            .yeap-resource-value.cores {
-                color: #00d2ff;
+            .yeap-xp-pill {
+                min-width: 240px;
+                align-items: stretch;
+            }
+            .yeap-xp-pill .xp-bar-header {
+                width: 100%;
             }
 
             /* ── LEFT CARD STACK ── */
@@ -695,7 +699,7 @@
                 font-family: "Inter", sans-serif;
                 font-weight: 800;
                 font-size: 0.85rem;
-                color: #f4c430;
+                color: #fff;
             }
             .xp-bar-track {
                 width: 100%;
@@ -707,9 +711,9 @@
             }
             .xp-bar-fill {
                 height: 100%;
-                background: linear-gradient(90deg, #f4c430, #ff9800);
+                background: #fff;
                 border-radius: 5px;
-                box-shadow: 0 0 12px rgba(244, 196, 48, 0.3);
+                box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
                 position: relative;
             }
             .xp-bar-fill::after {
@@ -830,37 +834,16 @@
         <!-- Background -->
         <div class="park-bg"></div>
 
-        <!-- TOP-LEFT PROFILE -->
-        <div class="yeap-top-left">
-            <div class="yeap-avatar-wrap">
-                <div class="yeap-avatar">
-                    <img
-                        src="https://i.pravatar.cc/150?img=12"
-                        alt="avatar"
-                        id="topAvatar"
-                    />
-                </div>
-                <div class="yeap-level-badge" id="yeapLevelBadge">Lv.1</div>
-            </div>
-            <div class="yeap-profile-info">
-                <div class="yeap-profile-sub" id="yeapProfileSub">
-                    Systems Admin
-                </div>
-                <div class="yeap-profile-name" id="yeapProfileName">
-                    Trainer
-                </div>
-            </div>
-        </div>
-
         <!-- TOP-RIGHT RESOURCES -->
         <div class="yeap-top-right">
-            <div class="yeap-resource-pill">
-                <div class="yeap-resource-label">Credits</div>
-                <div class="yeap-resource-value" id="yeapCredits">0</div>
-            </div>
-            <div class="yeap-resource-pill">
-                <div class="yeap-resource-label">Cores</div>
-                <div class="yeap-resource-value cores" id="yeapCores">1</div>
+            <div class="yeap-resource-pill yeap-xp-pill">
+                <div class="xp-bar-header">
+                    <span class="xp-bar-label">Bond / XP</span>
+                    <span class="xp-bar-value" id="xpValue">Bond 0 · XP 0 / 100</span>
+                </div>
+                <div class="xp-bar-track">
+                    <div class="xp-bar-fill" id="xpFill" style="width: 0%"></div>
+                </div>
             </div>
         </div>
 
@@ -1130,22 +1113,6 @@
                         />
                     </svg>
                     <span class="menu-item-label">Store</span>
-                </button>
-                <button class="expand-family-btn" onclick="openSetupModal()">
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Expand Family
                 </button>
             </div>
         </div>
@@ -1434,17 +1401,6 @@
             </svg>
         </div>
 
-        <!-- XP BAR (bottom-right of viewport) -->
-        <div class="xp-bar-container">
-            <div class="xp-bar-header">
-                <span class="xp-bar-label">Experience</span>
-                <span class="xp-bar-value" id="xpValue">0 / 100</span>
-            </div>
-            <div class="xp-bar-track">
-                <div class="xp-bar-fill" id="xpFill" style="width: 0%"></div>
-            </div>
-        </div>
-
         <!-- ALERT -->
         <div
             class="alert-ov"
@@ -1512,8 +1468,7 @@
             </div>
         </div>
 
-        <script src="overlay.js"></script>
-        <script src="shared-navbar.js?v=17"></script>
+        <script src="shared-navbar.js?v=18"></script>
         <script>
             // ═══════════════════════════════════════════
             // FIREBASE
@@ -1609,7 +1564,7 @@
                         rows: 6,
                     },
                     backflip: {
-                        src: "Backflip.png",
+                        src: "Backflip.png?v=20260627-1",
                         frames: 36,
                         frameW: 170,
                         frameH: 170,
@@ -1898,18 +1853,10 @@
                 const photoURL =
                     currentUser?.photoURL || userProfileData.photoURL;
 
-                document.getElementById("yeapCredits").textContent =
-                    budgetRemaining.toLocaleString();
-                document.getElementById("yeapCores").textContent = p.level || 1;
-                document.getElementById("yeapLevelBadge").textContent =
-                    "Lv." + (p.level || 1);
-                document.getElementById("yeapProfileName").textContent =
-                    displayName;
                 document.getElementById("pmcName").textContent = displayName;
                 document.getElementById("pmcCoins").textContent =
                     "$" + budgetRemaining;
                 if (photoURL) {
-                    document.getElementById("topAvatar").src = photoURL;
                     document.getElementById("pmcAvatar").src = photoURL;
                 }
                 document.getElementById("vitalsPetName").textContent =
@@ -1946,7 +1893,12 @@
                     xpNext = p.experienceToNextLevel || 100,
                     xpPct = Math.min(100, (xp / xpNext) * 100);
                 document.getElementById("xpValue").textContent =
-                    Math.round(xp) + " / " + Math.round(xpNext);
+                    "Bond " +
+                    Math.round(p.bond || 0) +
+                    " · XP " +
+                    Math.round(xp) +
+                    " / " +
+                    Math.round(xpNext);
                 document.getElementById("xpFill").style.width = xpPct + "%";
                 updatePawLabels();
             }
@@ -1960,8 +1912,11 @@
             }
 
             function getSpriteConfig(key) {
+                const normalizedType =
+                    { cat: "a", dog: "b", bird: "c" }[petData.type] ||
+                    petData.type;
                 const petSprites =
-                    SPRITE_CONFIG[petData.type] || SPRITE_CONFIG.b;
+                    SPRITE_CONFIG[normalizedType] || SPRITE_CONFIG.b;
                 return petSprites[key] || SPRITE_CONFIG.b[key];
             }
 
@@ -2019,6 +1974,18 @@
                         "Not enough energy to perform this action!",
                     );
                     return;
+                }
+                /* A fresh click replaces any older queued action. */
+                animQueue.length = 0;
+                if (isAnimating) {
+                    const centerSprite =
+                        document.getElementById("petCenterSprite");
+                    if (centerSprite) stopSpriteAnim(centerSprite);
+                    if (actionTimeout) {
+                        clearTimeout(actionTimeout);
+                        actionTimeout = null;
+                    }
+                    isAnimating = false;
                 }
                 animQueue.push(key);
                 processAnimQueue();
