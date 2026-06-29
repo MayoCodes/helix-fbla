@@ -48,7 +48,7 @@ Helix is a browser-based virtual pet platform where users adopt a cat, dog, or b
 - An inline Add Pet flow
 - Firestore persistence for the selected pet
 
-The Add Pet form creates a document in the signed-in user's `pets` subcollection and makes that pet active. It does not use the legacy `yeap.html` route.
+The Add Pet form creates a document in the signed-in user's `pets` subcollection and makes that pet active.
 
 ### Tutorial system
 
